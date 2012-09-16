@@ -25,10 +25,11 @@ sub handle_message {
 
     my $frmt = Number::Format->new();
 
-    return sprintf('%s %s of a %s-sided die gave %s.',
-        $frmt->format_number($num, 0),
-        $num == 1 ? 'roll' : 'rolls',
+    return sprintf('%s rolled a %s-sided die %s %s and got %s.',
+        $sender,
         $frmt->format_number($die, 0),
+        $frmt->format_number($num, 0),
+        $num == 1 ? 'time' : 'times',
         $frmt->format_number($result, 0));
 }
 
