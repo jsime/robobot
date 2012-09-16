@@ -4,6 +4,7 @@ use v5.10;
 use strict;
 use warnings;
 
+use DBIx::DataStore config => 'yaml';
 use Module::Pluggable require => 1;
 use POE;
 use POE::Component::IRC;
@@ -102,6 +103,8 @@ sub new {
         options => { trace => 0, debug => 0 },
     );
 
+    $obj->{'dbh'} = DBIx::DataStore->new('robobot');
+
     print "Done creating session.\n";
 
     return $obj;
@@ -175,10 +178,43 @@ sub on_start {
 sub on_connect {
     my ($self) = ($_[OBJECT]);
 
+    my $res = $self->{'dbh'}->do(q{ select id from servers where name = ? }, $self->{'config'}->server());
+
+    if ($res && $res->next) {
+        $self->{'db'} = { server_id => $res->{'id'}, channels => {} };
+    } else {
+        $res = $self->{'dbh'}->do(q{ insert into servers (name) values (?) returning id }, $self->{'config'}->server());
+
+        die "Could not create a DB record for server " . $self->{'config'}->server() unless $res && $res->next;
+
+        $self->{'db'} = { server_id => $res->{'id'}, channels => {} };
+    }
+
     foreach my $channel ($self->{'config'}->channels()) {
         $self->{'irc'}->yield( join => $channel );
 
         print "Joining $channel on " . $self->{'config'}->server() . "...\n";
+
+        $res = $self->{'dbh'}->do(q{
+            select id
+            from channels
+            where server_id = ? and name = ?
+        }, $self->{'db'}->{'server_id'}, $channel);
+
+        if ($res && $res->next) {
+            $self->{'db'}->{'channels'}->{$channel} = $res->{'id'};
+        } else {
+            $res = $self->{'dbh'}->do(q{
+                insert into channels ??? returning id
+            }, { server_id => $self->{'db'}->{'server_id'},
+                 name      => $channel,
+            });
+
+            die "Could not create a DB record for channel $channel on server " . $self->{'config'}->server()
+                unless $res && $res->next;
+
+            $self->{'db'}->{'channels'}->{$channel} = $res->{'id'};
+        }
     }
 }
 
@@ -234,9 +270,14 @@ sub on_message {
             print "Command capture match: " . join(', ', $plugin->commands()) . "\n";
 
             next PLUGIN unless $plugin->can('handle_message');
-            $output = $plugin->handle_message($self, $sender_nick, $channel, $command, $message, $msg_time, $msg_part);
+            my $t_output = $plugin->handle_message($self, $sender_nick, $channel, $command, $message, $msg_time, $msg_part);
 
-            print "Got output from plugin: $output\n";
+            print "Got output from plugin: $t_output\n";
+
+            # skip usage errors for plugins which don't produce output when using catch-all '*' commands
+            next PLUGIN if $t_output == -1;
+
+            $output = $t_output;
 
             unless ($output && length($output) > 0) {
                 if ($plugin->can('usage')) {
