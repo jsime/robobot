@@ -232,12 +232,12 @@ sub on_message {
 
     my @parts = split(m{\|}o, $message);
 
-    my $output;
+    my @output;
 
     MESSAGE_PART:
     foreach my $msg_part (@parts) {
         $msg_part =~ s{(^\s+|\s+$)}{}ogs;
-        $msg_part = join(' ', grep { $_ =~ m{\w+}o } ($msg_part, $output)) if $output;
+        $msg_part = join(' ', grep { $_ =~ m{\w+}o } ($msg_part, @output)) if scalar(@output) > 0;
 
         print "Message Part: $msg_part\n";
 
@@ -256,7 +256,7 @@ sub on_message {
 
         # short circuit if "!help <plugin>" was issued in any message part
         if ($command && $command eq 'help') {
-            $output = $self->help($msg_part);
+            @output = $self->help($msg_part);
             last MESSAGE_PART;
         }
 
@@ -270,27 +270,30 @@ sub on_message {
             print "Command capture match: " . join(', ', $plugin->commands()) . "\n";
 
             next PLUGIN unless $plugin->can('handle_message');
-            my $t_output = $plugin->handle_message($self, $sender_nick, $channel, $command, $message, $msg_time, $msg_part);
+            my @t_output = $plugin->handle_message($self, $sender_nick, $channel, $command, $message, $msg_time, $msg_part);
 
-            print "Got output from plugin: $t_output\n";
+            print "Got output from plugin:\n";
+            print " => $_\n" for @t_output;
 
             # skip usage errors for plugins which don't produce output when using catch-all '*' commands
-            next PLUGIN if $t_output == -1;
+            next PLUGIN if scalar(@t_output) == 1 && $t_output[0] eq '-1';
 
-            $output = $t_output;
-
-            unless ($output && length($output) > 0) {
+            unless (@t_output && scalar(grep { $_ =~ m{\w+}o } @t_output) > 0) {
                 if ($plugin->can('usage')) {
-                    $output = "Usage: \!$command " . $plugin->usage();
+                    @output = ("Usage: \!$command " . $plugin->usage());
                 } else {
-                    $output = "Unknown command error, and plugin provided no usage information.";
+                    @output = ("Unknown command error, and plugin provided no usage information.");
                 }
                 last MESSAGE_PART;
             }
+
+            @output = @t_output;
         }
     }
 
-    $self->{'irc'}->yield( privmsg => $channel, $output ) if $output;
+    if (@output && scalar(grep { $_ =~ m{\w+}o } @output) > 0) {
+        $self->{'irc'}->yield( privmsg => $channel, $_ ) for grep { $_ =~ m{\w+}o } @output;
+    }
 }
 
 sub help {
