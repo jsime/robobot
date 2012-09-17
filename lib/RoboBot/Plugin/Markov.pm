@@ -45,9 +45,6 @@ sub log_phrases {
     push(@phrases, parse_verbs(\$tagged));
     push(@phrases, parse_misc(\$tagged));
 
-    my %uniq;
-    keys %{{ map { $_->{'word'} => $_ } @phrases}}
-
     save_phrase($bot, $nick_id, $_) for @phrases;
     save_sentence_form($bot, $nick_id, $tagged);
 }
@@ -168,6 +165,23 @@ sub save_phrase {
     my ($bot, $nick_id, $phrase) = @_;
 
     print "Saving phrase '$phrase->{'phrase'}' [$phrase->{'structure'}]\n";
+
+    my $res = $bot->{'dbh'}->do(q{
+        update markov_phrases
+        set used_count = used_count + 1
+        where nick_id = ? and phrase = ?
+        returning id
+    }, $nick_id, $phrase->{'phrase'});
+
+    return if $res && $res->next;
+
+    $res = $bot->{'dbh'}->do(q{
+        insert into markov_phrases ??? returning id
+    }, { nick_id    => $nick_id,
+         structure  => $phrase->{'structure'},
+         phrase     => $phrase->{'phrase'},
+         used_count => 1,
+    });
 }
 
 sub save_sentence_form {
@@ -178,6 +192,22 @@ sub save_sentence_form {
     $form = join(' ', @parts_of_speech);
 
     print "Saving sentence form '$form' for nick ID $nick_id\n";
+
+    my $res = $bot->{'dbh'}->do(q{
+        update markov_sentence_forms
+        set used_count = used_count + 1
+        where nick_id = ? and structure = ?
+        returning id
+    }, $nick_id, $form);
+
+    return if $res && $res->next;
+
+    $res = $bot->{'dbh'}->do(q{
+        insert into markov_sentence_forms ??? returning id
+    }, { nick_id    => $nick_id,
+         structure  => $form,
+         used_count => 1,
+    });
 }
 
 sub sender_nick_id {
