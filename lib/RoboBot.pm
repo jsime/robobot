@@ -264,11 +264,11 @@ sub on_message {
             next PLUGIN unless $plugin->can('handle_message');
             my @t_output = $plugin->handle_message($self, $sender_nick, $channel, $command, $message, $msg_time, $msg_part);
 
-            print "Got output from plugin $plugin:\n";
-            print " => $_\n" for @t_output;
-
             # skip usage errors for plugins which don't produce output when using catch-all '*' commands
             next PLUGIN if scalar(@t_output) == 1 && $t_output[0] eq '-1';
+
+            print "Got output from plugin $plugin:\n";
+            print " => $_\n" for @t_output;
 
             unless (@t_output && scalar(grep { $_ =~ m{\w+}o } @t_output) > 0) {
                 if ($plugin->can('usage')) {
