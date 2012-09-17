@@ -239,8 +239,6 @@ sub on_message {
         $msg_part =~ s{(^\s+|\s+$)}{}ogs;
         $msg_part = join(' ', grep { $_ =~ m{\w+}o } ($msg_part, @output)) if scalar(@output) > 0;
 
-        print "Message Part: $msg_part\n";
-
         my $command;
 
         if ($msg_part =~ m{^\s*\!(\w+)(.*)}o) {
@@ -252,8 +250,6 @@ sub on_message {
         $msg_part =~ s{(^\s+|\s+$)}{}ogs;
         $command =~ s{(^\s+|\s+$)}{}ogs;
 
-        print "Found command: $command\n" if $command;
-
         # short circuit if "!help <plugin>" was issued in any message part
         if ($command && $command eq 'help') {
             @output = $self->help($msg_part);
@@ -262,17 +258,13 @@ sub on_message {
 
         PLUGIN:
         foreach my $plugin (@{$self->{'plugins'}}) {
-            print "Checking plugin: $plugin\n";
-
             next PLUGIN unless $plugin->can('commands');
             next PLUGIN unless grep { $_ eq '*' || $command eq $_} $plugin->commands();
-
-            print "Command capture match: " . join(', ', $plugin->commands()) . "\n";
 
             next PLUGIN unless $plugin->can('handle_message');
             my @t_output = $plugin->handle_message($self, $sender_nick, $channel, $command, $message, $msg_time, $msg_part);
 
-            print "Got output from plugin:\n";
+            print "Got output from plugin $plugin:\n";
             print " => $_\n" for @t_output;
 
             # skip usage errors for plugins which don't produce output when using catch-all '*' commands
