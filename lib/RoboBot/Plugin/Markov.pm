@@ -6,18 +6,129 @@ use warnings;
 use Lingua::EN::Tagger;
 
 sub commands { qw( * markov ) }
-sub usage { "[nick] [seed phrase]" }
+sub usage { "<nick> [seed phrase]" }
 
 sub handle_message {
     my ($class, $bot, $sender, $channel, $command, $original, $timestamp, $message) = @_;
 
     if ($command && $command eq 'markov') {
-
+        return build_phrase($bot, $message);
     } elsif (!$command) {
         log_phrases($bot, $sender, $message);
     }
 
     return -1;
+}
+
+sub build_phrase {
+    my ($bot, $message) = @_;
+
+    return -1 unless $message =~ m{^(\w+)\b(.*)}o;
+
+    my $nick = $1;
+    my $seed_phrase = $2;
+
+    my $nick_id = sender_nick_id($bot, $nick);
+
+    return unless $nick_id;
+
+    my ($res);
+
+    $seed_phrase = normalize_text($seed_phrase) if $seed_phrase;
+
+    print "Building phrase for $nick (ID $nick_id) using seed phrase: [$seed_phrase]\n";
+
+    $seed_phrase = pick_seed_phrase($bot, $nick_id) unless $seed_phrase;
+
+    if ($seed_phrase) {
+        $res = $bot->{'dbh'}->do(q{
+            select structure, phrase
+            from markov_phrases
+            where nick_id = ? and phrase = ?
+        }, $nick_id, $seed_phrase);
+
+        unless ($res && $res->next) {
+            return 'Seed phrase not found for specified nick.';
+        }
+
+        my $sentence_form = pick_sentence_form($bot, $nick_id, $res->{'structure'});
+
+        return 'Seed phrase resulted in no usable sentence forms.' unless $sentence_form;
+
+        return make_seeded_phrase($bot, $nick, $nick_id, $sentence_form, $res->{'structure'}, $res->{'phrase'});
+    }
+}
+
+sub pick_seed_phrase {
+    my ($bot, $nick_id) = @_;
+
+    my $res = $bot->{'dbh'}->do(q{
+        select phrase
+        from markov_phrases
+        where nick_id = ?
+        order by cos(log((used_count * 2) + 1)) * random() desc
+        limit 1
+    }, $nick_id);
+
+    return unless $res && $res->next;
+    return $res->{'phrase'};
+}
+
+sub make_seeded_phrase {
+    my ($bot, $nick, $nick_id, $form, $seed_form, $seed) = @_;
+
+    my @words = split(/\s+/, $form);
+
+    my %structure_counts;
+    $structure_counts{$_}++ for @words;
+
+    my (@queries, @binds);
+
+    foreach my $structure (keys %structure_counts) {
+        push(@queries, qq{
+            select *
+            from (  select structure, phrase
+                    from markov_phrases
+                    where nick_id = ? and structure = ?
+                    order by cos(log((used_count * 2) + 1)) * random() desc
+                    limit ?
+                ) xd_$structure
+        });
+        push(@binds, $nick_id, $structure, $structure_counts{$structure});
+    }
+
+    my $res = $bot->{'dbh'}->do(join(' union all ', @queries), @binds);
+
+    return unless $res;
+
+    # make sure the seed phrase gets in there
+    $form =~ s/\b$seed_form\b/$seed/;
+
+    while ($res->next) {
+        $form =~ s/\b$res->{'structure'}\b/$res->{'phrase'}/;
+    }
+
+    # remove remaining placeholders
+    $form =~ s/\b[A-Z]+\b//og;
+
+    $form = normalize_text($form);
+
+    return "<$nick> $form";
+}
+
+sub pick_sentence_form {
+    my ($bot, $nick_id, $phrase_structure) = @_;
+
+    my $res = $bot->{'dbh'}->do(q{
+        select structure
+        from markov_sentence_forms
+        where nick_id = ? and structure ~ ?
+        order by cos(log((used_count * 2) + 1)) * random() desc
+        limit 1
+    }, $nick_id, '\m' . $phrase_structure . '\M');
+
+    return unless $res && $res->next;
+    return $res->{'structure'};
 }
 
 sub log_phrases {
@@ -38,8 +149,6 @@ sub log_phrases {
     my $tagger = Lingua::EN::Tagger->new();
     my $tagged = $tagger->get_readable($message);
 
-    print "Lingua Tagged Phrase:\n  $tagged\n";
-
     my @phrases = parse_noun_phrases(\$tagged);
     push(@phrases, parse_descriptives(\$tagged));
     push(@phrases, parse_verbs(\$tagged));
@@ -53,6 +162,8 @@ sub normalize_text {
     my ($text) = @_;
 
     $text = lc($text);
+    $text =~ s{\s+}{ }ogs;
+    $text =~ s{(^\s+|\s+$)}{}ogs;
 
     return $text;
 }
@@ -78,7 +189,7 @@ sub parse_descriptives {
 
         $ph = join(' ', map { $_->{'word'} } @words);
 
-        push(@phrases, { structure => 'JP', phrase => $ph }) if scalar(@words) > 1;
+        push(@phrases, { structure => 'J', phrase => $ph }) if scalar(@words) > 1;
         push(@phrases, { structure => 'J',  phrase => $_->{'word'} }) for @words;
     }
 
@@ -126,7 +237,7 @@ sub parse_noun_phrases {
 
         $ph = join(' ', map { $_->{'word'} } @words);
 
-        push(@phrases, { structure => 'NP', phrase => $ph }) if scalar(@words) > 1;
+        push(@phrases, { structure => 'N', phrase => $ph }) if scalar(@words) > 1;
         push(@phrases, { structure => 'N',  phrase => $_->{'word'} }) for @words;
     }
 
@@ -154,7 +265,7 @@ sub parse_verbs {
 
         $ph = join(' ', map { $_->{'word'} } @words);
 
-        push(@phrases, { structure => 'VP', phrase => $ph }) if scalar(@words) > 1;
+        push(@phrases, { structure => 'V', phrase => $ph }) if scalar(@words) > 1;
         push(@phrases, { structure => 'V',  phrase => $_->{'word'} }) for @words;
     }
 
@@ -163,8 +274,6 @@ sub parse_verbs {
 
 sub save_phrase {
     my ($bot, $nick_id, $phrase) = @_;
-
-    print "Saving phrase '$phrase->{'phrase'}' [$phrase->{'structure'}]\n";
 
     my $res = $bot->{'dbh'}->do(q{
         update markov_phrases
@@ -190,8 +299,6 @@ sub save_sentence_form {
     my @parts_of_speech = $form =~ m{\b([A-Z]+)\b}og;
 
     $form = join(' ', @parts_of_speech);
-
-    print "Saving sentence form '$form' for nick ID $nick_id\n";
 
     my $res = $bot->{'dbh'}->do(q{
         update markov_sentence_forms
