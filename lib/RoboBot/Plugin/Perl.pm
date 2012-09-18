@@ -24,9 +24,11 @@ sub handle_message {
         local $Data::Dumper::Terse = 1;
         local $Data::Dumper::Indent = 0;
 
-        $output = Dumper($output) if ref($output);
-
-        return $output;
+        if (ref($output)) {
+            return Dumper($output);
+        } else {
+            return grep { $_ =~ m{\w+}o } split(/\n/, $output);
+        }
     } elsif ($@) {
         return "Error: $@";
     }
