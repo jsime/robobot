@@ -15,7 +15,7 @@ sub handle_message {
         my $url = $1;
 
         my $ua = LWP::UserAgent->new();
-        $ua->timeout(2); # short timeout because we don't want to hold up other plugins/commands
+        $ua->timeout(3); # short timeout because we don't want to hold up other plugins/commands
 
         my $r = $ua->get($url);
 
@@ -27,10 +27,14 @@ sub handle_message {
 
             my $final_url = $r->base;
 
-            my @output = (sprintf('Title: %s', (length($title) > 100 ? substr($title, 0, 90) . '...' : $title)));
-            push(@output, sprintf('Redirected to: %s', $final_url)) if $final_url ne $url;
+            my @output = ();
 
-            return @output;
+            push(@output, sprintf('Title: %s', (length($title) > 120 ? substr($title, 0, 110) . '...' : $title)))
+                if $title =~ m{\w+};
+            push(@output, sprintf('Redirected to: %s', $final_url))
+                if $final_url ne $url;
+
+            return scalar(@output) > 0 ? @output : -1;
         }
     }
 
