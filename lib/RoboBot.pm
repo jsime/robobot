@@ -291,6 +291,9 @@ sub on_message {
 sub help {
     my ($self, $message) = @_;
 
+    $message =~ s{(^\s+|\s+$)}{}og;
+    $message =~ s{\!}{}og;
+
     if ($message && $message =~ /\w+/o) {
         foreach my $plugin (@{$self->{'plugins'}}) {
             if ($plugin->can('commands') && $plugin->can('usage')) {
