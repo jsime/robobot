@@ -230,6 +230,17 @@ sub on_message {
     # skip if it's us -- we don't want robobot talking to itself
     return if lc($who) eq lc($self->{'config'}->nick());
 
+    my $direct_to;
+
+    # check if the output should be redirected to a specific nick (or list of nicks)
+    if ($message =~ m{>\s*(\w+(?:[, ]+\w+)*)\s*$}o) {
+        $direct_to = $1;
+        $direct_to =~ s{[, ]+}{, }og;
+
+        # and remove it from the message
+        $message =~ s{>\s*(\w+(?:[, ]+\w+)*)\s*$}{}o;
+    }
+
     my @parts = split(m{\|}o, $message);
 
     my @output;
@@ -284,7 +295,10 @@ sub on_message {
     }
 
     if (@output && scalar(grep { $_ =~ m{\w+}o } @output) > 0) {
-        $self->{'irc'}->yield( privmsg => $channel, $_ ) for grep { $_ =~ m{\w+}o } @output;
+        $self->{'irc'}->yield(
+            privmsg => $channel,
+            ($direct_to && length($direct_to) > 0 ? "$direct_to: $_" : $_)
+        ) for grep { $_ =~ m{\w+}o } @output;
     }
 }
 
