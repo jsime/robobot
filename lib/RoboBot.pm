@@ -308,6 +308,8 @@ sub help {
     $message =~ s{(^\s+|\s+$)}{}og;
     $message =~ s{\!}{}og;
 
+    my @output = ();
+
     if ($message && $message =~ /\w+/o) {
         foreach my $plugin (@{$self->{'plugins'}}) {
             if ($plugin->can('commands') && $plugin->can('usage')) {
@@ -328,12 +330,21 @@ sub help {
         }
 
         if (scalar(keys(%commands)) > 0) {
-            return 'Use "!help <command>" for more help. Commands available: '
-                . join(' ', sort keys %commands);
+            push(@output, 'Use "!help <command>" for more help. Commands available: '
+                . join(' ', sort keys %commands));
         } else {
             return "I don't seem to have any plugins loaded.";
         }
     }
+
+    push(@output, q{Commands may be chained together, each passing on their output to the next, by } .
+        q{separating each command with a "|" character (much like Bash). This has no effect for } .
+        q{commands which don't operate on input.});
+    push(@output, q{The final output of your command may also be addressed to individuals in the } .
+        q{channel by appending the entire command sequence with "> nick[, nick, ...]" so that } .
+        q{their clients may highlight the messages for easier recognition.});
+
+    return @output;
 }
 
 =head1 AUTHOR
