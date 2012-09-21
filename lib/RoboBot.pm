@@ -97,6 +97,7 @@ sub new {
             $obj => {
                 _start      => "on_start",
                 irc_001     => "on_connect",
+                irc_msg     => "on_message",
                 irc_public  => "on_message",
             }
         ],
@@ -292,6 +293,14 @@ sub on_message {
 
             @output = @t_output;
         }
+    }
+
+    # check now if this was a private message to us -- if so, and there is no direct_to
+    # then we send the output back to the sender, otherwise we send it to direct_to.
+    # and if this wasn't a private message to us, it just goes back to the channel we
+    # received it in.
+    if (lc($channel) eq lc($self->{'config'}->nick())) {
+        $channel = $direct_to && length($direct_to) > 0 ? $direct_to : $sender_nick;
     }
 
     if (@output && scalar(grep { $_ =~ m{\w+}o } @output) > 0) {
