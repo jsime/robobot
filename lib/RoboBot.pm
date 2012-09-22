@@ -90,8 +90,6 @@ sub new {
 
     push(@{$obj->{'plugins'}}, $_) for $obj->plugins;
 
-    print "Creating new POE session for $args{'server'}...\n";
-
     POE::Session->create(
         object_states => [
             $obj => {
@@ -105,8 +103,6 @@ sub new {
     );
 
     $obj->{'dbh'} = DBIx::DataStore->new('robobot');
-
-    print "Done creating session.\n";
 
     return $obj;
 }
@@ -160,8 +156,6 @@ sub servers {
 sub on_start {
     my ($self) = ($_[OBJECT]);
 
-    print "Received on_start event, preparing to connect to server: " . $self->{'config'}->host() . "\n";
-
     $self->{'irc'}->yield( register => 'all' );
 
     $self->{'irc'}->yield(
@@ -194,8 +188,6 @@ sub on_connect {
     foreach my $channel ($self->{'config'}->channels()) {
         $self->{'irc'}->yield( join => $channel );
 
-        print "Joining $channel on " . $self->{'config'}->server() . "...\n";
-
         $res = $self->{'dbh'}->do(q{
             select id
             from channels
@@ -224,9 +216,14 @@ sub on_message {
 
     my $sender_nick = (split(/!/, $who))[0];
     my $channel = $where->[0];
-    my $msg_time = time();
 
-    print "Got message: $message\n  from: $sender_nick\n  channel: $channel\n";
+    $message =~ s{(^\s+|\s+$)}{}ogs;
+
+    my $msg_time = time();
+    my $msg_time_date = sprintf('%d-%02d-%02d', (localtime($msg_time))[5] + 1900, (localtime($msg_time))[4,3]);
+    my $msg_time_time = sprintf('%02d:%02d:%02d', (localtime($msg_time))[2,1,0]);
+
+    printf("%s %s [%s] <%s> %s\n", $msg_time_date, $msg_time_time, $channel, $sender_nick, $message);
 
     # skip if it's us -- we don't want robobot talking to itself
     return if lc($who) eq lc($self->{'config'}->nick());
@@ -234,12 +231,12 @@ sub on_message {
     my $direct_to;
 
     # check if the output should be redirected to a specific nick (or list of nicks)
-    if ($message =~ m{>\s*(\w+(?:[, ]+\w+)*)\s*$}o) {
+    if ($message =~ m{>\s*(\#?\w+(?:[, ]+\#?\w+)*)\s*$}o) {
         $direct_to = $1;
         $direct_to =~ s{[, ]+}{, }og;
 
         # and remove it from the message
-        $message =~ s{>\s*(\w+(?:[, ]+\w+)*)\s*$}{}o;
+        $message =~ s{>\s*(\#?\w+(?:[, ]+\#?\w+)*)\s*$}{}o;
     }
 
     my @parts = split(m{\|}o, $message);
@@ -279,9 +276,6 @@ sub on_message {
             # skip usage errors for plugins which don't produce output when using catch-all '*' commands
             next PLUGIN if scalar(@t_output) == 1 && $t_output[0] eq '-1';
 
-            print "Got output from plugin $plugin:\n";
-            print " => $_\n" for @t_output;
-
             unless (@t_output && scalar(grep { $_ =~ m{\w+}o } @t_output) > 0) {
                 if ($plugin->can('usage')) {
                     @output = ("Usage: \!$command " . $plugin->usage());
@@ -301,12 +295,25 @@ sub on_message {
     # received it in.
     if (lc($channel) eq lc($self->{'config'}->nick())) {
         $channel = $direct_to && length($direct_to) > 0 ? $direct_to : $sender_nick;
+        $direct_to = '';
+    } else {
+        $direct_to = "$direct_to: " if $direct_to && length($direct_to) > 0;
     }
 
     if (@output && scalar(grep { $_ =~ m{\w+}o } @output) > 0) {
+        my $resp_time = time();
+        my $resp_time_date = sprintf('%d-%02d-%02d', (localtime($resp_time))[5] + 1900, (localtime($resp_time))[4,3]);
+        my $resp_time_time = sprintf('%02d:%02d:%02d', (localtime($resp_time))[2,1,0]);
+
+        printf("%s %s [%s] <%s> %s\n",
+            $resp_time_date, $resp_time_time,
+            $channel, $self->{'config'}->nick(),
+            ($direct_to && length($direct_to) > 0 ? "$direct_to$_" : $_)
+        ) for grep { $_ =~ m{\w+}o } @output;
+
         $self->{'irc'}->yield(
             privmsg => $channel,
-            ($direct_to && length($direct_to) > 0 ? "$direct_to: $_" : $_)
+            ($direct_to && length($direct_to) > 0 ? "$direct_to$_" : $_)
         ) for grep { $_ =~ m{\w+}o } @output;
     }
 }

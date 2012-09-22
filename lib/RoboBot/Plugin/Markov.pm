@@ -36,8 +36,6 @@ sub build_phrase {
 
     $seed_phrase = normalize_text($seed_phrase) if $seed_phrase;
 
-    print "Building phrase for $nick (ID $nick_id) using seed phrase: [$seed_phrase]\n";
-
     $seed_phrase = pick_seed_phrase($bot, $nick_id) unless $seed_phrase;
 
     if ($seed_phrase) {
