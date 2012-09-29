@@ -9,8 +9,6 @@ sub usage { "<nick>" }
 sub handle_message {
     my ($class, $bot, $sender, $channel, $command, $original, $timestamp, $message) = @_;
 
-    print "Karma plugin got message [[$message]]\n";
-
     if ($command && $command eq 'karma') {
         return display_karma($bot, $message);
     } elsif ($message =~ m{(\w+)[:,]?\s*(\-\-|\+\+)}o) {
@@ -29,17 +27,29 @@ sub display_karma {
     return unless $message =~ m{\b(\w+)\b}o;
     my $nick = $1;
 
+    my $nick_id = nick_id($bot, $nick);
+    return unless $nick_id;
+
     my $res = $bot->{'dbh'}->do(q{
-        select n.nick, sum(k.karma) as karma
-        from karma_karma k
-            join nicks n on (n.id = k.nick_id)
-        where n.nick = ?
-        group by n.nick
-    }, $nick);
+        select sum(d.karma) as karma
+        from (
+            select from_nick_id, log(sum(karma))
+            from karma_karma
+            where nick_id = ? and karma = 1
+            group by from_nick_id
+
+            union all
+
+            select from_nick_id, log(sum(abs(karma))) * -1
+            from karma_karma
+            where nick_id = ? and karma = -1
+            group by from_nick_id
+        ) d(from_nick_id, karma)
+    }, $nick_id, $nick_id);
 
     return unless $res && $res->next;
 
-    return sprintf('%s has %.2f karma', $res->{'nick'}, $res->{'karma'});
+    return sprintf('%s has %.2f karma', $nick, $res->{'karma'});
 }
 
 sub add_karma {
@@ -51,7 +61,7 @@ sub add_karma {
     my $nick_id = nick_id($bot, $nick);
     return unless $nick_id;
 
-    print "Adding karma to $nick_id from $sender_id\n";
+    return -1 if $sender_id == $nick_id;
 
     my $res = $bot->{'dbh'}->do(q{
         insert into karma_karma (nick_id, from_nick_id, karma) values (?,?,?)
@@ -68,6 +78,8 @@ sub remove_karma {
 
     my $nick_id = nick_id($bot, $nick);
     return unless $nick_id;
+
+    return -1 if $sender_id == $nick_id;
 
     my $res = $bot->{'dbh'}->do(q{
         insert into karma_karma (nick_id, from_nick_id, karma) values (?,?,?)
