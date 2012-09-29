@@ -5,6 +5,7 @@ use warnings;
 
 use HTML::HeadParser;
 use LWP::UserAgent;
+use Text::Levenshtein qw(distance);
 
 sub commands { qw( * ) }
 
@@ -31,8 +32,12 @@ sub handle_message {
 
             push(@output, sprintf('Title: %s', (length($title) > 120 ? substr($title, 0, 110) . '...' : $title)))
                 if $title =~ m{\w+};
+
+            # seems a little odd, but direct comparisons weren't working reliably, maybe because of
+            # character set mismatches? anyway -- only show redirect if the levenshtein between the
+            # two URLs is greater than X% of the lenght of the input URL.
             push(@output, sprintf('Redirected to: %s', $final_url))
-                if $final_url ne $url;
+                if distinct($final_url, $url) >= length($url) * 0.1;
 
             return scalar(@output) > 0 ? @output : -1;
         }
