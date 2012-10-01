@@ -37,7 +37,7 @@ sub handle_message {
             # character set mismatches? anyway -- only show redirect if the levenshtein between the
             # two URLs is greater than X% of the lenght of the input URL.
             push(@output, sprintf('Redirected to: %s', $final_url))
-                if distinct($final_url, $url) >= length($url) * 0.1;
+                if distance($final_url, $url) >= length($url) * 0.1;
 
             return scalar(@output) > 0 ? @output : -1;
         }
