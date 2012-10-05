@@ -19,12 +19,15 @@ sub handle_message {
     my $ts = Text::Aspell->new();
     return unless $ts;
 
-    my @words = grep { length($_) >= 10 } split(/\s+/o, $message);
+    my @words = grep { length($_) >= 5 } split(/\s+/o, $message);
 
     my @new = ();
     my $misspelled = 0;
 
     foreach my $word (@words) {
+        $word = clean_word($word);
+        next unless $word;
+
         my $found = $ts->check($word);
 
         next if $found;
@@ -50,6 +53,18 @@ sub handle_message {
     return -1 unless $misspelled;
     return sprintf('%s: %s', $sender, join(', ', map { "*$_" } @new)) unless rand() > 0.5;
     return -1;
+}
+
+sub clean_word {
+    my ($word) = @_;
+
+    return if $word =~ m{[0-9_@/:;~<>\{\}\[\[\\\]]}o;
+
+    $word =~ s{(^[^a-zA-Z]+|[^a-zA-Z\.]+$)}{}ogs;
+    $word =~ s{\.+$}{\.}ogs;
+    $word =~ s{\.+$}{}ogs unless $word =~ m{\w+\.\w+}o;
+
+    return $word;
 }
 
 1;
