@@ -3,7 +3,7 @@ package RoboBot::Plugin::Catte;
 use strict;
 use warnings;
 
-sub commands { qw( catte dogge pony bike bear vidya ) }
+sub commands { qw( catte dogge pony bike bear vidya food ) }
 sub usage { '[[<id>] | [#<tag>] | [add|save <url>] | [delete|remove|forget <id>] | [tag <id> <tag>]]' }
 
 sub handle_message {
