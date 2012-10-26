@@ -78,6 +78,15 @@ sub save_catte {
     my $type_id = catte_type_id($bot, $type);
 
     my $res = $bot->{'dbh'}->do(q{
+        select id from catte_cattes where type_id = ? and catte_url = ?
+    }, $type_id, $message);
+
+    if ($res && $res->next) {
+        return sprintf('That %s was already saved as ID %d.',
+            uc(substr($type, 0, 1)), substr($type, 1), $res->{'id'});
+    }
+
+    $res = $bot->{'dbh'}->do(q{
         insert into catte_cattes ??? returning id
     }, {    type_id     => $type_id,
             catte_url   => $message,

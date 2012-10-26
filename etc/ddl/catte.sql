@@ -21,7 +21,7 @@ create index catte_cattes_added_by_idx on catte_cattes (added_by);
 create index catte_cattes_added_at_idx on catte_cattes (added_at);
 create index catte_cattes_deleted_idx on catte_cattes (deleted);
 
-create unique index catte_cattes_catte_url_idx on catte_cattes (catte_url);
+create unique index catte_cattes_type_id_catte_url_idx on catte_cattes (type_id, catte_url);
 
 alter table catte_cattes add foreign key (type_id) references catte_types (id);
 alter table catte_cattes add foreign key (added_by) references nicks (id);
