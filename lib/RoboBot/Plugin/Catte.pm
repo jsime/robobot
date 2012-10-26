@@ -82,7 +82,7 @@ sub save_catte {
     }, $type_id, $message);
 
     if ($res && $res->next) {
-        return sprintf('That %s was already saved as ID %d.',
+        return sprintf('That %s%s was already saved as ID %d.',
             uc(substr($type, 0, 1)), substr($type, 1), $res->{'id'});
     }
 
