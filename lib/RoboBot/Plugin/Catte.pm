@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 sub commands { qw( catte dogge pony bike bear vidya food ) }
-sub usage { '[[<id>] | [#<tag>] | [add|save <url>] | [delete|remove|forget <id>] | [tag <id> <tag>]]' }
+sub usage { '[[<id>] | [#<tag>] | [add|save <url>] | [delete|remove|forget <id>] | [tag <id> <tag>] | [tags]]' }
 
 sub handle_message {
     my ($class, $bot, $sender, $channel, $command, $original, $timestamp, $message) = @_;
@@ -13,7 +13,7 @@ sub handle_message {
         return save_catte($bot, $command, $sender, $1);
     } elsif ($message =~ m{^\s*(?:del(?:ete)?|rem(?:ove)?|rm|forget)\s+(\d+)\s*$}oi) {
         return delete_catte($bot, $command, $1);
-    } elsif ($message =~ m{^tag\s+(\d+)\s+(\#?\w+)\s*}oi) {
+    } elsif ($message =~ m{^tag\s+(\d+)\s+(\#?\S+)\s*}oi) {
         return tag_catte($bot, $command, $1, $2);
     } elsif ($message =~ m{^\s*\#(\w+)\s*$}oi) {
         return display_cattes($bot, $command, catte_by_tag($bot, $command, $1));
@@ -21,6 +21,8 @@ sub handle_message {
         return display_cattes($bot, $command, $1);
     } elsif ($message =~ m{^\s*$}o) {
         return display_cattes($bot, $command, random_catte($bot, $command));
+    } elsif ($message =~ m{^tags\s*$}o) {
+        return display_tags($bot, $command);
     }
 
     return;
@@ -176,6 +178,37 @@ sub random_catte {
 
     return unless $res && $res->next;
     return $res->{'id'};
+}
+
+sub display_tags {
+    my ($bot, $type) = @_;
+
+    my $res = $bot->{'dbh'}->do(q{
+        select ctg.tag_name, count(distinct(cc.id)) as num_cattes
+        from catte_types ct
+            join catte_cattes cc on (cc.type_id = ct.id)
+            join catte_catte_tags cct on (cct.catte_id = cc.id)
+            join catte_tags ctg on (ctg.id = cct.tag_id)
+        where ct.name = ?
+        group by ctg.tag_name
+        order by 2 desc
+        limit 20 offset 0
+    }, $type);
+
+    return unless $res;
+
+    my @tags;
+
+    while ($res->next) {
+        push(@tags, { name => $res->[0], num => $res->[1] });
+    }
+
+    return sprintf('No tags for %s%s', uc(substr($type, 0, 1)), substr($type, 1)) if scalar(@tags) < 1;
+
+    return (
+        sprintf('Top %d most popular tags for %s%s:', scalar(@tags), uc(substr($type, 0, 1)), substr($type, 1)),
+        join(', ', map { sprintf('#%s (%d)', $_->{'name'}, $_->{'num'}) } @tags)
+    );
 }
 
 sub normalize_tag {
