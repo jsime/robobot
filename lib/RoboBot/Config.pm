@@ -87,9 +87,16 @@ sub nick {
 sub username {
     my ($self) = @_;
 
-    return $self->{'servers'}->{$self->server}->{'username'}
-        ? $self->{'servers'}->{$self->server}->{'username'}
+    return $self->{'servers'}->{$self->server}->{'user'}
+        ? $self->{'servers'}->{$self->server}->{'user'}
         : $self->nick();
+}
+
+sub password {
+    my ($self) = @_;
+
+    return $self->{'servers'}->{$self->server}->{'pass'} if $self->{'servers'}->{$self->server}->{'pass'};
+    return;
 }
 
 sub channels {
@@ -106,11 +113,12 @@ sub _server_config {
         host => undef,
         port => undef,
         ssl  => 0,
-        username => undef,
+        user => undef,
+        pass => undef,
         channels => [],
     };
 
-    foreach my $k (qw( nick host port ssl username )) {
+    foreach my $k (qw( nick host port ssl user pass )) {
         $config->{$k} = $global->{$k} if $global->{$k};
         $config->{$k} = $server->{$k} if $server->{$k};
     }

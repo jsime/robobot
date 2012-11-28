@@ -185,6 +185,13 @@ sub on_connect {
         $self->{'db'} = { server_id => $res->{'id'}, channels => {} };
     }
 
+    if ($self->{'config'}->username() && $self->{'config'}->password()) {
+        $self->{'irc'}->yield(
+            privmsg => 'userserv',
+            sprintf('login %s %s', $self->{'config'}->username(), $self->{'config'}->password())
+        );
+    }
+
     foreach my $channel ($self->{'config'}->channels()) {
         $self->{'irc'}->yield( join => $channel );
 
