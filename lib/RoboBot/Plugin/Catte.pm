@@ -34,9 +34,10 @@ sub display_cattes {
     return 'Nothing found matching that criteria.' unless scalar(@ids) > 0;
 
     my $res = $bot->{'dbh'}->do(q{
-        select cc.id, cc.catte_url
+        select cc.id, cc.catte_url, n.nick, cc.added_at::date
         from catte_cattes cc
             join catte_types ct on (ct.id = cc.type_id)
+            join nicks n on (n.id = cc.added_by)
         where cc.id in ??? and ct.name = ? and not cc.deleted
     }, \@ids, $type);
 
@@ -64,7 +65,10 @@ sub display_cattes {
         $res->{'catte_url'} .= ' [ ' . join(' ', @t) . ' ]'
             if @t && scalar(@t) > 0;
 
-        push(@cattes, sprintf('[%d] %s', $res->{'id'}, $res->{'catte_url'}));
+        push(@cattes,
+            sprintf('[%d] %s (Added by %s on %s)', $res->{'id'}, $res->{'catte_url'},
+                $res->{'nick'}, $res->{'added_at'})
+        );
     }
 
     return 'Nothing found matching that criteria.' unless scalar(@cattes) > 0;
