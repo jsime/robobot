@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 sub commands { qw( catte dogge pony bike bear vidya food ) }
-sub usage { '[[<id>] | [#<tag>] | [add|save <url>] | [delete|remove|forget <id>] | [tag <id> <tag>] | [tags]]' }
+sub usage { '[[<id>] | [#<tag>] | [add|save <url>] | [delete|remove|forget <id>] | [tag <id> <tag>] | [untag <id> <tag>] | [tags]]' }
 
 sub handle_message {
     my ($class, $bot, $sender, $channel, $command, $original, $timestamp, $message) = @_;
@@ -15,6 +15,8 @@ sub handle_message {
         return delete_catte($bot, $command, $1);
     } elsif ($message =~ m{^tag\s+(\d+)\s+(\#?\S+)\s*}oi) {
         return tag_catte($bot, $command, $1, $2);
+    } elsif ($message =~ m{^untag\s+(\d+)\s+(\#?\S+)\s*}oi) {
+        return untag_catte($bot, $command, $1, $2);
     } elsif ($message =~ m{^\s*\#(\w+)\s*$}oi) {
         return display_cattes($bot, $command, catte_by_tag($bot, $command, $1));
     } elsif ($message =~ m{^\s*(\d+)\s*$}o) {
@@ -146,6 +148,30 @@ sub tag_catte {
     return sprintf('An error occurred while tagging %s %d with #%s', $type, $catte_id, $tag_name) unless $res;
     return sprintf('%s%s %d has now been tagged with #%s',
         uc(substr($type, 0, 1)), substr($type, 1), $catte_id, $tag_name);
+}
+
+sub untag_catte {
+    my ($bot, $type, $catte_id, $tag_name) = @_;
+
+    $tag_name = normalize_tag($tag_name);
+    return unless length($tag_name) > 0;
+
+    my $tag_id;
+
+    my $res = $bot->{'dbh'}->do(q{ select id from catte_tags where tag_name = ? }, $tag_name);
+
+    if ($res && $res->next) {
+        $tag_id = $res->{'id'};
+    } else {
+        return sprintf('No such tag exists: %s', $tag_name);
+    }
+
+    $res = $bot->{'dbh'}->do(q{ delete from catte_catte_tags where catte_id = ? and tag_id = ? }, $catte_id, $tag_id);
+
+    return unless $res;
+    return sprintf('Tag #%s removed from %s%s %d', $tag_name,
+        uc(substr($type, 0, 1)), substr($type, 1), $catte_id) if $res->count() > 0;
+    return sprintf('%s%s %d was not tagged with #%s', uc(substr($type, 0, 1)), substr($type, 1), $catte_id, $tag_name);
 }
 
 sub catte_by_tag {
