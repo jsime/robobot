@@ -118,4 +118,19 @@ create index eve_nick_regions_region_id_idx on eve_nick_regions (region_id);
 alter table eve_nick_regions add foreign key (nick_id) references nicks (id) on update cascade on delete cascade;
 alter table eve_nick_regions add foreign key (region_id) references eve_regions (region_id) on update cascade on delete cascade;
 
+create view eve_item_group_paths as
+    with recursive group_tree ( item_group_id, name, group_path )
+    as (    select item_group_id, name, rpad(name, 72)
+            from eve_item_groups
+            where parent_group_id is null
+            union all
+            select eve_item_groups.item_group_id, eve_item_groups.name,
+                group_tree.group_path || ' > ' || rpad(eve_item_groups.name, 72)
+            from eve_item_groups
+                join group_tree on (eve_item_groups.parent_group_id = group_tree.item_group_id)
+    )
+    select item_group_id, regexp_replace(group_path, '[[:space:]]+', ' ', 'g') as path
+    from group_tree
+    order by item_group_id asc;
+
 commit;
