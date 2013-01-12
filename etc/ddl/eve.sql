@@ -14,7 +14,7 @@ create table eve_items (
     item_id         integer not null primary key,
     item_group_id   integer not null,
     name            text not null,
-    description     text not null,
+    description     text,
     base_price      numeric(18,2) not null default 0.00
 );
 create unique index eve_items_name_idx on eve_items (name);
