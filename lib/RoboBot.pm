@@ -415,7 +415,7 @@ L<http://search.cpan.org/dist/RoboBot/>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2012 Jon Sime.
+Copyright 2013 Jon Sime.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
