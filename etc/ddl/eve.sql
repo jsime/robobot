@@ -17,7 +17,6 @@ create table eve_items (
     description     text,
     base_price      numeric(18,2) not null default 0.00
 );
-create unique index eve_items_name_idx on eve_items (name);
 create index eve_items_item_group_id_idx on eve_items (item_group_id);
 create index eve_items_name_text_pattern_ops_idx on eve_items (name text_pattern_ops);
 create index eve_items_base_price_idx on eve_items (base_price);
