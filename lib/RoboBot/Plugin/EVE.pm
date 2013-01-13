@@ -10,7 +10,7 @@ use Number::Format;
 use XML::Simple;
 
 sub commands { qw( eve ) }
-sub usage { "[ price <name> [<qty>] | item <name> | pilot <name> | corp <name> | alliance <name> ]" }
+sub usage { "[ price <name> [<qty>] | item <name> | pilot <name> | corp <name> ]" }
 
 sub handle_message {
     my ($class, $bot, $sender, $channel, $command, $original, $timestamp, $message) = @_;
