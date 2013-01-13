@@ -56,8 +56,8 @@ sub item_info {
         push(@r, sprintf('%s (%s)', $res->{'name'}, $res->{'path'}));
     }
 
-    return unless scalar(@r) > 0;
-    return (@r[0..2], sprintf('... and %d more ...', scalar(@r) - 3)) if scalar(@r) > 3;
+    return "No items matching that pattern were found." unless scalar(@r) > 0;
+    return (@r[0..4], sprintf('... and %d more ...', scalar(@r) - 5)) if scalar(@r) > 5;
     return @r;
 }
 
