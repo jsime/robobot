@@ -89,7 +89,7 @@ create table eve_pilot_corps (
     from_date   timestamp with time zone not null,
     to_date     timestamp with time zone
 );
-alter table eve_pilot_corps add primary key (pilot_id, corp_id, from_date, to_date);
+alter table eve_pilot_corps add primary key (pilot_id, corp_id, from_date);
 create index eve_pilot_corps_corp_id_idx on eve_pilot_corps (corp_id);
 create index eve_pilot_corps_from_date_idx on eve_pilot_corps (from_date);
 create index eve_pilot_corps_to_date_idx on eve_pilot_corps (to_date);
