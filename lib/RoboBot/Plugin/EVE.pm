@@ -165,13 +165,13 @@ sub item_prices {
                         <=>
                         length($items{$type_id}{'regions'}{$b}{'buy'})
                       } keys %{$items{$type_id}{'regions'}})[-1]
-            }{'name'});
+            }{'buy'});
         my $l_sell = length($items{$type_id}{'regions'}{
                 (sort { length($items{$type_id}{'regions'}{$a}{'sell'})
                         <=>
                         length($items{$type_id}{'regions'}{$b}{'sell'})
                       } keys %{$items{$type_id}{'regions'}})[-1]
-            }{'name'});
+            }{'sell'});
 
         foreach my $region_id (sort { $items{$type_id}{'regions'}{$a} cmp $items{$type_id}{'regions'}{$b} } keys %{$items{$type_id}{'regions'}}) {
             push(@r, sprintf(" |-[%-${l_region}s] %sBuy: %${l_buy}s / Sell: %${l_sell}s",
