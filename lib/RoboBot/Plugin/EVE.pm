@@ -191,35 +191,125 @@ sub pilot_info {
 
     return unless $name =~ m{^[a-z0-9 .-]+$}oi;
 
-    my $res = $bot->{'dbh'}->do(q{
-        -- placeholder so robobot doesn't break if i restart the daemon
-        select 1 where ? is not null
+    my $pilot = $bot->{'dbh'}->do(q{
+        select p.*, c.name as corporation, max(pc.from_date) as corporation_date, a.name as alliance
+        from eve_pilots p
+            join eve_pilot_corps pc on (pc.pilot_id = p.pilot_id and pc.to_date is null)
+            join eve_corps c on (c.corp_id = pc.corp_id)
+            left join eve_corp_alliances ca on (ca.corp_id = c.corp_id and ca.to_date is null)
+            left join eve_alliances a on (a.alliance_id = ca.alliance_id)
+        where lower(p.name) = lower(?) and p.cached_until >= now()
     }, $name);
 
-    my $xs = XML::Simple->new;
+    unless ($pilot && $pilot->next) {
+        my $xs = XML::Simple->new;
 
-    my $resp = get('https://api.eveonline.com/eve/CharacterID.xml.aspx?names=' . $name);
-    return 'Error contacting EVE Online CharacterID API.' unless $resp;
+        my $resp = get('https://api.eveonline.com/eve/CharacterID.xml.aspx?names=' . $name);
+        return 'Error contacting EVE Online CharacterID API.' unless $resp;
 
-    my $xml = $xs->XMLin($resp) || "Error parsing XML response from EVE Online CharacterID API.";
+        my $xml = $xs->XMLin($resp) || "Error parsing XML response from EVE Online CharacterID API.";
 
-    return "Unexpected data strucure while resolving character ID."
-        unless $xml->{'result'}{'rowset'}{'row'}{'characterID'};
+        return "Unexpected data strucure while resolving character ID."
+            unless $xml->{'result'}{'rowset'}{'row'}{'characterID'};
 
-    my $charid = $xml->{'result'}{'rowset'}{'row'}{'characterID'};
+        my $charid = $xml->{'result'}{'rowset'}{'row'}{'characterID'};
 
-    $resp = get('https://api.eveonline.com/eve/CharacterInfo.xml.aspx?characterID=' . $charid);
-    return 'Error contacting EVE Online CharacterInfo API.' unless $resp;
+        $resp = get('https://api.eveonline.com/eve/CharacterInfo.xml.aspx?characterID=' . $charid);
+        return 'Error contacting EVE Online CharacterInfo API.' unless $resp;
 
-    $xml = $xs->XMLin($resp) || "Error parsing XML response from EVE Online CharacterInfo API.";
+        $xml = $xs->XMLin($resp) || "Error parsing XML response from EVE Online CharacterInfo API.";
 
-    my @r = (sprintf('Pilot:       %s', $xml->{'result'}{'characterName'}));
-    push(@r, sprintf('Race:        %s (%s)', $xml->{'result'}{'bloodline'}, $xml->{'result'}{'race'}));
-    push(@r, sprintf('Corporation: %s (since: %s)', $xml->{'result'}{'corporation'}, $xml->{'result'}{'corporationDate'}));
-    push(@r, sprintf('Alliance:    %s', $xml->{'result'}{'alliance'})) if $xml->{'result'}{'alliance'};
-    push(@r, sprintf('Sec. Status: %.2f', $xml->{'result'}{'securityStatus'}));
+        my @corps = sort { $a->{'startDate'} cmp $b->{'startDate'} } @{$xml->{'result'}{'rowset'}{'row'}};
+
+        $pilot = {
+            name        => $xml->{'result'}{'characterName'},
+            gender      => $xml->{'result'}{'gender'},
+            race        => $xml->{'result'}{'race'},
+            bloodline   => $xml->{'result'}{'bloodline'},
+            dob         => $corps[0]->{'startDate'},
+            security    => $xml->{'result'}{'securityStatus'},
+            cached_until=> $xml->{'result'}{'cachedUntil'} . '+00',
+        };
+
+        my $res = $bot->{'dbh'}->do(q{ update eve_pilots set ??? returning pilot_id }, $pilot);
+
+        if ($res && $res->next) {
+            $pilot->{'pilot_id'} = $res->{'pilot_id'};
+        } else {
+            $res = $bot->{'dbh'}->do(q{ insert into eve_pilots ??? returning pilot_id }, $pilot);
+
+            return "Couldn't update expired cache entry for plot"
+                unless $res && $res->next;
+
+            $pilot->{'pilot_id'} = $res->{'pilot_id'};
+        }
+
+        my @insert;
+
+        # for(;;) loops aren't fashionable, but we need to refer to the next element to
+        # get the end date for the current one
+        for (my $i; $i < scalar(@corps); $i++) {
+            my $corp = $bot->{'dbh'}->do(q{
+                select *
+                from eve_corps
+                where corp_id = ? and cached_until >= now()
+            }, $corps[$i]->{'corporationID'});
+
+            unless ($corp && $corp->next) {
+                $corp = update_corporation($bot, $corps[$i]->{'corporationID'});
+            }
+
+            my $end_date = $i < scalar(@corps) - 1 ? $corps[$i - 1]->{'startDate'} . '+00' : undef;
+
+            push(@insert, { pilot_id    => $pilot->{'pilot_id'},
+                            corp_id     => $corp->{'corp_id'},
+                            from_date   => $corps[$i]->{'startDate'} . '+00',
+                            to_date     => $end_date
+                          });
+        }
+
+        $bot->{'dbh'}->begin;
+
+        $res = $bot->{'dbh'}->do(q{ delete from eve_pilot_corps where pilot_id = ? }, $pilot->{'pilot_id'});
+        $res = $bot->{'dbh'}->do(q{ insert into eve_pilot_corps ??? }, \@insert);
+
+        unless ($bot->{'dbh'}->commit) {
+            $bot->{'dbh'}->rollback;
+            return "Encountered an error while updating pilot's corporation membership.";
+        }
+
+        $res = $bot->{'dbh'}->do(q{
+            select c.name as corporation, pc.from_date, a.name as alliance
+            from eve_pilot_corps pc
+                join eve_corps c on (c.corp_id = pc.corp_id)
+                left join eve_corp_alliances ca on (ca.corp_id = c.corp_id and ca.to_date is null)
+                left join eve_alliances a on (a.alliance_id = ca.alliance_id)
+            where pc.pilot_id = ? and pc.to_date is null
+        }, $pilot->{'pilot_id'});
+
+        if ($res && $res->next) {
+            $pilot->{'corporation'} = $res->{'corporation'};
+            $pilot->{'corporation_date'} = $res->{'from_date'};
+            $pilot->{'alliance'} = $res->{'alliance'};
+        } else {
+            return "Error determining pilot's corporate status.";
+        }
+    }
+
+    my @r = (sprintf('Pilot:       %s', $pilot->{'name'}));
+    push(@r, sprintf('Born:        %s', $pilot->{'dob'});
+    push(@r, sprintf('Race:        %s (%s)', $pilot->{'bloodline'}, $pilot->{'race'}));
+    push(@r, sprintf('Corporation: %s (since: %s)', $pilot->{'corporation'}, $pilot->{'corporation_date'}));
+    push(@r, sprintf('Alliance:    %s', $pilot->{'alliance'})) if $pilot->{'alliance'};
+    push(@r, sprintf('Sec. Status: %.2f', $pilot->{'security'}));
 
     return @r;
+}
+
+sub update_corporation {
+    my ($bot, $corp_id) = @_;
+
+    
 }
 
 1;
