@@ -71,20 +71,33 @@ sub item_prices {
         $qty = $2;
     } else {
         ($name, $qty) = ($args, 1);
-        $name =~ s{(^\s+|\s+$)}{}ogs;
     }
 
-    my $res = $bot->{'dbh'}->do(q{
+    $name =~ s{(^\s+|\s+$)}{}ogs;
+    $name =~ s{\s+}{ }ogs;
+
+    my $res = $dbot->{'dbh'}->do(q{
         select i.item_id, i.name, igp.path
         from eve_items i
             join eve_item_group_paths igp on (igp.item_group_id = i.item_group_id)
-        where i.name ~* ?
+        where lower(i.name) = lower(?)
     }, $name);
 
-    return unless $res;
-
-    while ($res->next) {
+    if ($res && $res->next) {
         $types{$res->{'item_id'}} = { map { $_ => $res->{$_} } $res->columns };
+    } else {
+        $res = $bot->{'dbh'}->do(q{
+            select i.item_id, i.name, igp.path
+            from eve_items i
+                join eve_item_group_paths igp on (igp.item_group_id = i.item_group_id)
+            where i.name ~* ?
+        }, $name);
+
+        return unless $res;
+
+        while ($res->next) {
+            $types{$res->{'item_id'}} = { map { $_ => $res->{$_} } $res->columns };
+        }
     }
 
     $res = $bot->{'dbh'}->do(q{
