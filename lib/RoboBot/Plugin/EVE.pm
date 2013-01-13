@@ -140,8 +140,8 @@ sub item_prices {
         foreach my $region_id (sort { $items{$type_id}{'regions'}{$a} cmp $items{$type_id}{'regions'}{$b} } keys %{$items{$type_id}{'regions'}}) {
             push(@r, sprintf(' |-[%s] Buy: %s / Sell: %s',
                 $items{$type_id}{'regions'}{$region_id}{'name'},
-                $ft->format_number($items{$type_id}{'regions'}{$region_id}{'buy'}, 2),
-                $ft->format_number($items{$type_id}{'regions'}{$region_id}{'sell'}, 2))
+                $ft->format_number($items{$type_id}{'regions'}{$region_id}{'buy'}, 2, 1),
+                $ft->format_number($items{$type_id}{'regions'}{$region_id}{'sell'}, 2, 1))
             );
         }
     }
