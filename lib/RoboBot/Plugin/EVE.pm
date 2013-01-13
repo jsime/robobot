@@ -79,7 +79,7 @@ sub item_prices {
     $name =~ s{\s+}{ }ogs;
 
     my $res = $bot->{'dbh'}->do(q{
-        select i.item_id, i.name, igp.path
+        select i.item_id, i.name, i.base_price, igp.path
         from eve_items i
             join eve_item_group_paths igp on (igp.item_group_id = i.item_group_id)
         where lower(i.name) = lower(?)
@@ -89,7 +89,7 @@ sub item_prices {
         $types{$res->{'item_id'}} = { map { $_ => $res->{$_} } $res->columns };
     } else {
         $res = $bot->{'dbh'}->do(q{
-            select i.item_id, i.name, igp.path
+            select i.item_id, i.name, i.base_price, igp.path
             from eve_items i
                 join eve_item_group_paths igp on (igp.item_group_id = i.item_group_id)
             where i.name ~* ?
@@ -104,6 +104,8 @@ sub item_prices {
         }
     }
 
+    return "No items matching that pattern were found." unless scalar(keys(%types)) > 0;
+
     $res = $bot->{'dbh'}->do(q{
         select r.region_id, r.name
         from eve_regions r
@@ -115,6 +117,8 @@ sub item_prices {
     while ($res->next) {
         $regions{$res->{'region_id'}} = { map { $_ => $res->{$_} } $res->columns };
     }
+
+    return "Could not locate any valid regions." unless scalar(keys(%regions)) > 0;
 
     $res = $bot->{'dbh'}->do(q{
         select *
@@ -207,6 +211,11 @@ sub item_prices {
 
     foreach my $type_id (sort { $items{$a}{'name'} cmp $items{$b}{'name'} } keys %items ) {
         push(@r, sprintf('%s (%s)', $items{$type_id}{'name'}, $items{$type_id}{'category'}));
+        push(@r, sprintf('  Base Price: %s ISK',
+            $types{$type_id}{'base_price'} > 0
+                ? $ft->format_number($types{$type_id}{'base_price'}, 2, 1)
+                : 'Unavailable'
+            ));
 
         my $l_region = length($items{$type_id}{'regions'}{
                 (sort { length($items{$type_id}{'regions'}{$a}{'name'})
