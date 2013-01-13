@@ -76,7 +76,7 @@ sub item_prices {
     $name =~ s{(^\s+|\s+$)}{}ogs;
     $name =~ s{\s+}{ }ogs;
 
-    my $res = $dbot->{'dbh'}->do(q{
+    my $res = $bot->{'dbh'}->do(q{
         select i.item_id, i.name, igp.path
         from eve_items i
             join eve_item_group_paths igp on (igp.item_group_id = i.item_group_id)
