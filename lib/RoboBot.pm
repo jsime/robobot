@@ -166,6 +166,7 @@ sub on_start {
             Server   => $self->{'config'}->host(),
             Port     => $self->{'config'}->port(),
             UseSSL   => $self->{'config'}->ssl() || 0,
+            Flood    => 1, # can be dangerous, but we limit our output elsewhere
         }
     );
 }
@@ -317,6 +318,11 @@ sub on_message {
             $channel, $self->{'config'}->nick(),
             ($direct_to && length($direct_to) > 0 ? "$direct_to$_" : $_)
         ) for grep { $_ =~ m{\w+}o } @output;
+
+        # hardcode a 10-line limit to our output for now (might move this
+        # into a configuration variable later, as well as just delay the
+        # extras instead of discarding them).
+        @output = (@output[0..8], '... Output truncated ...') if scalar(@output) > 10;
 
         $self->{'irc'}->yield(
             privmsg => $channel,
