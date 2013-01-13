@@ -9,12 +9,18 @@ use Number::Format;
 use XML::Simple;
 
 sub commands { qw( eve ) }
-sub usage { "[ price <item name or type ID> [<qty>] [<region>] | item <pattern> | pilot <name> | corp <pattern> | alliance <pattern> ]" }
+sub usage { "[ price <item name or type ID> [<qty>] | item <pattern> | pilot <name> | corp <pattern> | alliance <pattern> ]" }
 
 sub handle_message {
     my ($class, $bot, $sender, $channel, $command, $original, $timestamp, $message) = @_;
 
     return unless $message;
+
+    return sprintf('This plugin has not been properly configured. Please notify your %s administrator.',
+        $bot->{'config'}->nick)
+        unless $bot->{'config'}->plugins->{'eve'}{'pilot'}
+            && ref($bot->{'config'}->plugins->{'eve'}{'regions'}) eq 'ARRAY'
+            && scalar(@{$bot->{'config'}->plugins->{'eve'}{'regions'}}) > 0;
 
     my $subcmd = (split(/\s+/, $message))[0];
     $subcmd =~ s{(^\s+|\s+$)}{}ogs; 
@@ -58,13 +64,47 @@ sub item_prices {
     my ($bot, $args) = @_;
 
     my ($name, $qty);
+    my (%types, %regions);
 
-    # DEMO PURPOSES ONLY -- hardcoded type ID and regions, ignores all arguments
+    if ($args =~ m{^(.*)\b(\d+)\s*$}o) {
+        $name = $1;
+        $qty = $2;
+    } else {
+        ($name, $qty) = ($args, 1);
+        $name =~ s{(^\s+|\s+$)}{}ogs;
+    }
+
+    my $res = $bot->{'dbh'}->do(q{
+        select i.item_id, i.name, igp.path
+        from eve_items i
+            join eve_item_group_paths igp on (igp.item_group_id = i.item_group_id)
+        where i.name ~* ?
+    }, $name);
+
+    return unless $res;
+
+    while ($res->next) {
+        $types{$res->{'item_id'}} = { map { $_ => $res->{$_} } $res->columns };
+    }
+
+    $res = $bot->{'dbh'}->do(q{
+        select r.region_id, r.name
+        from eve_regions r
+        where r.name in ???
+    }, [@{$bot->{'config'}->plugins->{'eve'}{'regions'}}]);
+
+    return unless $res;
+
+    while ($res->next) {
+        $regions{$res->{'region_id'}} = { map { $_ => $res->{$_} } $res->columns };
+    }
+
+    my $charname = $bot->{'config'}->plugins->{'eve'}{'pilot'};
 
     my $url = sprintf('http://api.eve-marketdata.com/api/item_prices2.json?char_name=%s&' .
                       'type_ids=%s&region_ids=%s&buysell=a',
-                      $charname, join(',', keys %items), join(',', keys %regions));
-    my $res = get($url);
+                      $charname, join(',', keys %types), join(',', keys %regions));
+    $res = get($url);
 
     return unless $res;
     my $data = from_json($res) || return;
@@ -81,17 +121,14 @@ sub item_prices {
         $items{$type_id}{'regions'}{$region_id} = { buy => undef, sell => undef }
             unless $items{$type_id}{'regions'}{$region_id};
 
-        # DEMO PURPOSES ONLY -- fake a region name
         $items{$type_id}{'regions'}{$region_id}{'name'} =
-            (qw( Citadel Maal Genesis Syndicate ))[int(rand(4))];
+            $regions{$region_id}->{'name'};
 
         $items{$type_id}{'regions'}{$region_id}{'buy'} = $price if $buyorsell eq 'b';
         $items{$type_id}{'regions'}{$region_id}{'sell'} = $price if $buyorsell eq 's';
 
-        # DEMO PURPOSES ONLY -- fake name for now
-        $items{$type_id}{'name'} =
-            (qw( Tritanium Pyerite Isogen Mexallon Megacyte ))[int(rand(5))];
-        $items{$type_id}{'category'} = 'Manufacturing > Materials > Minerals';
+        $items{$type_id}{'name'} = $types{$type_id}->{'name'};
+        $items{$type_id}{'category'} = $types{$type_id}->{'path'};
     }
 
     my $ft = Number::Format->new();
