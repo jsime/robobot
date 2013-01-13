@@ -39,11 +39,12 @@ sub item_info {
 
     $name_pattern =~ s{(^\s+|\s+$)}{}ogs;
 
+    my $ft = Number::Format->new();
+
     my $res = $bot->{'dbh'}->do(q{
-        select i.item_id, i.name, i.description, ig.name as group_name, igp.path
+        select i.item_id, i.name, i.description, igp.path
         from eve_items i
-            join eve_item_groups ig on (ig.item_group_id = i.item_group_id)
-            join eve_item_group_paths igp on (igp.item_group_id = ig.item_group_id)
+            join eve_item_group_paths igp on (igp.item_group_id = i.item_group_id)
         where i.name ~* ?
         order by i.name asc
     }, $name_pattern);
@@ -57,7 +58,7 @@ sub item_info {
     }
 
     return "No items matching that pattern were found." unless scalar(@r) > 0;
-    return (@r[0..4], sprintf('... and %d more ...', scalar(@r) - 5)) if scalar(@r) > 5;
+    return (@r[0..9], sprintf('... and %s more ...', $ft->format_number(scalar(@r) - 10, 0))) if scalar(@r) > 10;
     return @r;
 }
 
