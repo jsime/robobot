@@ -302,7 +302,7 @@ sub pilot_info {
     }
 
     my @r = (sprintf('Pilot:       %s', $pilot->{'name'}));
-    push(@r, sprintf('Born:        %s', $pilot->{'dob'});
+    push(@r, sprintf('Born:        %s', $pilot->{'dob'}));
     push(@r, sprintf('Race:        %s (%s)', $pilot->{'bloodline'}, $pilot->{'race'}));
     push(@r, sprintf('Corporation: %s (since: %s)', $pilot->{'corporation'}, $pilot->{'corporation_date'}));
     push(@r, sprintf('Alliance:    %s', $pilot->{'alliance'})) if $pilot->{'alliance'};
