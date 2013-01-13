@@ -31,7 +31,8 @@ create unique index eve_regions_name_idx on eve_regions (name);
 create table eve_item_prices (
     item_id         integer not null,
     region_id       integer not null,
-    price           numeric(18,2) not null default 0.00,
+    buy_price       numeric(18,2) not null default 0.00,
+    sell_price      numeric(18,2) not null default 0.00,
     cached_until    timestamp with time zone not null default now() + interval '1 hour'
 );
 alter table eve_item_prices add primary key (item_id, region_id);
