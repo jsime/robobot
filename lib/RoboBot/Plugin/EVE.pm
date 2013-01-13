@@ -231,7 +231,12 @@ sub pilot_info {
             cached_until=> $xml->{'result'}{'cachedUntil'} . '+00',
         };
 
-        my $res = $bot->{'dbh'}->do(q{ update eve_pilots set ??? returning pilot_id }, $pilot);
+        my $res = $bot->{'dbh'}->do(q{
+            update eve_pilots
+            set ???
+            where pilot_id = ?
+            returning pilot_id
+        }, $pilot, $pilot->{'pilot_id'});
 
         if ($res && $res->next) {
             $pilot->{'pilot_id'} = $res->{'pilot_id'};
@@ -309,7 +314,42 @@ sub pilot_info {
 sub update_corporation {
     my ($bot, $corp_id) = @_;
 
-    
+    my $xs = XML::Simple->new;
+
+    my $resp = get('https://api.eveonline.com/corp/CorporationSheet.xml.aspx?corporationID=' . $corp_id);
+    return 'Error contacting EVE Online CorporationSheet API.' unless $resp;
+
+    my $xml = $xs->XMLin($resp) || "Error parsing XML response from EVE Online CharacterID API.";
+
+    $xml = $xs->XMLin($resp) || "Error parsing XML response from EVE Online CharacterInfo API.";
+
+    my $corp = {
+        corp_id      => $xml->{'result'}{'corporationID'},
+        name         => $xml->{'result'}{'corporationName'},
+        description  => $xml->{'result'}{'description'},
+        ticker       => $xml->{'result'}{'ticker'},
+        shares       => $xml->{'result'}{'shares'},
+        tax_rate     => $xml->{'result'}{'taxRate'},
+        member_count => $xml->{'result'}{'memberCount'},
+        cached_until => $xml->{'result'}{'cachedUntil'} . '+00',
+    };
+
+    my $res = $bot->{'dbh'}->do(q{
+        update eve_corps
+        set ???
+        where corp_id = ?
+        returning *
+    }, $corp, $corp->{'corp_id'});
+
+    if ($res && $res->next) {
+        return $corp;
+    } else {
+        $res = $bot->{'dbh'}->do(q{ insert into eve_corps ??? returning * }, $corp);
+
+        return $corp if $res && $res->next;
+    }
+
+    return;
 }
 
 1;
