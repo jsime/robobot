@@ -91,6 +91,8 @@ sub item_prices {
             from eve_items i
                 join eve_item_group_paths igp on (igp.item_group_id = i.item_group_id)
             where i.name ~* ?
+            order by levenshtein(lower(?),lower(i.name)) asc, i.name asc
+            limit 3
         }, $name);
 
         return unless $res;
