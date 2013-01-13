@@ -175,7 +175,7 @@ sub item_prices {
             }{'sell'});
 
         foreach my $region_id (sort { $items{$type_id}{'regions'}{$a} cmp $items{$type_id}{'regions'}{$b} } keys %{$items{$type_id}{'regions'}}) {
-            push(@r, sprintf(" |-[%-${l_region}s] %sBuy: %${l_buy}s / Sell: %${l_sell}s",
+            push(@r, sprintf("  [ %-${l_region}s ] %sBuy: %${l_buy}s / Sell: %${l_sell}s",
                 $items{$type_id}{'regions'}{$region_id}{'name'},
                 ($qty > 1 ? sprintf('Qty: %s @ ', $ft->format_number($qty, 0)) : ''),
                 $items{$type_id}{'regions'}{$region_id}{'buy'},
