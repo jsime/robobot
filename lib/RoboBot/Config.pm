@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use File::HomeDir;
+use Storable qw( freeze thaw );
 use YAML qw( LoadFile );
 
 sub new {
@@ -105,6 +106,12 @@ sub channels {
     return @{$self->{'servers'}->{$self->server}->{'channels'}};
 }
 
+sub plugins {
+    my ($self) = @_;
+
+    return $self->{'servers'}->{$self->server}->{'plugins'};
+}
+
 sub _server_config {
     my ($name, $global, $server) = @_;
 
@@ -116,6 +123,7 @@ sub _server_config {
         user => undef,
         pass => undef,
         channels => [],
+        plugins  => {},
     };
 
     foreach my $k (qw( nick host port ssl user pass )) {
@@ -136,6 +144,22 @@ sub _server_config {
             $ch = _channel_name($ch);
             next if grep { lc($ch) eq $_ } @{$config->{'channels'}};
             push(@{$config->{'channels'}}, lc($ch));
+        }
+    }
+
+    # Per-Plugin configurations -- using Storable's freeze/thaw for deep copies
+
+    if ($global->{'plugins'} && ref($global->{'plugins'}) eq 'HASH') {
+        foreach my $plugin (keys %{$global->{'plugins'}}) {
+            my $plugin_cfg = freeze(%{$global->{'plugins'}{$plugin}});
+            $config->{'plugins'}{$plugin} = { thaw($plugin_cfg) };
+        }
+    }
+
+    if ($server->{'plugins'} && ref($server->{'plugins'}) eq 'HASH') {
+        foreach my $plugin (keys %{$server->{'plugins'}}) {
+            my $plugin_cfg = freeze($server->{'plugins'}{$plugin});
+            $config->{'plugins'}{$plugin} = thaw($plugin_cfg);
         }
     }
 
