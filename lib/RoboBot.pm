@@ -236,6 +236,9 @@ sub on_message {
     # skip if it's us -- we don't want robobot talking to itself
     return if lc($who) eq lc($self->{'config'}->nick());
 
+    # skip if it's GitHub, since we don't want to spam the channel with URLs and misspellings
+    return if $who =~ m{GitHub\d+}o;
+
     my $direct_to;
 
     # check if the output should be redirected to a specific nick (or list of nicks)
