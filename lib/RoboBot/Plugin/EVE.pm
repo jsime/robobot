@@ -3,6 +3,7 @@ package RoboBot::Plugin::EVE;
 use strict;
 use warnings;
 
+use Data::Dumper;
 use JSON;
 use LWP::Simple;
 use Number::Format;
@@ -192,13 +193,16 @@ sub pilot_info {
     return unless $name =~ m{^[a-z0-9 .-]+$}oi;
 
     my $pilot = $bot->{'dbh'}->do(q{
-        select p.*, c.name as corporation, max(pc.from_date) as corporation_date, a.name as alliance
+        select p.pilot_id, p.name, p.gender, p.race, p.bloodline, p.dob, p.security, p.cached_until,
+            c.name as corporation, max(pc.from_date) as corporation_date, a.name as alliance
         from eve_pilots p
             join eve_pilot_corps pc on (pc.pilot_id = p.pilot_id and pc.to_date is null)
             join eve_corps c on (c.corp_id = pc.corp_id)
             left join eve_corp_alliances ca on (ca.corp_id = c.corp_id and ca.to_date is null)
             left join eve_alliances a on (a.alliance_id = ca.alliance_id)
         where lower(p.name) = lower(?) and p.cached_until >= now()
+        group by p.pilot_id, p.name, p.gender, p.race, p.bloodline, p.dob, p.security, p.cached_until,
+            c.name, a.name
     }, $name);
 
     unless ($pilot && $pilot->next) {
@@ -222,13 +226,13 @@ sub pilot_info {
         my @corps = sort { $a->{'startDate'} cmp $b->{'startDate'} } @{$xml->{'result'}{'rowset'}{'row'}};
 
         $pilot = {
+            pilot_id    => $xml->{'result'}{'characterID'},
             name        => $xml->{'result'}{'characterName'},
-            gender      => $xml->{'result'}{'gender'},
             race        => $xml->{'result'}{'race'},
             bloodline   => $xml->{'result'}{'bloodline'},
             dob         => $corps[0]->{'startDate'},
             security    => $xml->{'result'}{'securityStatus'},
-            cached_until=> $xml->{'result'}{'cachedUntil'} . '+00',
+            cached_until=> $xml->{'cachedUntil'} . '+00',
         };
 
         my $res = $bot->{'dbh'}->do(q{
@@ -241,6 +245,9 @@ sub pilot_info {
         if ($res && $res->next) {
             $pilot->{'pilot_id'} = $res->{'pilot_id'};
         } else {
+            # API for non-key requests doesn't return gender -- we'll fake it in the DB for now
+            $pilot->{'gender'} = 'Female';
+
             $res = $bot->{'dbh'}->do(q{ insert into eve_pilots ??? returning pilot_id }, $pilot);
 
             return "Couldn't update expired cache entry for plot"
@@ -253,7 +260,7 @@ sub pilot_info {
 
         # for(;;) loops aren't fashionable, but we need to refer to the next element to
         # get the end date for the current one
-        for (my $i; $i < scalar(@corps); $i++) {
+        for (my $i = 0; $i < scalar(@corps); $i++) {
             my $corp = $bot->{'dbh'}->do(q{
                 select *
                 from eve_corps
@@ -321,17 +328,14 @@ sub update_corporation {
 
     my $xml = $xs->XMLin($resp) || "Error parsing XML response from EVE Online CharacterID API.";
 
-    $xml = $xs->XMLin($resp) || "Error parsing XML response from EVE Online CharacterInfo API.";
-
     my $corp = {
         corp_id      => $xml->{'result'}{'corporationID'},
         name         => $xml->{'result'}{'corporationName'},
-        description  => $xml->{'result'}{'description'},
         ticker       => $xml->{'result'}{'ticker'},
         shares       => $xml->{'result'}{'shares'},
         tax_rate     => $xml->{'result'}{'taxRate'},
         member_count => $xml->{'result'}{'memberCount'},
-        cached_until => $xml->{'result'}{'cachedUntil'} . '+00',
+        cached_until => $xml->{'cachedUntil'} . '+00',
     };
 
     my $res = $bot->{'dbh'}->do(q{
