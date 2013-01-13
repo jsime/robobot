@@ -93,7 +93,7 @@ sub item_prices {
             where i.name ~* ?
             order by levenshtein(lower(?),lower(i.name)) asc, i.name asc
             limit 3
-        }, $name);
+        }, $name, $name);
 
         return unless $res;
 
@@ -124,6 +124,7 @@ sub item_prices {
     return unless $res;
     my $data = from_json($res) || return;
 
+    my $ft = Number::Format->new();
     my %items;
 
     foreach my $result (@{$data->{'emd'}{'result'}}) {
@@ -139,24 +140,45 @@ sub item_prices {
         $items{$type_id}{'regions'}{$region_id}{'name'} =
             $regions{$region_id}->{'name'};
 
-        $items{$type_id}{'regions'}{$region_id}{'buy'} = $price if $buyorsell eq 'b';
-        $items{$type_id}{'regions'}{$region_id}{'sell'} = $price if $buyorsell eq 's';
+        $items{$type_id}{'regions'}{$region_id}{'buy'} =
+            $ft->format_number($qty * $price, 2, 1) if $buyorsell eq 'b';
+        $items{$type_id}{'regions'}{$region_id}{'sell'} =
+            $ft->format_number($qty * $price, 2, 1) if $buyorsell eq 's';
 
         $items{$type_id}{'name'} = $types{$type_id}->{'name'};
         $items{$type_id}{'category'} = $types{$type_id}->{'path'};
     }
 
-    my $ft = Number::Format->new();
     my @r;
 
     foreach my $type_id (sort { $items{$a}{'name'} cmp $items{$b}{'name'} } keys %items ) {
         push(@r, sprintf('%s (%s)', $items{$type_id}{'name'}, $items{$type_id}{'category'}));
 
+        my $l_region = length($items{$type_id}{'regions'}{
+                (sort { length($items{$type_id}{'regions'}{$a}{'name'})
+                        <=>
+                        length($items{$type_id}{'regions'}{$b}{'name'})
+                      } keys %{$items{$type_id}{'regions'}})[-1]
+            }{'name'});
+        my $l_buy = length($items{$type_id}{'regions'}{
+                (sort { length($items{$type_id}{'regions'}{$a}{'buy'})
+                        <=>
+                        length($items{$type_id}{'regions'}{$b}{'buy'})
+                      } keys %{$items{$type_id}{'regions'}})[-1]
+            }{'name'});
+        my $l_sell = length($items{$type_id}{'regions'}{
+                (sort { length($items{$type_id}{'regions'}{$a}{'sell'})
+                        <=>
+                        length($items{$type_id}{'regions'}{$b}{'sell'})
+                      } keys %{$items{$type_id}{'regions'}})[-1]
+            }{'name'});
+
         foreach my $region_id (sort { $items{$type_id}{'regions'}{$a} cmp $items{$type_id}{'regions'}{$b} } keys %{$items{$type_id}{'regions'}}) {
-            push(@r, sprintf(' |-[%s] Buy: %s / Sell: %s',
+            push(@r, sprintf(" |-[%-${l_region}s] %sBuy: %${l_buy}s / Sell: %${l_sell}s",
                 $items{$type_id}{'regions'}{$region_id}{'name'},
-                $ft->format_number($items{$type_id}{'regions'}{$region_id}{'buy'}, 2, 1),
-                $ft->format_number($items{$type_id}{'regions'}{$region_id}{'sell'}, 2, 1))
+                ($qty > 1 ? sprintf('Qty: %s @ ', $ft->format_number($qty, 0)) : ''),
+                $items{$type_id}{'regions'}{$region_id}{'buy'},
+                $items{$type_id}{'regions'}{$region_id}{'sell'})
             );
         }
     }
