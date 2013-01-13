@@ -192,6 +192,9 @@ sub pilot_info {
 
     return unless $name =~ m{^[a-z0-9 .-]+$}oi;
 
+    $name =~ s{(^\s+|\s+$)}{}ogs;
+    $name =~ s{\s+}{ }ogs;
+
     my $pilot = $bot->{'dbh'}->do(q{
         select p.pilot_id, p.name, p.gender, p.race, p.bloodline, p.dob, p.security, p.cached_until,
             c.name as corporation, max(pc.from_date) as corporation_date, a.name as alliance
