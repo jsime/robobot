@@ -115,39 +115,91 @@ sub item_prices {
         $regions{$res->{'region_id'}} = { map { $_ => $res->{$_} } $res->columns };
     }
 
-    my $charname = $bot->{'config'}->plugins->{'eve'}{'pilot'};
-
-    my $url = sprintf('http://api.eve-marketdata.com/api/item_prices2.json?char_name=%s&' .
-                      'type_ids=%s&region_ids=%s&buysell=a',
-                      $charname, join(',', keys %types), join(',', keys %regions));
-    $res = get($url);
-
-    return unless $res;
-    my $data = from_json($res) || return;
+    $res = $bot->{'dbh'}->do(q{
+        select *
+        from eve_item_prices
+        where item_id in ??? and region_id in ???
+            and cached_until >= now()
+    }, [keys %types], [keys %regions]);
 
     my $ft = Number::Format->new();
+
     my %items;
 
-    foreach my $result (@{$data->{'emd'}{'result'}}) {
-        my $type_id = $result->{'row'}->{'typeID'};
-        my $region_id = $result->{'row'}->{'regionID'};
-        my $buyorsell = $result->{'row'}->{'buysell'};
-        my $price = sprintf('%.2f', $result->{'row'}->{'price'});
+    if ($res) {
+        while ($res->next) {
+            $items{$res->{'item_id'}} = { regions => {} } unless $items{$res->{'item_id'}};
+            $items{$res->{'item_id'}}{'regions'}{$res->{'region_id'}} =
+                { buy  => $ft->format_number($qty * $res->{'buy_price'}, 2, 1),
+                  sell => $ft->format_number($qty * $res->{'sell_price'}, 2, 1)
+                };
+        }
+    }
 
-        $items{$type_id} = { regions => {} } unless $items{$type_id};
-        $items{$type_id}{'regions'}{$region_id} = { buy => undef, sell => undef }
-            unless $items{$type_id}{'regions'}{$region_id};
+    my @unseen_items = grep { !$items{$_} } keys %types;
+    my %unseen_regions;
 
-        $items{$type_id}{'regions'}{$region_id}{'name'} =
-            $regions{$region_id}->{'name'};
+    foreach my $item_id (keys %types) {
+        $unseen_regions{$_} = 1 for grep { !$items{$item_id}{'regions'}{$_} } keys %regions;
+    }
 
-        $items{$type_id}{'regions'}{$region_id}{'buy'} =
-            $ft->format_number($qty * $price, 2, 1) if $buyorsell eq 'b';
-        $items{$type_id}{'regions'}{$region_id}{'sell'} =
-            $ft->format_number($qty * $price, 2, 1) if $buyorsell eq 's';
+    if (scalar(@unseen_items) > 0 || scalar(keys(%unseen_regions)) > 0) {
+        my $charname = $bot->{'config'}->plugins->{'eve'}{'pilot'};
 
-        $items{$type_id}{'name'} = $types{$type_id}->{'name'};
-        $items{$type_id}{'category'} = $types{$type_id}->{'path'};
+        my $url = sprintf('http://api.eve-marketdata.com/api/item_prices2.json?char_name=%s&' .
+                          'type_ids=%s&region_ids=%s&buysell=a',
+                          $charname, join(',', keys %types), join(',', keys %regions));
+        my $resp = get($url);
+
+        return unless $res;
+        my $data = from_json($resp) || return;
+
+        foreach my $result (@{$data->{'emd'}{'result'}}) {
+            my $type_id = $result->{'row'}->{'typeID'};
+            my $region_id = $result->{'row'}->{'regionID'};
+            my $buyorsell = $result->{'row'}->{'buysell'};
+            my $price = sprintf('%.2f', $result->{'row'}->{'price'});
+
+            $res = $bot->{'dbh'}->do(q{
+                update eve_item_prices
+                set } . ($buyorsell eq 'b' ? 'buy_price' : 'sell_price') . q{ = ?,
+                    cached_until = now() + interval '1 hour'
+                where item_id = ? and region_id = ?
+                returning cached_until
+            }, $price, $type_id, $region_id);
+
+            unless ($res && $res->next) {
+                $res = $bot->{'dbh'}->do(q{
+                    insert into eve_item_prices
+                        ( item_id, region_id, buy_price, sell_price, cached_until )
+                    values
+                        ( ?, ?, ?, ?, now() + interval '1 hour' )
+                    returning cached_until
+                }, $type_id, $region_id,
+                    ($buyorsell eq 'b' ? $price : 0),
+                    ($buyorsell eq 's' ? $price : 0)
+                );
+            }
+
+            $items{$type_id} = { regions => {} } unless $items{$type_id};
+            $items{$type_id}{'regions'}{$region_id} = { buy => undef, sell => undef }
+                unless $items{$type_id}{'regions'}{$region_id};
+
+            $items{$type_id}{'regions'}{$region_id}{'buy'} =
+                $ft->format_number($qty * $price, 2, 1) if $buyorsell eq 'b';
+            $items{$type_id}{'regions'}{$region_id}{'sell'} =
+                $ft->format_number($qty * $price, 2, 1) if $buyorsell eq 's';
+        }
+    }
+
+    # fill in the names now that we have items from both the cache and the API
+    foreach my $item_id (keys %items) {
+        $items{$item_id}{'name'} = $types{$item_id}{'name'};
+        $items{$item_id}{'category'} = $types{$item_id}{'path'};
+
+        foreach my $region_id (keys %{$items{$item_id}{'regions'}}) {
+            $items{$item_id}{'regions'}{$region_id}{'name'} = $regions{$region_id}{'name'};
+        }
     }
 
     my @r;
