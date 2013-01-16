@@ -8,6 +8,7 @@ use DBIx::DataStore config => 'yaml';
 use Module::Pluggable require => 1;
 use POE;
 use POE::Component::IRC;
+use Time::HiRes qw( usleep );
 
 use RoboBot::Config;
 
@@ -233,6 +234,13 @@ sub on_message {
 
     printf("%s %s [%s] <%s> %s\n", $msg_time_date, $msg_time_time, $channel, $sender_nick, $message);
 
+    # set up skeleton of output options, with defaults
+    my %options = (
+        to          => $channel,
+        msg_limit   => 10,
+        msg_per_sec => 10,
+    );
+
     # skip if it's us -- we don't want robobot talking to itself
     return if lc($who) eq lc($self->{'config'}->nick());
 
@@ -251,8 +259,7 @@ sub on_message {
     }
 
     my @parts = split(m{\|}o, $message);
-
-    my @output;
+    my (@output, @output_opts);
 
     MESSAGE_PART:
     foreach my $msg_part (@parts) {
@@ -287,6 +294,11 @@ sub on_message {
             # skip usage errors for plugins which don't produce output when using catch-all '*' commands
             next PLUGIN if scalar(@t_output) == 1 && $t_output[0] eq '-1';
 
+            # if the first element of the plugin's output array is a hashref,
+            # shift it from the list and keep it for later merging as options
+            push(@output_opts, shift @t_output)
+                if scalar(@t_output) > 0 && ref($t_output[0]) eq 'HASH';
+
             unless (@t_output && scalar(grep { $_ =~ m{\w+}o } @t_output) > 0) {
                 if ($plugin->can('usage')) {
                     @output = ("Usage: \!$command " . $plugin->usage());
@@ -300,11 +312,26 @@ sub on_message {
         }
     }
 
-    # check now if this was a private message to us -- if so, and there is no direct_to
-    # then we send the output back to the sender, otherwise we send it to direct_to.
-    # and if this wasn't a private message to us, it just goes back to the channel we
+    # iterate through the returned options from each plugin, in order, with
+    # the most recent taking precedence (i.e. if two plugins both returned
+    # the "to" option to override normal output destination, then the second
+    # one to do so is the one whose destination is used).
+    foreach my $optset (@output_opts) {
+        foreach my $opt (keys %{$optset}) {
+            $options{$opt} = $optset->{$opt};
+        }
+    }
+
+    # check first if a plugin has overridden the default recipient (which would be
+    # the current channel), then check if this was a private message to us. if it
+    # is a private message to the bot, and there is no direct_to then we send the
+    # output back to the sender, otherwise we send it to direct_to -- and if this
+    # wasn't a private message to us, it just goes back to the channel we
     # received it in.
-    if (lc($channel) eq lc($self->{'config'}->nick())) {
+    if ($options{'to'} && $options{'to'} ne $channel) {
+        $channel = $options{'to'};
+        $direct_to = '';
+    } elsif (lc($channel) eq lc($self->{'config'}->nick())) {
         $channel = $direct_to && length($direct_to) > 0 ? $direct_to : $sender_nick;
         $direct_to = '';
     } else {
@@ -322,15 +349,27 @@ sub on_message {
             ($direct_to && length($direct_to) > 0 ? "$direct_to$_" : $_)
         ) for grep { $_ =~ m{\w+}o } @output;
 
-        # hardcode a 10-line limit to our output for now (might move this
-        # into a configuration variable later, as well as just delay the
-        # extras instead of discarding them).
-        @output = (@output[0..8], '... Output truncated ...') if scalar(@output) > 10;
+        # honor the message limit option, and append a message indicating that the
+        # output has been truncated if it exceeds that limit
+        @output = (@output[0..($options{'msg_limit'} - 1)], '... Output truncated ...')
+            if scalar(@output) > $options{'msg_limit'};
 
-        $self->{'irc'}->yield(
-            privmsg => $channel,
-            ($direct_to && length($direct_to) > 0 ? "$direct_to$_" : $_)
-        ) for grep { $_ =~ m{\w+}o } @output;
+        foreach my $line (@output) {
+            $self->{'irc'}->yield(
+                privmsg => $channel,
+                ($direct_to && length($direct_to) > 0 ? "$direct_to$line" : $line)
+            );
+
+            # sleep appropriate number of microseconds in a minor attempt at not
+            # flooding the channel/recipient, based on the messages-per-second
+            # option
+            usleep(1 / $options{'msg_per_sec'} * 1_000_000);
+        }
+
+#        $self->{'irc'}->yield(
+#            privmsg => $channel,
+#            ($direct_to && length($direct_to) > 0 ? "$direct_to$_" : $_)
+#        ) for grep { $_ =~ m{\w+}o } @output;
     }
 }
 
