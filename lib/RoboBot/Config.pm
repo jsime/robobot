@@ -79,6 +79,18 @@ sub ssl {
     return $self->{'servers'}->{$self->server}->{'ssl'} ? 1 : 0;
 }
 
+sub msgrate {
+    my ($self) = @_;
+
+    return $self->{'servers'}->{$self->server}->{'msgrate'};
+}
+
+sub msglimit {
+    my ($self) = @_;
+
+    return $self->{'servers'}->{$self->server}->{'msglimit'};
+}
+
 sub nick {
     my ($self) = @_;
 
@@ -116,17 +128,19 @@ sub _server_config {
     my ($name, $global, $server) = @_;
 
     my $config = {
-        nick => undef,
-        host => undef,
-        port => undef,
-        ssl  => 0,
-        user => undef,
-        pass => undef,
+        nick     => undef,
+        host     => undef,
+        port     => undef,
+        ssl      => 0,
+        user     => undef,
+        pass     => undef,
+        msgrate  => 10,
+        msglimit => 10,
         channels => [],
         plugins  => {},
     };
 
-    foreach my $k (qw( nick host port ssl user pass )) {
+    foreach my $k (qw( nick host port ssl user pass msgrate msglimit )) {
         $config->{$k} = $global->{$k} if $global->{$k};
         $config->{$k} = $server->{$k} if $server->{$k};
     }

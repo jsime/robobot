@@ -237,8 +237,8 @@ sub on_message {
     # set up skeleton of output options, with defaults
     my %options = (
         to          => $channel,
-        msg_limit   => 10,
-        msg_per_sec => 10,
+        msg_limit   => $self->{'config'}->msglimit(),
+        msg_per_sec => $self->{'config'}->msgrate(),
     );
 
     # skip if it's us -- we don't want robobot talking to itself
@@ -365,11 +365,6 @@ sub on_message {
             # option
             usleep(1 / $options{'msg_per_sec'} * 1_000_000);
         }
-
-#        $self->{'irc'}->yield(
-#            privmsg => $channel,
-#            ($direct_to && length($direct_to) > 0 ? "$direct_to$_" : $_)
-#        ) for grep { $_ =~ m{\w+}o } @output;
     }
 }
 
