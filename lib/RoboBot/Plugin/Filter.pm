@@ -6,8 +6,8 @@ use warnings;
 use FileHandle;
 use IPC::Open2;
 
-sub commands { qw( b1ff chef cockney eleet fanboy fudd nethackify newspeak pirate scottish scramble uniencode ) }
-sub usage { "[text]" }
+sub commands { qw( b1ff chef cockney eleet fudd nethackify newspeak pirate scottish scramble uniencode ) }
+sub usage { "<text>" }
 
 sub handle_message {
     my ($class, $bot, $sender, $channel, $command, $original, $timestamp, $message) = @_;

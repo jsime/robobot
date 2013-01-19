@@ -6,7 +6,7 @@ use warnings;
 use utf8;
 
 sub commands { qw( bork ) }
-sub usage { "<message>" }
+sub usage { "<text>" }
 
 my %repl = (
     A   => ['A',"\N{U+00c4}","\N{U+00c5}"],
