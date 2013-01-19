@@ -17,7 +17,6 @@ sub handle_message {
 
     my $prog = `which $command`;
     chomp($prog);
-    print STDERR "Filter program: [[$prog]]\n";
     return "That filter does not appear to be installed on this machine." unless -x $prog;
 
     my $pid = open2(my $rfh, my $wfh, $prog) || return;
