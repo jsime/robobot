@@ -12,8 +12,6 @@ sub handle_message {
     if ($command && $command eq 'karma') {
         return display_karma($bot, $message);
     } elsif ($message =~ m{(\w+)[:,]?\s*(\-\-|\+\+)}o) {
-        print "Karma operation for $1: $2\n";
-
         return add_karma($bot, $sender, $1) if $2 eq '++';
         return remove_karma($bot, $sender, $1) if $2 eq '--';
     }
