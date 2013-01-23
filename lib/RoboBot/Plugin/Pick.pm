@@ -9,7 +9,14 @@ sub usage { "choice1, choice2, ..., choiceN" }
 sub handle_message {
     my ($class, $bot, $sender, $channel, $command, $original, $timestamp, $message) = @_;
 
-    my %choice_map = map { lc($_) => $_ } grep { $_ =~ m{\S+} } split(/\s*,\s*/, $message);
+    my %choice_map;
+
+    if ($message =~ m{,}o) {
+        %choice_map = map { lc($_) => $_ } grep { $_ =~ m{\S+} } split(/\s*,\s*/, $message);
+    } else {
+        %choice_map = map { lc($_) => $_ } grep { $_ =~ m{\S+} } split(/\s+/, $message);
+    }
+
     my @choices = values %choice_map;
 
     return unless scalar(@choices) > 0;
