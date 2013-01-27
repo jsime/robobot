@@ -23,11 +23,10 @@ sub handle_message {
             && ref($bot->{'config'}->plugins->{'eve'}{'regions'}) eq 'ARRAY'
             && scalar(@{$bot->{'config'}->plugins->{'eve'}{'regions'}}) > 0;
 
-    my $subcmd = (split(/\s+/, $message))[0];
-    $subcmd =~ s{(^\s+|\s+$)}{}ogs; 
+    my @args = split(/\s+/, $message);
 
-    my $subcmd_args = $message;
-    $subcmd_args =~ s{^\s*$subcmd\s+}{}o;
+    my $subcmd = shift(@args);
+    my $subcmd_args = join(' ', @args);
 
     return item_info($bot, $subcmd_args) if $subcmd eq 'item';
     return pilot_info($bot, $subcmd_args) if $subcmd eq 'pilot';
