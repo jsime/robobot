@@ -67,38 +67,12 @@ sub item_prices {
         ($name, $qty) = ($args, 1);
     }
 
-    $name =~ s{(^\s+|\s+$)}{}ogs;
-    $name =~ s{\s+}{ }ogs;
+    my @item_list = lookup_item($bot, $name);
+    return "No items matching that pattern were found." unless scalar(@item_list) > 0;
+
+    $types{$_->{'item_id'}} = $_ for @item_list;
 
     my $res = $bot->{'dbh'}->do(q{
-        select i.item_id, i.name, i.base_price, igp.path
-        from eve_items i
-            join eve_item_group_paths igp on (igp.item_group_id = i.item_group_id)
-        where lower(i.name) = lower(?)
-    }, $name);
-
-    if ($res && $res->next) {
-        $types{$res->{'item_id'}} = { map { $_ => $res->{$_} } $res->columns };
-    } else {
-        $res = $bot->{'dbh'}->do(q{
-            select i.item_id, i.name, i.base_price, igp.path
-            from eve_items i
-                join eve_item_group_paths igp on (igp.item_group_id = i.item_group_id)
-            where i.name ~* ?
-            order by levenshtein(lower(?),lower(i.name)) asc, i.name asc
-            limit 3
-        }, $name, $name);
-
-        return unless $res;
-
-        while ($res->next) {
-            $types{$res->{'item_id'}} = { map { $_ => $res->{$_} } $res->columns };
-        }
-    }
-
-    return "No items matching that pattern were found." unless scalar(keys(%types)) > 0;
-
-    $res = $bot->{'dbh'}->do(q{
         select r.region_id, r.name
         from eve_regions r
         where r.name in ???
