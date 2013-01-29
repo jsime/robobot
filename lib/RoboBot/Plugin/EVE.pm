@@ -31,34 +31,27 @@ sub handle_message {
     return item_info($bot, $subcmd_args) if $subcmd eq 'item';
     return pilot_info($bot, $subcmd_args) if $subcmd eq 'pilot';
     return item_prices($bot, $subcmd_args) if $subcmd eq 'price';
+    return item_materials($bot, $subcmd_args) if $subcmd eq 'materials';
 }
 
 sub item_info {
-    my ($bot, $name_pattern) = @_;
-
-    $name_pattern =~ s{(^\s+|\s+$)}{}ogs;
+    my ($bot, $name) = @_;
 
     my $ft = Number::Format->new();
 
-    my $res = $bot->{'dbh'}->do(q{
-        select i.item_id, i.name, i.description, igp.path
-        from eve_items i
-            join eve_item_group_paths igp on (igp.item_group_id = i.item_group_id)
-        where i.name ~* ?
-        order by i.name asc
-    }, $name_pattern);
+    my @items = lookup_item($bot, $name);
 
-    return unless $res;
-
-    my @r;
-
-    while ($res->next) {
-        push(@r, sprintf('%s (%s)', $res->{'name'}, $res->{'path'}));
-    }
+    my @r = map { sprintf('%s (%s)', $_->{'name'}, $_->{'path'}) } @items;
 
     return "No items matching that pattern were found." unless scalar(@r) > 0;
     return (@r[0..9], sprintf('... and %s more ...', $ft->format_number(scalar(@r) - 10, 0))) if scalar(@r) > 10;
     return @r;
+}
+
+sub item_materials {
+    my ($bot, $name) = @_;
+
+    my @items = lookup_item($bot, $name);
 }
 
 sub item_prices {
@@ -417,6 +410,49 @@ sub update_corporation {
         return $corp if $res && $res->next;
     }
 
+    return;
+}
+
+sub lookup_item {
+    my ($bot, $name) = @_;
+
+    $name =~ s{(^\s+|\s+$)}{}ogs;
+    $name =~ s{\s+}{ }ogs;
+
+    my $res = $bot->{'dbh'}->do(q{
+        select i.item_id, i.name, i.description, i.base_price, igp.path
+        from eve_items i
+            join eve_item_group_paths igp on (igp.item_group_id = i.item_group_id)
+        where lower(i.name) = lower(?)
+    }, $name);
+
+    # We favor exact matches, so if one is found we return that item alone.
+    if ($res && $res->next) {
+        return { map { $_ => $res->{$_} } $res->columns };
+    }
+
+    # Failing an exact match, use the name as a PG regex and grab the three matches
+    # with the small levenshtein distances (a little odd, considering the input name
+    # might have wildcards, character classes, etc. -- but the only other real options
+    # would be to try and remove those, or to take two parameters)
+    $res = $bot->{'dbh'}->do(q{
+        select i.item_id, i.name, i.description, i.base_price, igp.path
+        from eve_items i
+            join eve_item_group_paths igp on (igp.item_group_id = i.item_group_id)
+        where i.name ~* ?
+        order by levenshtein(lower(?),lower(i.name)) asc, i.name asc
+        limit 3
+    }, $name, $name);
+
+    return unless $res;
+
+    my @items;
+
+    while ($res->next) {
+        push(@items, { map { $_ => $res->{$_} } $res->columns });
+    }
+
+    return @items if scalar(@items) > 0;
     return;
 }
 
