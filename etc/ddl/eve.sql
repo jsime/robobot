@@ -23,16 +23,30 @@ create index eve_items_base_price_idx on eve_items (base_price);
 alter table eve_items add foreign key (item_group_id) references eve_item_groups (item_group_id) on update cascade;
 
 create table eve_regions (
-    region_id   integer not null primary key,
-    name        text not null
+    region_id      integer not null primary key,
+    name           text not null,
+    price_default  boolean not null default 'f'
 );
 create unique index eve_regions_name_idx on eve_regions (name);
+create index eve_regions_price_default_idx on eve_regions (price_default);
 
 create table eve_item_prices (
     item_id         integer not null,
     region_id       integer not null,
-    buy_price       numeric(18,2) not null default 0.00,
-    sell_price      numeric(18,2) not null default 0.00,
+    buy_min         numeric(18,2) not null default 0.00,
+    buy_max         numeric(18,2) not null default 0.00,
+    buy_avg         numeric(18,2) not null default 0.00,
+    buy_med         numeric(18,2) not null default 0.00,
+    buy_stddev      numeric(18,2) not null default 0.00,
+    buy_percentile  numeric(5,2) not null default 0.00,
+    buy_volume      integer not null default 0,
+    sell_min        numeric(18,2) not null default 0.00,
+    sell_max        numeric(18,2) not null default 0.00,
+    sell_avg        numeric(18,2) not null default 0.00,
+    sell_med        numeric(18,2) not null default 0.00,
+    sell_stddev     numeric(18,2) not null default 0.00,
+    sell_percentile numeric(5,2) not null default 0.00,
+    sell_volume     integer not null default 0,
     cached_until    timestamp with time zone not null default now() + interval '1 hour'
 );
 alter table eve_item_prices add primary key (item_id, region_id);
