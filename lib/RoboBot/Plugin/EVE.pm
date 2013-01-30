@@ -88,25 +88,48 @@ sub item_prices {
             sprintf('  Base Price: %s ISK', $ft->format_number($item->{'base_price'}, 2, 1))
         );
 
+        my $l_region = 0;
+        my @lens;
+        foreach my $region_id (keys %{$prices{$item_id}{'regions'}}) {
+            $l_region = length($prices{$item_id}{'regions'}{$region_id}{'name'})
+                if length($prices{$item_id}{'regions'}{$region_id}{'name'}) > $l_region;
+
+            my $fld_i = 0;
+            foreach my $fld (qw( avg median min max volume )) {
+                $lens[$fld_i] = 0 unless $lens[$fld_i];
+
+                $prices{$item_id}{'regions'}{$region_id}{'buy_' . $fld} =
+                    $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'buy_' . $fld}, 2, 1);
+                $prices{$item_id}{'regions'}{$region_id}{'sell_' . $fld} =
+                    $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'sell_' . $fld}, 2, 1);
+
+                $lens[$fld_i] = length($prices{$item_id}{'regions'}{$region_id}{'buy_' . $fld})
+                    if length($prices{$item_id}{'regions'}{$region_id}{'buy_' . $fld}) > $lens[$fld_i];
+                $lens[$fld_i] = length($prices{$item_id}{'regions'}{$region_id}{'sell_' . $fld})
+                    if length($prices{$item_id}{'regions'}{$region_id}{'sell_' . $fld}) > $lens[$fld_i];
+
+                $fld_i++;
+            }
+        }
+
         foreach my $region_id (
                 sort { $prices{$item_id}{'regions'}{$a}{'name'}
                        cmp
                        $prices{$item_id}{'regions'}{$b}{'name'}
                      } keys %{$prices{$item_id}{'regions'}}) {
-            push(@r, sprintf('  [ %s ] BUY  Avg: %s / Med: %s / Min: %s / Max: %s / Vol: %s',
+            push(@r, sprintf("  [%-${l_region}s] BUY  Med: %$lens[1]s / Min: %$lens[2]s / Max: %$lens[3]s / Vol: %$lens[4]s",
                 $prices{$item_id}{'regions'}{$region_id}{'name'},
-                $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'buy_avg'}, 2, 1),
-                $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'buy_median'}, 2, 1),
-                $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'buy_min'}, 2, 1),
-                $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'buy_max'}, 2, 1),
-                $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'buy_volume'}, 0)
+                $prices{$item_id}{'regions'}{$region_id}{'buy_median'},
+                $prices{$item_id}{'regions'}{$region_id}{'buy_min'},
+                $prices{$item_id}{'regions'}{$region_id}{'buy_max'},
+                $prices{$item_id}{'regions'}{$region_id}{'buy_volume'},
             ));
-            push(@r, sprintf('        SELL Avg: %s / Med: %s / Min: %s / Max: %s / Vol: %s',
-                $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'sell_avg'}, 2, 1),
-                $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'sell_median'}, 2, 1),
-                $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'sell_min'}, 2, 1),
-                $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'sell_max'}, 2, 1),
-                $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'sell_volume'}, 0),
+            push(@r, sprintf("   %-${l_region}s  SELL Med: %$lens[1]s / Min: %$lens[2]s / Max: %$lens[3]s / Vol: %$lens[4]s",
+                '',
+                $prices{$item_id}{'regions'}{$region_id}{'sell_median'},
+                $prices{$item_id}{'regions'}{$region_id}{'sell_min'},
+                $prices{$item_id}{'regions'}{$region_id}{'sell_max'},
+                $prices{$item_id}{'regions'}{$region_id}{'sell_volume'},
             ));
         }
     }
