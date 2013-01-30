@@ -38,14 +38,14 @@ create table eve_item_prices (
     buy_avg         numeric(18,2) not null default 0.00,
     buy_median      numeric(18,2) not null default 0.00,
     buy_stddev      numeric(18,2) not null default 0.00,
-    buy_percentile  numeric(5,2) not null default 0.00,
+    buy_percentile  numeric(18,2) not null default 0.00,
     buy_volume      bigint not null default 0,
     sell_min        numeric(18,2) not null default 0.00,
     sell_max        numeric(18,2) not null default 0.00,
     sell_avg        numeric(18,2) not null default 0.00,
     sell_median     numeric(18,2) not null default 0.00,
     sell_stddev     numeric(18,2) not null default 0.00,
-    sell_percentile numeric(5,2) not null default 0.00,
+    sell_percentile numeric(18,2) not null default 0.00,
     sell_volume     bigint not null default 0,
     cached_until    timestamp with time zone not null default now() + interval '1 hour'
 );
