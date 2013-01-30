@@ -73,12 +73,10 @@ sub item_prices {
 
     # try to keep things reasonable and not abuse anyone's APIs too much
     @item_list = @item_list[0..4] if scalar(@item_list) > 5;
-print STDERR "ITEM LIST:\n---------------------\n" . Dumper(\@item_list) . "\n\n";
 
     my $ft = Number::Format->new();
 
     my %prices = lookup_item_prices($bot, map { $_->{'item_id'} } @item_list);
-print STDERR "PRICE DATA:\n-------------------\n" . Dumper(\%prices) . "\n\n";
 
     my @r;
 
@@ -335,7 +333,6 @@ sub lookup_item {
 
 sub lookup_item_prices {
     my ($bot, @ids) = @_;
-print STDERR "Price Lookup IDs: @ids\n";
 
     @ids = grep { defined $_ && $_ =~ m{^\d+$}o } @ids;
     return unless scalar(@ids) > 0;
@@ -358,7 +355,6 @@ print STDERR "Price Lookup IDs: @ids\n";
     }
 
     return unless scalar(keys(%regions)) > 0;
-print STDERR "Price Lookup Regions:\n----------------------------\n" . Dumper(\%regions) . "\n\n";
 
     my %items;
 
@@ -369,7 +365,6 @@ print STDERR "Price Lookup Regions:\n----------------------------\n" . Dumper(\%
             and cached_until >= now()
     }, [@ids], [keys %regions]);
 
-print STDERR "ERROR: " . $res->error if $res->error;
     return unless $res;
 
     while ($res->next) {
@@ -420,12 +415,10 @@ print STDERR "ERROR: " . $res->error if $res->error;
                 returning *
             }, $items{$type_id}{'regions'}{$region_id}, $type_id, $region_id);
 
-print STDERR "ERROR: " . $res->error if $res->error;
             unless ($res && $res->next) {
                 $res = $bot->{'dbh'}->do(q{
                     insert into eve_item_prices ???
                 }, $items{$type_id}{'regions'}{$region_id});
-print STDERR "ERROR: " . $res->error if $res->error;
             }
 
             $items{$type_id}{'regions'}{$region_id}{'name'} = $regions{$region_id}{'name'};
@@ -438,7 +431,6 @@ print STDERR "ERROR: " . $res->error if $res->error;
         where item_id in ??? and region_id in ???
             and cached_until < now()
     }, [@ids], [keys %regions]);
-print STDERR "ERROR: " . $res->error if $res->error;
 
     return %items if scalar(keys(%items)) > 0;
     return;
