@@ -7,6 +7,7 @@ use Data::Dumper;
 use JSON;
 use LWP::Simple;
 use Number::Format;
+use XML::LibXML;
 use XML::Simple;
 
 sub commands { qw( eve ) }
@@ -427,6 +428,111 @@ sub lookup_item {
     }
 
     return @items if scalar(@items) > 0;
+    return;
+}
+
+sub lookup_item_prices {
+    my ($bot, @ids) = @_;
+
+    @ids = grep { defined $_ && $_ =~ m{^\d+$}o } @ids;
+    return unless scalar(@ids) > 0;
+
+    my $res = $bot->{'dbh'}->do(q{
+        select r.region_id, r.name
+        from eve_regions r
+        where r.price_default
+    });
+
+    return unless $res;
+
+    my %regions;
+
+    while ($res->next) {
+        $regions{$res->{'region_id'}} = { id => $res->{'region_id'}, name => $res->{'name'} };
+        $regions{$res->{'region_id'}}{'items'} = {
+            map { $_ => 1 } @ids
+        };
+    }
+
+    return unless scalar(keys(%regions)) > 0;
+
+    my %items;
+
+    $res = $bot->{'dbh'}->do(q{
+        select *
+        from eve_item_prices
+        where item_id in ??? and region_id in ???
+            and cached_until >= now()
+    }, [@ids], [keys %regions]);
+
+    return unless $res;
+
+    while ($res->next) {
+        $items{$res->{'item_id'}} = { regions => {} } unless exists $items{$res->{'item_id'}};
+        $items{$res->{'item_id'}}{'regions'}{$res->{'region_id'}} = {
+            name => $regions{$res->{'region_id'}}{'name'},
+            map { $_ => $res->{$_} } $res->columns
+        }
+
+        delete $regions{$res->{'region_id'}}{'items'}{$res->{'item_id'}};
+    }
+
+    foreach my $region_id (keys %regions) {
+        next unless scalar(keys(%{$regions{$region_id}{'items'}})) > 0;
+
+        my $lwp_res = get('http://api.eve-central.com/api/marketstat?hours=72&regionlimit='
+            . $region_id . '&'
+            . join('&', map { sprintf('typeid=%d', $_) } keys %{$regions{$region_id}{'items'}}));
+        next unless $lwp_res;
+
+        my $dom = XML::LibXML->load_xml( string => $lwp_res );
+        next unless $dom;
+
+        foreach my $type ($dom->getElementsByTagName('type')) {
+            my $type_id = (grep { $_->nodeName eq "id" } $type->attributes)[0]->nodeValue;
+
+            $items{$type_id} = { regions => {} } unless exists $items{$type_id};
+            $items{$type_id}{'regions'}{$region_id} = {};
+
+            foreach my $tr_type (qw( buy sell )) {
+                my $txn = ($type->getElementsByTagName($tr_type))[0] || undef;
+                next unless $txn;
+
+                foreach my $fld (qw( min max avg median stddev percentile volume )) {
+                    my $node = ($txn->getElementsByTagName($fld))[0];
+                    next unless $node;
+
+                    my $value = $node->textContent || 0;
+
+                    $items{$type_id}{'regions'}{$region_id}{$tr_type . '_' . $fld} = $value;
+                }
+            }
+
+            $res = $bot->{'dbh'}->do(q{
+                update eve_item_prices
+                set ???
+                where item_id = ? and region_id = ?
+                returning *
+            }, $items{$type_id}{'regions'}{$region_id}, $type_id, $region_id);
+
+            unless ($res && $res->next) {
+                $res = $bot->{'dbh'}->do(q{
+                    insert into eve_item_prices ???
+                }, $items{$type_id}{'regions'}{$region_id});
+            }
+
+            $items{$type_id}{'regions'}{$region_id}{'name'} = $regions{$region_id}{'name'};
+        }
+    }
+
+    $res = $bot->{'dbh'}->do(q{
+        update eve_item_prices
+        set cached_until = now() + interval '1 hour'
+        where item_id in ??? and region_id in ???
+            and cached_until < now()
+    }, [@ids], [keys %regions]);
+
+    return %items if scalar(keys(%items)) > 0;
     return;
 }
 
