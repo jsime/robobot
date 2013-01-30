@@ -322,6 +322,7 @@ sub lookup_item {
     my @items;
 
     while ($res->next) {
+        $res->{'path'} =~ s{(^\s+|\s+$)}{}ogs;
         push(@items, { map { $_ => $res->{$_} } $res->columns });
     }
 
