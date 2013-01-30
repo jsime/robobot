@@ -416,6 +416,8 @@ sub lookup_item_prices {
             }, $items{$type_id}{'regions'}{$region_id}, $type_id, $region_id);
 
             unless ($res && $res->next) {
+                $items{$type_id}{'regions'}{$region_id}{'item_id'} = $type_id;
+                $items{$type_id}{'regions'}{$region_id}{'region_id'} = $region_id;
                 $res = $bot->{'dbh'}->do(q{
                     insert into eve_item_prices ???
                 }, $items{$type_id}{'regions'}{$region_id});
