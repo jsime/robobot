@@ -71,145 +71,43 @@ sub item_prices {
     my @item_list = lookup_item($bot, $name);
     return "No items matching that pattern were found." unless scalar(@item_list) > 0;
 
-    $types{$_->{'item_id'}} = $_ for @item_list;
-
-    my $res = $bot->{'dbh'}->do(q{
-        select r.region_id, r.name
-        from eve_regions r
-        where r.name in ???
-    }, [@{$bot->{'config'}->plugins->{'eve'}{'regions'}}]);
-
-    return unless $res;
-
-    while ($res->next) {
-        $regions{$res->{'region_id'}} = { map { $_ => $res->{$_} } $res->columns };
-    }
-
-    return "Could not locate any valid regions." unless scalar(keys(%regions)) > 0;
-
-    $res = $bot->{'dbh'}->do(q{
-        select *
-        from eve_item_prices
-        where item_id in ??? and region_id in ???
-            and cached_until >= now()
-    }, [keys %types], [keys %regions]);
+    # try to keep things reasonable and not abuse anyone's APIs too much
+    @item_list = @item_list[0..4] if scalar(@item_list) > 5;
 
     my $ft = Number::Format->new();
 
-    my %items;
-
-    if ($res) {
-        while ($res->next) {
-            $items{$res->{'item_id'}} = { regions => {} } unless $items{$res->{'item_id'}};
-            $items{$res->{'item_id'}}{'regions'}{$res->{'region_id'}} =
-                { buy  => $ft->format_number($qty * $res->{'buy_price'}, 2, 1),
-                  sell => $ft->format_number($qty * $res->{'sell_price'}, 2, 1)
-                };
-        }
-    }
-
-    my @unseen_items = grep { !$items{$_} } keys %types;
-    my %unseen_regions;
-
-    foreach my $item_id (keys %types) {
-        $unseen_regions{$_} = 1 for grep { !$items{$item_id}{'regions'}{$_} } keys %regions;
-    }
-
-    if (scalar(@unseen_items) > 0 || scalar(keys(%unseen_regions)) > 0) {
-        my $charname = $bot->{'config'}->plugins->{'eve'}{'pilot'};
-
-        my $url = sprintf('http://api.eve-marketdata.com/api/item_prices2.json?char_name=%s&' .
-                          'type_ids=%s&region_ids=%s&buysell=a',
-                          $charname, join(',', keys %types), join(',', keys %regions));
-        my $resp = get($url);
-
-        return unless $res;
-        my $data = from_json($resp) || return;
-
-        foreach my $result (@{$data->{'emd'}{'result'}}) {
-            my $type_id = $result->{'row'}->{'typeID'};
-            my $region_id = $result->{'row'}->{'regionID'};
-            my $buyorsell = $result->{'row'}->{'buysell'};
-            my $price = sprintf('%.2f', $result->{'row'}->{'price'});
-
-            $res = $bot->{'dbh'}->do(q{
-                update eve_item_prices
-                set } . ($buyorsell eq 'b' ? 'buy_price' : 'sell_price') . q{ = ?,
-                    cached_until = now() + interval '1 hour'
-                where item_id = ? and region_id = ?
-                returning cached_until
-            }, $price, $type_id, $region_id);
-
-            unless ($res && $res->next) {
-                $res = $bot->{'dbh'}->do(q{
-                    insert into eve_item_prices
-                        ( item_id, region_id, buy_price, sell_price, cached_until )
-                    values
-                        ( ?, ?, ?, ?, now() + interval '1 hour' )
-                    returning cached_until
-                }, $type_id, $region_id,
-                    ($buyorsell eq 'b' ? $price : 0),
-                    ($buyorsell eq 's' ? $price : 0)
-                );
-            }
-
-            $items{$type_id} = { regions => {} } unless $items{$type_id};
-            $items{$type_id}{'regions'}{$region_id} = { buy => undef, sell => undef }
-                unless $items{$type_id}{'regions'}{$region_id};
-
-            $items{$type_id}{'regions'}{$region_id}{'buy'} =
-                $ft->format_number($qty * $price, 2, 1) if $buyorsell eq 'b';
-            $items{$type_id}{'regions'}{$region_id}{'sell'} =
-                $ft->format_number($qty * $price, 2, 1) if $buyorsell eq 's';
-        }
-    }
-
-    # fill in the names now that we have items from both the cache and the API
-    foreach my $item_id (keys %items) {
-        $items{$item_id}{'name'} = $types{$item_id}{'name'};
-        $items{$item_id}{'category'} = $types{$item_id}{'path'};
-
-        foreach my $region_id (keys %{$items{$item_id}{'regions'}}) {
-            $items{$item_id}{'regions'}{$region_id}{'name'} = $regions{$region_id}{'name'};
-        }
-    }
+    my %prices = lookup_item_prices(map { $_->{'item_id'} } @item_list);
 
     my @r;
 
-    foreach my $type_id (sort { $items{$a}{'name'} cmp $items{$b}{'name'} } keys %items ) {
-        push(@r, sprintf('%s (%s)', $items{$type_id}{'name'}, $items{$type_id}{'category'}));
-        push(@r, sprintf('  Base Price: %s ISK',
-            $types{$type_id}{'base_price'} > 0
-                ? $ft->format_number($types{$type_id}{'base_price'}, 2, 1)
-                : 'Unavailable'
+    foreach my $item (@item_list) {
+        my $item_id = $item->{'item_id'};
+
+        push(@r,
+            sprintf('%s (%s)', $item->{'name'}, $item->{'path'}),
+            sprintf('  Base Price: %s ISK', $ft->format_number($item->{'base_price'}, 2, 1))
+        );
+
+        foreach my $region_id (
+                sort { $prices{$item_id}{'regions'}{$a}{'name'}
+                       cmp
+                       $prices{$item_id}{'regions'}{$b}{'name'}
+                     } keys %{$prices{$item_id}{'regions'}}) {
+            push(@r, sprintf('  [ %s ] BUY  Avg: %s / Med: %s / Min: %s / Max: %s / Vol: %s',
+                $prices{$item_id}{'regions'}{$region_id}{'name'},
+                $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'buy_avg'}, 2, 1),
+                $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'buy_median'}, 2, 1),
+                $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'buy_min'}, 2, 1),
+                $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'buy_max'}, 2, 1),
+                $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'buy_volume'}, 0)
             ));
-
-        my $l_region = length($items{$type_id}{'regions'}{
-                (sort { length($items{$type_id}{'regions'}{$a}{'name'})
-                        <=>
-                        length($items{$type_id}{'regions'}{$b}{'name'})
-                      } keys %{$items{$type_id}{'regions'}})[-1]
-            }{'name'});
-        my $l_buy = length($items{$type_id}{'regions'}{
-                (sort { length($items{$type_id}{'regions'}{$a}{'buy'})
-                        <=>
-                        length($items{$type_id}{'regions'}{$b}{'buy'})
-                      } keys %{$items{$type_id}{'regions'}})[-1]
-            }{'buy'});
-        my $l_sell = length($items{$type_id}{'regions'}{
-                (sort { length($items{$type_id}{'regions'}{$a}{'sell'})
-                        <=>
-                        length($items{$type_id}{'regions'}{$b}{'sell'})
-                      } keys %{$items{$type_id}{'regions'}})[-1]
-            }{'sell'});
-
-        foreach my $region_id (sort { $items{$type_id}{'regions'}{$a} cmp $items{$type_id}{'regions'}{$b} } keys %{$items{$type_id}{'regions'}}) {
-            push(@r, sprintf("  [ %-${l_region}s ] %sBuy: %${l_buy}s / Sell: %${l_sell}s",
-                $items{$type_id}{'regions'}{$region_id}{'name'},
-                ($qty > 1 ? sprintf('Qty: %s @ ', $ft->format_number($qty, 0)) : ''),
-                $items{$type_id}{'regions'}{$region_id}{'buy'},
-                $items{$type_id}{'regions'}{$region_id}{'sell'})
-            );
+            push(@r, sprintf('        SELL Avg: %s / Med: %s / Min: %s / Max: %s / Vol: %s',
+                $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'sell_avg'}, 2, 1),
+                $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'sell_median'}, 2, 1),
+                $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'sell_min'}, 2, 1),
+                $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'sell_max'}, 2, 1),
+                $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'sell_volume'}, 0),
+            ));
         }
     }
 
@@ -465,6 +363,7 @@ sub lookup_item_prices {
             and cached_until >= now()
     }, [@ids], [keys %regions]);
 
+print STDERR "ERROR: " . $res->error if $res->error;
     return unless $res;
 
     while ($res->next) {
@@ -472,7 +371,7 @@ sub lookup_item_prices {
         $items{$res->{'item_id'}}{'regions'}{$res->{'region_id'}} = {
             name => $regions{$res->{'region_id'}}{'name'},
             map { $_ => $res->{$_} } $res->columns
-        }
+        };
 
         delete $regions{$res->{'region_id'}}{'items'}{$res->{'item_id'}};
     }
@@ -515,10 +414,12 @@ sub lookup_item_prices {
                 returning *
             }, $items{$type_id}{'regions'}{$region_id}, $type_id, $region_id);
 
+print STDERR "ERROR: " . $res->error if $res->error;
             unless ($res && $res->next) {
                 $res = $bot->{'dbh'}->do(q{
                     insert into eve_item_prices ???
                 }, $items{$type_id}{'regions'}{$region_id});
+print STDERR "ERROR: " . $res->error if $res->error;
             }
 
             $items{$type_id}{'regions'}{$region_id}{'name'} = $regions{$region_id}{'name'};
@@ -531,6 +432,7 @@ sub lookup_item_prices {
         where item_id in ??? and region_id in ???
             and cached_until < now()
     }, [@ids], [keys %regions]);
+print STDERR "ERROR: " . $res->error if $res->error;
 
     return %items if scalar(keys(%items)) > 0;
     return;
