@@ -73,10 +73,12 @@ sub item_prices {
 
     # try to keep things reasonable and not abuse anyone's APIs too much
     @item_list = @item_list[0..4] if scalar(@item_list) > 5;
+print STDERR "ITEM LIST:\n---------------------\n" . Dumper(\@item_list) . "\n\n";
 
     my $ft = Number::Format->new();
 
-    my %prices = lookup_item_prices(map { $_->{'item_id'} } @item_list);
+    my %prices = lookup_item_prices($bot, map { $_->{'item_id'} } @item_list);
+print STDERR "PRICE DATA:\n-------------------\n" . Dumper(\%prices) . "\n\n";
 
     my @r;
 
@@ -301,6 +303,7 @@ sub lookup_item {
 
     # We favor exact matches, so if one is found we return that item alone.
     if ($res && $res->next) {
+        $res->{'path'} =~ s{(^\s+|\s+$)}{}ogs;
         return { map { $_ => $res->{$_} } $res->columns };
     }
 
@@ -332,6 +335,7 @@ sub lookup_item {
 
 sub lookup_item_prices {
     my ($bot, @ids) = @_;
+print STDERR "Price Lookup IDs: @ids\n";
 
     @ids = grep { defined $_ && $_ =~ m{^\d+$}o } @ids;
     return unless scalar(@ids) > 0;
@@ -354,6 +358,7 @@ sub lookup_item_prices {
     }
 
     return unless scalar(keys(%regions)) > 0;
+print STDERR "Price Lookup Regions:\n----------------------------\n" . Dumper(\%regions) . "\n\n";
 
     my %items;
 
