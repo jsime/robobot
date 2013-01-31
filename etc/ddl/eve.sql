@@ -47,7 +47,7 @@ create table eve_item_prices (
     sell_stddev     numeric(18,2) not null default 0.00,
     sell_percentile numeric(18,2) not null default 0.00,
     sell_volume     bigint not null default 0,
-    cached_until    timestamp with time zone not null default now() + interval '1 hour'
+    cached_until    timestamp with time zone not null default now() + interval '6 hours'
 );
 alter table eve_item_prices add primary key (item_id, region_id);
 create index eve_item_prices_region_id_idx on eve_item_prices (region_id);

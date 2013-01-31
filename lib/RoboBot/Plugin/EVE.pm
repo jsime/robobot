@@ -458,7 +458,7 @@ sub lookup_item_prices {
 
     $res = $bot->{'dbh'}->do(q{
         update eve_item_prices
-        set cached_until = now() + interval '1 hour'
+        set cached_until = now() + interval '6 hours'
         where item_id in ??? and region_id in ???
             and cached_until < now()
     }, [@ids], [keys %regions]);
