@@ -99,9 +99,11 @@ sub item_prices {
                 $lens[$fld_i] = 0 unless $lens[$fld_i];
 
                 $prices{$item_id}{'regions'}{$region_id}{'buy_' . $fld} =
-                    $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'buy_' . $fld}, 2, 1);
+                    $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'buy_' . $fld},
+                        ($fld eq 'volume' ? (0) : (2, 1)));
                 $prices{$item_id}{'regions'}{$region_id}{'sell_' . $fld} =
-                    $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'sell_' . $fld}, 2, 1);
+                    $ft->format_number($prices{$item_id}{'regions'}{$region_id}{'sell_' . $fld},
+                        ($fld eq 'volume' ? (0) : (2, 1)));
 
                 $lens[$fld_i] = length($prices{$item_id}{'regions'}{$region_id}{'buy_' . $fld})
                     if length($prices{$item_id}{'regions'}{$region_id}{'buy_' . $fld}) > $lens[$fld_i];
@@ -117,18 +119,16 @@ sub item_prices {
                        cmp
                        $prices{$item_id}{'regions'}{$b}{'name'}
                      } keys %{$prices{$item_id}{'regions'}}) {
-            push(@r, sprintf("  [%-${l_region}s] BUY  Med: %$lens[1]s / Min: %$lens[2]s / Max: %$lens[3]s / Vol: %$lens[4]s",
+            push(@r, sprintf("  [%-${l_region}s] BUY  Med: %$lens[1]s / Max: %$lens[3]s / Vol: %$lens[4]s",
                 $prices{$item_id}{'regions'}{$region_id}{'name'},
                 $prices{$item_id}{'regions'}{$region_id}{'buy_median'},
-                $prices{$item_id}{'regions'}{$region_id}{'buy_min'},
                 $prices{$item_id}{'regions'}{$region_id}{'buy_max'},
                 $prices{$item_id}{'regions'}{$region_id}{'buy_volume'},
             ));
-            push(@r, sprintf("   %-${l_region}s  SELL Med: %$lens[1]s / Min: %$lens[2]s / Max: %$lens[3]s / Vol: %$lens[4]s",
+            push(@r, sprintf("   %-${l_region}s  SELL Med: %$lens[1]s / Min: %$lens[2]s / Vol: %$lens[4]s",
                 '',
                 $prices{$item_id}{'regions'}{$region_id}{'sell_median'},
                 $prices{$item_id}{'regions'}{$region_id}{'sell_min'},
-                $prices{$item_id}{'regions'}{$region_id}{'sell_max'},
                 $prices{$item_id}{'regions'}{$region_id}{'sell_volume'},
             ));
         }
