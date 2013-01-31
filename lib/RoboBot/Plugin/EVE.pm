@@ -114,6 +114,12 @@ sub item_prices {
             }
         }
 
+        # Done only because we're folding max/min price columns into the same space,
+        # depending on whether the line is for Buy or Sell data. Need to make sure
+        # that the folded column is the width of whichever was the larger of the two.
+        $lens[2] = $lens[3] if $lens[3] > $lens[2];
+        $lens[3] = $lens[2] if $lens[2] > $lens[3];
+
         foreach my $region_id (
                 sort { $prices{$item_id}{'regions'}{$a}{'name'}
                        cmp
