@@ -104,12 +104,12 @@ sub update_permissions {
         if ($mode eq 'default') {
             $res = $bot->db->do(q{ delete from auth_permissions where permission_id = ? }, $res->{'permission_id'});
 
-            return sprintf('Permissions for %s to use command %s have been returned to their default on this server.',
+            return sprintf('Permissions for %s to use command !%s have been returned to their default on this server.',
                     $nick, $command)
                 if $res;
             return 'An error occurred when resetting permissions.';
         } elsif ($mode eq $res->{'state'}) {
-            return sprintf('%s already has those permissions to the %s command. No changes made.',
+            return sprintf('%s already has those permissions to the !%s command. No changes made.',
                 $nick, $command);
         } elsif ($mode eq 'allow' || $mode eq 'deny') {
             $res = $bot->db->do(q{
@@ -120,13 +120,13 @@ sub update_permissions {
                 where permission_id = ?
             }, $mode, $granter->{'id'}, $res->{'permission_id'});
 
-            return sprintf('%s is now %s access to the %s command.',
+            return sprintf('%s is now %s access to the !%s command.',
                     $nick, ( $mode eq 'allow' ? 'allowed' : 'denied' ), $command)
                 if $res;
             return 'An error occurred when updating permissions.';
         }
     } else {
-        return sprintf('%s already has default permissions to the %s command. No changes made.',
+        return sprintf('%s already has default permissions to the !%s command. No changes made.',
             $nick, $command) if $mode eq 'default';
 
         $res = $bot->db->do(q{
@@ -139,7 +139,7 @@ sub update_permissions {
             )
         }, $bot->config->server, $nick, $command, $mode, $granter->{'id'});
 
-        return sprintf('%s is now %s access to the %s command.',
+        return sprintf('%s is now %s access to the !%s command.',
                 $nick, ( $mode eq 'allow' ? 'allowed' : 'denied' ), $command)
             if $res;
         return 'An error occurred when adding permissions.';
