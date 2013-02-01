@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 sub commands { qw( auth ) }
-sub usage { "[ <allow|deny|default> <command> <nick> | <command|nick> list ]" }
+sub usage { "[ <allow|deny|default> <command> <nick> | <command> default <allow|deny> | <command|nick> list ]" }
 
 sub handle_message {
     my ($class, $bot, $sender, $channel, $command, $original, $timestamp, $message) = @_;
@@ -15,7 +15,11 @@ sub handle_message {
         return update_permissions($bot, $1, $2, $3, $sender);
     } elsif ($message =~ m{^\s*(\w+)\s+list\s*$}o) {
         return show_permissions($bot, $1);
+    } elsif ($message =~ m{^\s*(\w+)\s+default\s+(allow|deny)\s*$}o) {
+        return set_default_permissions($bot, $1, $2, $sender);
     }
+
+    return;
 }
 
 sub has_permission {
@@ -50,6 +54,10 @@ sub has_permission {
 
     # default permission to plugins is to allow their use
     return 1;
+}
+
+sub set_default_permissions {
+    my ($bot, $command, $mode, $granter) = @_;
 }
 
 sub show_permissions {
@@ -108,9 +116,9 @@ sub update_permissions {
                 update auth_permissions
                 set state      = ?,
                     updated_at = now(),
-                    granted_by = (select id from nicks where lower(nick) = lower(?))
+                    granted_by = ?
                 where permission_id = ?
-            }, $mode, $granter, $res->{'permission_id'});
+            }, $mode, $granter->{'id'}, $res->{'permission_id'});
 
             return sprintf('%s is now %s access to the %s command.',
                     $nick, ( $mode eq 'allow' ? 'allowed' : 'denied' ), $command)
@@ -127,10 +135,9 @@ sub update_permissions {
             values (
                 ( select id from servers where name = ? ),
                 ( select id from nicks where lower(nick) = lower(?) ),
-                ?, ?,
-                ( select id from nicks where lower(nick) = lower(?) )
+                ?, ?, ?
             )
-        }, $bot->config->server, $nick, $command, $mode, $granter);
+        }, $bot->config->server, $nick, $command, $mode, $granter->{'id'});
 
         return sprintf('%s is now %s access to the %s command.',
                 $nick, ( $mode eq 'allow' ? 'allowed' : 'denied' ), $command)
