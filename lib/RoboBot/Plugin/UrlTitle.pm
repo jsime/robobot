@@ -32,7 +32,7 @@ sub handle_message {
                 my $final_url = $r->base;
 
                 push(@output, sprintf('Title: %s', (length($title) > 120 ? substr($title, 0, 110) . '...' : $title)))
-                    if $title =~ m{\w+};
+                    if defined $title && $title =~ m{\w+}o;
 
                 # seems a little odd, but direct comparisons weren't working reliably, maybe because of
                 # character set mismatches? anyway -- only show redirect if the levenshtein between the
