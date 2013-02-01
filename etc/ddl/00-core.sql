@@ -20,10 +20,12 @@ create unique index channels_server_id_name_idx on channels (server_id, name);
 alter table channels add foreign key (server_id) references servers (id);
 
 create table nicks (
-    id      serial not null primary key,
-    nick    text not null
+    id         serial not null primary key,
+    nick       text not null,
+    can_grant  boolean not null default 'f'
 );
 
 create unique index nicks_nick_idx on nicks (nick);
+create index nicks_lower_nick_idx on nicks (lower(nick));
 
 commit;
