@@ -35,7 +35,7 @@ sub has_permission {
         from auth_permissions ap
             join servers s on (ap.server_id = s.id)
             join nicks n on (ap.nick_id = n.id)
-        where s.name = ? and ap.command = lower(?) and n.nick = lower(?)
+        where s.name = ? and ap.command = lower(?) and lower(n.nick) = lower(?)
     }, $bot->config->server, $command, $bot->config->server, $command, $nick);
 
     return 0 unless $res;
@@ -64,22 +64,68 @@ sub show_permissions {
     my ($bot, $cmd_or_nick) = @_;
 
     my $is_nick = is_nick($bot, $cmd_or_nick);
-    my $is_cmd = is_command($bot, $cmd_or_nick);
+    my $is_cmd = is_cmd($bot, $cmd_or_nick);
 
     return sprintf('%s not recognized as a command or a nickname.', $cmd_or_nick)
         unless $is_nick || $is_cmd;
 
-    my @r;
+    my ($res, @r);
 
     # ... build permissions output list ...
+    if ($is_nick) {
+        $res = $bot->db->do(q{
+            select ap.command, ap.state
+            from auth_permissions ap
+                join nicks n on (n.id = ap.nick_id)
+                join servers s on (s.id = ap.server_id)
+            where s.name = ? and lower(n.nick) = lower(?)
+        }, $bot->config->server, $cmd_or_nick);
 
-    return @r;
+        my %perms;
+
+        if ($res) {
+            while ($res->next) {
+                $perms{$res->{'command'}} = $res->{'state'};
+            }
+        }
+
+        if (scalar(keys(%perms)) > 0) {
+            push(@r, sprintf('%s has been granted the following specific permissions:', $cmd_or_nick));
+
+            my @allow = map { "!$_" } sort grep { $perms{$_} eq 'allow' } keys %perms;
+            my @deny  = map { "!$_" } sort grep { $perms{$_} eq 'deny' }  keys %perms;
+
+            push(@r, sprintf('  Allowed: %s', join(', ', @allow))) if scalar(@allow) > 0;
+            push(@r, sprintf('  Denied: %s', join(', ', @deny))) if scalar(@deny) > 0;
+        } else {
+            push(@r, sprintf('%s has not been granted any specific permissions.', $cmd_or_nick));
+        }
+    }
+
+    if ($is_cmd) {
+        $res = $bot->db->do(q{
+            select ap.state
+            from auth_permissions ap
+                join servers s on (s.id = ap.server_id)
+            where s.name = ? and ap.command = lower(?) and ap.nick_id is null
+        }, $bot->config->server, $cmd_or_nick);
+
+        my $mode = 'allow';
+
+        if ($res && $res->next) {
+            $mode = $res->{'state'};
+        }
+
+        push(@r, sprintf('Default permission for the command !%s is %s%s.', $cmd_or_nick,
+            uc(substr($mode, 0, 1)), substr($mode, 1)));
+    }
+
+    return @r if scalar(@r) > 0;
+    return sprintf('No relevant permissions found for %s.', $cmd_or_nick);
 }
 
 sub update_permissions {
     my ($bot, $mode, $command, $nick, $granter) = @_;
-
-    print STDERR "Args: @_\n";
 
     return 'Unrecognized command name.' unless is_cmd($bot, $command);
     return 'Unrecognized nickname.' unless is_nick($bot, $nick);
