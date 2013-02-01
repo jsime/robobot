@@ -19,10 +19,10 @@ sub handle_message {
     return unless $message;
 
     return sprintf('This plugin has not been properly configured. Please notify your %s administrator.',
-        $bot->{'config'}->nick)
-        unless $bot->{'config'}->plugins->{'eve'}{'pilot'}
-            && ref($bot->{'config'}->plugins->{'eve'}{'regions'}) eq 'ARRAY'
-            && scalar(@{$bot->{'config'}->plugins->{'eve'}{'regions'}}) > 0;
+        $bot->config->nick)
+        unless $bot->config->plugins->{'eve'}{'pilot'}
+            && ref($bot->config->plugins->{'eve'}{'regions'}) eq 'ARRAY'
+            && scalar(@{$bot->config->plugins->{'eve'}{'regions'}}) > 0;
 
     my @args = split(/\s+/, $message);
 

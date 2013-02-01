@@ -139,7 +139,7 @@ sub server {
 
     die "No server name provided!\n" unless $server;
 
-    return $self->{'config'}->server($server);
+    return $self->config->server($server);
 }
 
 =head2 servers
@@ -151,7 +151,7 @@ Returns a list enumerating all of the servers defined in the configuration file.
 sub servers {
     my ($self) = @_;
 
-    return $self->{'config'}->servers();
+    return $self->config->servers();
 }
 
 =head2 config
@@ -213,12 +213,12 @@ sub on_start {
 
     $self->{'irc'}->yield(
         connect => {
-            Nick     => $self->{'config'}->nick() || 'RoboBot',
-            Username => $self->{'config'}->username() || 'robobot',
+            Nick     => $self->config->nick() || 'RoboBot',
+            Username => $self->config->username() || 'robobot',
             Ircname  => "RoboBot (POE::Component::IRC) Bot v$VERSION",
-            Server   => $self->{'config'}->host(),
-            Port     => $self->{'config'}->port(),
-            UseSSL   => $self->{'config'}->ssl() || 0,
+            Server   => $self->config->host(),
+            Port     => $self->config->port(),
+            UseSSL   => $self->config->ssl() || 0,
             Flood    => 1, # can be dangerous, but we limit our output elsewhere
         }
     );
@@ -227,26 +227,26 @@ sub on_start {
 sub on_connect {
     my ($self) = ($_[OBJECT]);
 
-    my $res = $self->db->do(q{ select id from servers where name = ? }, $self->{'config'}->server());
+    my $res = $self->db->do(q{ select id from servers where name = ? }, $self->config->server());
 
     if ($res && $res->next) {
         $self->{'db'} = { server_id => $res->{'id'}, channels => {} };
     } else {
-        $res = $self->db->do(q{ insert into servers (name) values (?) returning id }, $self->{'config'}->server());
+        $res = $self->db->do(q{ insert into servers (name) values (?) returning id }, $self->config->server());
 
-        die "Could not create a DB record for server " . $self->{'config'}->server() unless $res && $res->next;
+        die "Could not create a DB record for server " . $self->config->server() unless $res && $res->next;
 
         $self->{'db'} = { server_id => $res->{'id'}, channels => {} };
     }
 
-    if ($self->{'config'}->username() && $self->{'config'}->password()) {
+    if ($self->config->username() && $self->config->password()) {
         $self->{'irc'}->yield(
             privmsg => 'userserv',
-            sprintf('login %s %s', $self->{'config'}->username(), $self->{'config'}->password())
+            sprintf('login %s %s', $self->config->username(), $self->config->password())
         );
     }
 
-    foreach my $channel ($self->{'config'}->channels()) {
+    foreach my $channel ($self->config->channels()) {
         $self->{'irc'}->yield( join => $channel );
 
         $res = $self->db->do(q{
@@ -264,7 +264,7 @@ sub on_connect {
                  name      => $channel,
             });
 
-            die "Could not create a DB record for channel $channel on server " . $self->{'config'}->server()
+            die "Could not create a DB record for channel $channel on server " . $self->config->server()
                 unless $res && $res->next;
 
             $self->{'db'}->{'channels'}->{$channel} = $res->{'id'};
@@ -289,12 +289,12 @@ sub on_message {
     # set up skeleton of output options, with defaults
     my %options = (
         to          => $channel,
-        msg_limit   => $self->{'config'}->msglimit(),
-        msg_per_sec => $self->{'config'}->msgrate(),
+        msg_limit   => $self->config->msglimit(),
+        msg_per_sec => $self->config->msgrate(),
     );
 
     # skip if it's us -- we don't want robobot talking to itself
-    return if lc($who) eq lc($self->{'config'}->nick());
+    return if lc($who) eq lc($self->config->nick());
 
     # skip if it's GitHub, since we don't want to spam the channel with URLs and misspellings
     return if $who =~ m{GitHub\d+}o;
@@ -390,7 +390,7 @@ sub on_message {
     if ($options{'to'} && $options{'to'} ne $channel) {
         $channel = $options{'to'};
         $direct_to = '';
-    } elsif (lc($channel) eq lc($self->{'config'}->nick())) {
+    } elsif (lc($channel) eq lc($self->config->nick())) {
         $channel = $direct_to && length($direct_to) > 0 ? $direct_to : $sender_nick;
         $direct_to = '';
     } else {
@@ -404,7 +404,7 @@ sub on_message {
 
         printf("%s %s [%s] <%s> %s\n",
             $resp_time_date, $resp_time_time,
-            $channel, $self->{'config'}->nick(),
+            $channel, $self->config->nick(),
             ($direct_to && length($direct_to) > 0 ? "$direct_to$_" : $_)
         ) for grep { $_ =~ m{\w+}o } @output;
 
