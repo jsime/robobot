@@ -227,12 +227,12 @@ sub on_start {
 sub on_connect {
     my ($self) = ($_[OBJECT]);
 
-    my $res = $self->{'dbh'}->do(q{ select id from servers where name = ? }, $self->{'config'}->server());
+    my $res = $self->db->do(q{ select id from servers where name = ? }, $self->{'config'}->server());
 
     if ($res && $res->next) {
         $self->{'db'} = { server_id => $res->{'id'}, channels => {} };
     } else {
-        $res = $self->{'dbh'}->do(q{ insert into servers (name) values (?) returning id }, $self->{'config'}->server());
+        $res = $self->db->do(q{ insert into servers (name) values (?) returning id }, $self->{'config'}->server());
 
         die "Could not create a DB record for server " . $self->{'config'}->server() unless $res && $res->next;
 
@@ -249,7 +249,7 @@ sub on_connect {
     foreach my $channel ($self->{'config'}->channels()) {
         $self->{'irc'}->yield( join => $channel );
 
-        $res = $self->{'dbh'}->do(q{
+        $res = $self->db->do(q{
             select id
             from channels
             where server_id = ? and name = ?
@@ -258,7 +258,7 @@ sub on_connect {
         if ($res && $res->next) {
             $self->{'db'}->{'channels'}->{$channel} = $res->{'id'};
         } else {
-            $res = $self->{'dbh'}->do(q{
+            $res = $self->db->do(q{
                 insert into channels ??? returning id
             }, { server_id => $self->{'db'}->{'server_id'},
                  name      => $channel,

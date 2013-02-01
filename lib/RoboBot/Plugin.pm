@@ -53,7 +53,7 @@ Your plugin's __PACKAGE__.
 =item * Bot
 
 Fully instantiated RoboBot object for the current context, with an active
-DBIx::DataStore database handler in $bot->{'dbh'}.
+DBIx::DataStore database handler returned by $bot->db().
 
 =back
 
