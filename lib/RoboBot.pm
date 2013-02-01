@@ -154,6 +154,55 @@ sub servers {
     return $self->{'config'}->servers();
 }
 
+=head2 config
+
+Returns a reference to the current configuration object (RoboBot::Config).
+
+=cut
+
+sub config {
+    my ($self) = @_;
+
+    return unless exists $self->{'config'} && ref($self->{'config'}) eq 'RoboBot::Config';
+    return $self->{'config'};
+}
+
+=head2 db
+
+Returns a reference to the current database handler (DBIx::DataStore) object
+used by the bot.
+
+=cut
+
+sub db {
+    my ($self) = @_;
+
+    return unless exists $self->{'dbh'} && ref($self->{'dbh'}) eq 'DBIx::DataStore';
+    return $self->{'dbh'};
+}
+
+=head2 commands
+
+Returns a sorted list of the commands supported by the bot.
+
+=cut
+
+sub commands {
+    my ($self) = @_;
+
+    my %cmds;
+
+    foreach my $plugin ($self->plugins) {
+        next unless $plugin->can('commands');
+        $cmds{$_} = 1 for grep { $_ =~ m{\w+}o } $plugin->commands;
+    }
+
+    # remove the wildcard command
+    delete $cmds{'*'} if exists $cmds{'*'};
+
+    return sort keys %cmds;
+}
+
 sub on_start {
     my ($self) = ($_[OBJECT]);
 
