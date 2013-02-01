@@ -190,6 +190,8 @@ Returns a sorted list of the commands supported by the bot.
 sub commands {
     my ($self) = @_;
 
+    return @{$self->{'commands'}} if exists $self->{'commands'} && ref($self->{'commands'}) eq 'ARRAY';
+
     my %cmds;
 
     foreach my $plugin ($self->plugins) {
@@ -200,7 +202,8 @@ sub commands {
     # remove the wildcard command
     delete $cmds{'*'} if exists $cmds{'*'};
 
-    return sort keys %cmds;
+    $self->{'commands'} = [sort keys %cmds];
+    return @{$self->{'commands'}};
 }
 
 sub on_start {
@@ -330,6 +333,13 @@ sub on_message {
         if ($command && $command eq 'help') {
             @output = $self->help($msg_part);
             last MESSAGE_PART;
+        } elsif ($command) {
+            # make sure the nick sending the message has permission to use it
+            unless (RoboBot::Plugin::Auth::has_permission($self, $command, $sender_nick)) {
+                @output = (sprintf('You do not have permission to use the !%s command. Self-destruct initiated...',
+                    $command));
+                last MESSAGE_PART;
+            }
         }
 
         PLUGIN:
