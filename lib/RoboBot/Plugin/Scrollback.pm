@@ -20,13 +20,16 @@ sub handle_message {
     # see an "output truncated" notice.
 
     my $res = $bot->{'dbh'}->do(q{
-        select to_char(l.posted_at, 'HH24:MI') as posted_at, n.nick, l.message
-        from logger_log l
-            join nicks n on (n.id = l.nick_id)
-            join channels c on (c.id = l.channel_id)
-        where c.name = ? and l.posted_at >= now() - (interval '1 minute' * ?)
-        order by l.posted_at desc
-        limit 21
+        select d.*
+        from ( select to_char(l.posted_at, 'HH24:MI') as post_time, n.nick, l.posted_at, l.message
+               from logger_log l
+                   join nicks n on (n.id = l.nick_id)
+                   join channels c on (c.id = l.channel_id)
+               where c.name = ? and l.posted_at >= now() - (interval '1 minute' * ?)
+               order by l.posted_at desc
+               limit 21
+             ) d
+        order by d.posted_at asc
     }, $channel, $minutes);
 
     return unless $res;
@@ -34,7 +37,7 @@ sub handle_message {
     my @r = ({ to => $sender, msg_limit => 20 });
 
     while ($res->next) {
-        push(@r, sprintf('%s [%s] <%s> %s', $res->{'posted_at'}, $channel,
+        push(@r, sprintf('%s [%s] <%s> %s', $res->{'post_time'}, $channel,
             $res->{'nick'}, $res->{'message'}));
     }
 
