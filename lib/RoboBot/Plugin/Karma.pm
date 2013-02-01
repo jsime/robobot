@@ -28,7 +28,7 @@ sub display_karma {
     my $nick_id = nick_id($bot, $nick);
     return unless $nick_id;
 
-    my $res = $bot->{'dbh'}->do(q{
+    my $res = $bot->db->do(q{
         select sum(d.karma) as karma
         from (
             select from_nick_id, log(sum(karma))
@@ -61,7 +61,7 @@ sub add_karma {
 
     return -1 if $sender_id == $nick_id;
 
-    my $res = $bot->{'dbh'}->do(q{
+    my $res = $bot->db->do(q{
         insert into karma_karma (nick_id, from_nick_id, karma) values (?,?,?)
     }, $nick_id, $sender_id, 1);
 
@@ -79,7 +79,7 @@ sub remove_karma {
 
     return -1 if $sender_id == $nick_id;
 
-    my $res = $bot->{'dbh'}->do(q{
+    my $res = $bot->db->do(q{
         insert into karma_karma (nick_id, from_nick_id, karma) values (?,?,?)
     }, $nick_id, $sender_id, -1);
 
@@ -94,7 +94,7 @@ sub nick_id {
     return $bot->{'db'}->{'nicks'}->{$sender}
         if $bot->{'db'}->{'nicks'} && $bot->{'db'}->{'nicks'}->{$sender};
 
-    my $res = $bot->{'dbh'}->do(q{ select id from nicks where nick = ? }, $sender);
+    my $res = $bot->db->do(q{ select id from nicks where nick = ? }, $sender);
 
     $bot->{'db'}->{'nicks'} = {} unless $bot->{'db'}->{'nicks'};
 
@@ -103,7 +103,7 @@ sub nick_id {
 
         return $res->{'id'};
     } else {
-        $res = $bot->{'dbh'}->do(q{ insert into nicks (nick) values (?) returning id }, $sender);
+        $res = $bot->db->do(q{ insert into nicks (nick) values (?) returning id }, $sender);
 
         return unless $res && $res->next;
 

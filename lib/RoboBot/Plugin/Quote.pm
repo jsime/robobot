@@ -35,7 +35,7 @@ sub display_quotes {
 
     return 'No quotes found matching that criteria.' unless scalar(@ids) > 0;
 
-    my $res = $bot->{'dbh'}->do(q{
+    my $res = $bot->db->do(q{
         select qq.id, qq.quote
         from quote_quotes qq
         where qq.id in ??? and not qq.deleted
@@ -46,7 +46,7 @@ sub display_quotes {
     my @quotes = ();
 
     while ($res->next) {
-        my $tags = $bot->{'dbh'}->do(q{
+        my $tags = $bot->db->do(q{
             select qt.tag_name
             from quote_quote_tags qqt
                 join quote_tags qt on (qt.id = qqt.tag_id)
@@ -79,7 +79,7 @@ sub save_quote {
 
     my $nick_id = sender_nick_id($bot, $sender);
 
-    my $res = $bot->{'dbh'}->do(q{
+    my $res = $bot->db->do(q{
         insert into quote_quotes ??? returning id
     }, {    quote    => $message,
             added_by => $nick_id,
@@ -92,7 +92,7 @@ sub save_quote {
 sub delete_quote {
     my ($bot, $quote_id) = @_;
 
-    my $res = $bot->{'dbh'}->do(q{ update quote_quotes set deleted = true where id = ? }, $quote_id);
+    my $res = $bot->db->do(q{ update quote_quotes set deleted = true where id = ? }, $quote_id);
 
     return sprintf('An error occurred while deleting quote %d', $quote_id) unless $res;
     return sprintf('Quote %d has been deleted.', $quote_id);
@@ -103,7 +103,7 @@ sub search_quotes {
 
     return unless $qstring && $qstring =~ m{\w+}o;
 
-    my $res = $bot->{'dbh'}->do(q{
+    my $res = $bot->db->do(q{
         select qq.id
         from quote_quotes qq
         where quote ~* ? and not deleted
@@ -123,23 +123,23 @@ sub tag_quote {
 
     my $tag_id;
 
-    my $res = $bot->{'dbh'}->do(q{ select id from quote_tags where tag_name = ? }, $tag_name);
+    my $res = $bot->db->do(q{ select id from quote_tags where tag_name = ? }, $tag_name);
 
     if ($res && $res->next) {
         $tag_id = $res->{'id'};
     } else {
-        $res = $bot->{'dbh'}->do(q{ insert into quote_tags (tag_name) values (?) returning id }, $tag_name);
+        $res = $bot->db->do(q{ insert into quote_tags (tag_name) values (?) returning id }, $tag_name);
 
         return unless $res && $res->next;
         $tag_id = $res->{'id'};
     }
 
-    $res = $bot->{'dbh'}->do(q{ select * from quote_quote_tags where quote_id = ? and tag_id = ? }, $quote_id, $tag_id);
+    $res = $bot->db->do(q{ select * from quote_quote_tags where quote_id = ? and tag_id = ? }, $quote_id, $tag_id);
 
     return unless $res;
     return sprintf('Quote %d already tagged with #%s', $quote_id, $tag_name) if $res->next;
 
-    $res = $bot->{'dbh'}->do(q{ insert into quote_quote_tags (quote_id, tag_id) values (?,?) }, $quote_id, $tag_id);
+    $res = $bot->db->do(q{ insert into quote_quote_tags (quote_id, tag_id) values (?,?) }, $quote_id, $tag_id);
 
     return sprintf('An error occurred while tagging quote %d with #%s', $quote_id, $tag_name) unless $res;
     return sprintf('Quote %d has now been tagged with #%s', $quote_id, $tag_name);
@@ -150,7 +150,7 @@ sub quote_by_tag {
 
     $tag_name = normalize_tag($tag_name);
 
-    my $res = $bot->{'dbh'}->do(q{
+    my $res = $bot->db->do(q{
         select qq.id
         from quote_quotes qq
             join quote_quote_tags qqt on (qqt.quote_id = qq.id)
@@ -167,7 +167,7 @@ sub quote_by_tag {
 sub random_quote {
     my ($bot) = @_;
 
-    my $res = $bot->{'dbh'}->do(q{
+    my $res = $bot->db->do(q{
         select qq.id
         from quote_quotes qq
         where not deleted
@@ -198,7 +198,7 @@ sub sender_nick_id {
     return $bot->{'db'}->{'nicks'}->{$sender}
         if $bot->{'db'}->{'nicks'} && $bot->{'db'}->{'nicks'}->{$sender};
 
-    my $res = $bot->{'dbh'}->do(q{ select id from nicks where nick = ? }, $sender);
+    my $res = $bot->db->do(q{ select id from nicks where nick = ? }, $sender);
 
     $bot->{'db'}->{'nicks'} = {} unless $bot->{'db'}->{'nicks'};
 
@@ -207,7 +207,7 @@ sub sender_nick_id {
 
         return $res->{'id'};
     } else {
-        $res = $bot->{'dbh'}->do(q{ insert into nicks (nick) values (?) returning id }, $sender);
+        $res = $bot->db->do(q{ insert into nicks (nick) values (?) returning id }, $sender);
 
         return unless $res && $res->next;
 

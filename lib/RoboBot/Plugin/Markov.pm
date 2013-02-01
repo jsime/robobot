@@ -39,7 +39,7 @@ sub build_phrase {
     $seed_phrase = pick_seed_phrase($bot, $nick_id) unless $seed_phrase;
 
     if ($seed_phrase) {
-        $res = $bot->{'dbh'}->do(q{
+        $res = $bot->db->do(q{
             select structure, phrase
             from markov_phrases
             where nick_id = ? and phrase = ?
@@ -60,7 +60,7 @@ sub build_phrase {
 sub pick_seed_phrase {
     my ($bot, $nick_id) = @_;
 
-    my $res = $bot->{'dbh'}->do(q{
+    my $res = $bot->db->do(q{
         select phrase
         from markov_phrases
         where nick_id = ?
@@ -95,7 +95,7 @@ sub make_seeded_phrase {
         push(@binds, $nick_id, $structure, $structure_counts{$structure});
     }
 
-    my $res = $bot->{'dbh'}->do(join(' union all ', @queries), @binds);
+    my $res = $bot->db->do(join(' union all ', @queries), @binds);
 
     return unless $res;
 
@@ -117,7 +117,7 @@ sub make_seeded_phrase {
 sub pick_sentence_form {
     my ($bot, $nick_id, $phrase_structure) = @_;
 
-    my $res = $bot->{'dbh'}->do(q{
+    my $res = $bot->db->do(q{
         select structure
         from markov_sentence_forms
         where nick_id = ? and structure ~ ?
@@ -273,7 +273,7 @@ sub parse_verbs {
 sub save_phrase {
     my ($bot, $nick_id, $phrase) = @_;
 
-    my $res = $bot->{'dbh'}->do(q{
+    my $res = $bot->db->do(q{
         update markov_phrases
         set used_count = used_count + 1
         where nick_id = ? and phrase = ?
@@ -282,7 +282,7 @@ sub save_phrase {
 
     return if $res && $res->next;
 
-    $res = $bot->{'dbh'}->do(q{
+    $res = $bot->db->do(q{
         insert into markov_phrases ??? returning id
     }, { nick_id    => $nick_id,
          structure  => $phrase->{'structure'},
@@ -298,7 +298,7 @@ sub save_sentence_form {
 
     $form = join(' ', @parts_of_speech);
 
-    my $res = $bot->{'dbh'}->do(q{
+    my $res = $bot->db->do(q{
         update markov_sentence_forms
         set used_count = used_count + 1
         where nick_id = ? and structure = ?
@@ -307,7 +307,7 @@ sub save_sentence_form {
 
     return if $res && $res->next;
 
-    $res = $bot->{'dbh'}->do(q{
+    $res = $bot->db->do(q{
         insert into markov_sentence_forms ??? returning id
     }, { nick_id    => $nick_id,
          structure  => $form,
@@ -323,7 +323,7 @@ sub sender_nick_id {
     return $bot->{'db'}->{'nicks'}->{$sender}
         if $bot->{'db'}->{'nicks'} && $bot->{'db'}->{'nicks'}->{$sender};
 
-    my $res = $bot->{'dbh'}->do(q{ select id from nicks where nick = ? }, $sender);
+    my $res = $bot->db->do(q{ select id from nicks where nick = ? }, $sender);
 
     $bot->{'db'}->{'nicks'} = {} unless $bot->{'db'}->{'nicks'};
 
@@ -332,7 +332,7 @@ sub sender_nick_id {
 
         return $res->{'id'};
     } else {
-        $res = $bot->{'dbh'}->do(q{ insert into nicks (nick) values (?) returning id }, $sender);
+        $res = $bot->db->do(q{ insert into nicks (nick) values (?) returning id }, $sender);
 
         return unless $res && $res->next;
 

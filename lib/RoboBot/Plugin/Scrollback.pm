@@ -19,7 +19,7 @@ sub handle_message {
     # channel messages within the specified time limit, the recipient will
     # see an "output truncated" notice.
 
-    my $res = $bot->{'dbh'}->do(q{
+    my $res = $bot->db->do(q{
         select d.*
         from ( select to_char(l.posted_at, 'HH24:MI') as post_time, n.nick, l.posted_at, l.message
                from logger_log l

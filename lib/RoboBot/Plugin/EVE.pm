@@ -151,7 +151,7 @@ sub pilot_info {
     $name =~ s{(^\s+|\s+$)}{}ogs;
     $name =~ s{\s+}{ }ogs;
 
-    my $pilot = $bot->{'dbh'}->do(q{
+    my $pilot = $bot->db->do(q{
         select p.pilot_id, p.name, p.gender, p.race, p.bloodline, p.dob, p.security, p.cached_until,
             c.name as corporation, max(pc.from_date) as corporation_date, a.name as alliance
         from eve_pilots p
@@ -194,7 +194,7 @@ sub pilot_info {
             cached_until=> $xml->{'cachedUntil'} . '+00',
         };
 
-        my $res = $bot->{'dbh'}->do(q{
+        my $res = $bot->db->do(q{
             update eve_pilots
             set ???
             where pilot_id = ?
@@ -207,7 +207,7 @@ sub pilot_info {
             # API for non-key requests doesn't return gender -- we'll fake it in the DB for now
             $pilot->{'gender'} = 'Female';
 
-            $res = $bot->{'dbh'}->do(q{ insert into eve_pilots ??? returning pilot_id }, $pilot);
+            $res = $bot->db->do(q{ insert into eve_pilots ??? returning pilot_id }, $pilot);
 
             return "Couldn't update expired cache entry for plot"
                 unless $res && $res->next;
@@ -220,7 +220,7 @@ sub pilot_info {
         # for(;;) loops aren't fashionable, but we need to refer to the next element to
         # get the end date for the current one
         for (my $i = 0; $i < scalar(@corps); $i++) {
-            my $corp = $bot->{'dbh'}->do(q{
+            my $corp = $bot->db->do(q{
                 select *
                 from eve_corps
                 where corp_id = ? and cached_until >= now()
@@ -239,17 +239,17 @@ sub pilot_info {
                           });
         }
 
-        $bot->{'dbh'}->begin;
+        $bot->db->begin;
 
-        $res = $bot->{'dbh'}->do(q{ delete from eve_pilot_corps where pilot_id = ? }, $pilot->{'pilot_id'});
-        $res = $bot->{'dbh'}->do(q{ insert into eve_pilot_corps ??? }, \@insert);
+        $res = $bot->db->do(q{ delete from eve_pilot_corps where pilot_id = ? }, $pilot->{'pilot_id'});
+        $res = $bot->db->do(q{ insert into eve_pilot_corps ??? }, \@insert);
 
-        unless ($bot->{'dbh'}->commit) {
-            $bot->{'dbh'}->rollback;
+        unless ($bot->db->commit) {
+            $bot->db->rollback;
             return "Encountered an error while updating pilot's corporation membership.";
         }
 
-        $res = $bot->{'dbh'}->do(q{
+        $res = $bot->db->do(q{
             select c.name as corporation, pc.from_date, a.name as alliance
             from eve_pilot_corps pc
                 join eve_corps c on (c.corp_id = pc.corp_id)
@@ -297,7 +297,7 @@ sub update_corporation {
         cached_until => $xml->{'cachedUntil'} . '+00',
     };
 
-    my $res = $bot->{'dbh'}->do(q{
+    my $res = $bot->db->do(q{
         update eve_corps
         set ???
         where corp_id = ?
@@ -307,7 +307,7 @@ sub update_corporation {
     if ($res && $res->next) {
         return $corp;
     } else {
-        $res = $bot->{'dbh'}->do(q{ insert into eve_corps ??? returning * }, $corp);
+        $res = $bot->db->do(q{ insert into eve_corps ??? returning * }, $corp);
 
         return $corp if $res && $res->next;
     }
@@ -321,7 +321,7 @@ sub lookup_item {
     $name =~ s{(^\s+|\s+$)}{}ogs;
     $name =~ s{\s+}{ }ogs;
 
-    my $res = $bot->{'dbh'}->do(q{
+    my $res = $bot->db->do(q{
         select i.item_id, i.name, i.description, i.base_price, igp.path
         from eve_items i
             join eve_item_group_paths igp on (igp.item_group_id = i.item_group_id)
@@ -338,7 +338,7 @@ sub lookup_item {
     # with the small levenshtein distances (a little odd, considering the input name
     # might have wildcards, character classes, etc. -- but the only other real options
     # would be to try and remove those, or to take two parameters)
-    $res = $bot->{'dbh'}->do(q{
+    $res = $bot->db->do(q{
         select i.item_id, i.name, i.description, i.base_price, igp.path
         from eve_items i
             join eve_item_group_paths igp on (igp.item_group_id = i.item_group_id)
@@ -366,7 +366,7 @@ sub lookup_item_prices {
     @ids = grep { defined $_ && $_ =~ m{^\d+$}o } @ids;
     return unless scalar(@ids) > 0;
 
-    my $res = $bot->{'dbh'}->do(q{
+    my $res = $bot->db->do(q{
         select r.region_id, r.name
         from eve_regions r
         where r.price_default
@@ -387,7 +387,7 @@ sub lookup_item_prices {
 
     my %items;
 
-    $res = $bot->{'dbh'}->do(q{
+    $res = $bot->db->do(q{
         select *
         from eve_item_prices
         where item_id in ??? and region_id in ???
@@ -437,7 +437,7 @@ sub lookup_item_prices {
                 }
             }
 
-            $res = $bot->{'dbh'}->do(q{
+            $res = $bot->db->do(q{
                 update eve_item_prices
                 set ???
                 where item_id = ? and region_id = ?
@@ -447,7 +447,7 @@ sub lookup_item_prices {
             unless ($res && $res->next) {
                 $items{$type_id}{'regions'}{$region_id}{'item_id'} = $type_id;
                 $items{$type_id}{'regions'}{$region_id}{'region_id'} = $region_id;
-                $res = $bot->{'dbh'}->do(q{
+                $res = $bot->db->do(q{
                     insert into eve_item_prices ???
                 }, $items{$type_id}{'regions'}{$region_id});
             }
@@ -456,7 +456,7 @@ sub lookup_item_prices {
         }
     }
 
-    $res = $bot->{'dbh'}->do(q{
+    $res = $bot->db->do(q{
         update eve_item_prices
         set cached_until = now() + interval '6 hours'
         where item_id in ??? and region_id in ???

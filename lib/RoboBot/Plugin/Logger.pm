@@ -40,7 +40,7 @@ sub last_message {
     $nick_where = qq{ and nick_id = (select nx.id from nicks nx where nx.nick = ?) } if $nick;
     push(@binds, $nick) if $nick;
 
-    my $res = $bot->{'dbh'}->do(qq{
+    my $res = $bot->db->do(qq{
         select n.nick, ll.message
         from logger_log ll
             join nicks n on (n.id = ll.nick_id)
@@ -67,12 +67,12 @@ sub log_message {
     if ($bot->{'db'}->{'nicks'} && $bot->{'db'}->{'nicks'}->{$sender}) {
         $nick_id = $bot->{'db'}->{'nicks'}->{$sender};
     } else {
-        $res = $bot->{'dbh'}->do(q{ select id from nicks where nick = ? }, $sender);
+        $res = $bot->db->do(q{ select id from nicks where nick = ? }, $sender);
 
         if ($res && $res->next) {
             $nick_id = $res->{'id'};
         } else {
-            $res = $bot->{'dbh'}->do(q{ insert into nicks (nick) values (?) returning id }, $sender);
+            $res = $bot->db->do(q{ insert into nicks (nick) values (?) returning id }, $sender);
 
             return unless $res && $res->next;
 
@@ -83,7 +83,7 @@ sub log_message {
     $bot->{'db'}->{'nicks'} = {} unless $bot->{'db'}->{'nicks'};
     $bot->{'db'}->{'nicks'}->{$sender} = $nick_id;
 
-    $res = $bot->{'dbh'}->do(q{
+    $res = $bot->db->do(q{
         insert into logger_log ???
     }, { channel_id => $bot->{'db'}->{'channels'}->{$channel},
          nick_id    => $nick_id,
