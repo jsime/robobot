@@ -109,8 +109,8 @@ sub last_message {
 sub log_message {
     my ($bot, $sender, $channel, $message) = @_;
 
-    # normalize nicks to remove the common "_" from unintended reconnects
-    $sender =~ s{\_+$}{}og;
+    # normalize nicks to remove the common suffixes from unintended reconnects
+    $sender =~ s{(\D)(?:_+|\d)\s*$}{$1}ogs;
 
     my ($res, $nick_id);
 
