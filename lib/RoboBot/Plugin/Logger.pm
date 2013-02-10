@@ -117,7 +117,7 @@ sub log_message {
     if ($bot->{'db'}->{'nicks'} && $bot->{'db'}->{'nicks'}->{$sender}) {
         $nick_id = $bot->{'db'}->{'nicks'}->{$sender};
     } else {
-        $res = $bot->db->do(q{ select id from nicks where nick = ? }, $sender);
+        $res = $bot->db->do(q{ select id from nicks where lower(nick) = lower(?) }, $sender);
 
         if ($res && $res->next) {
             $nick_id = $res->{'id'};

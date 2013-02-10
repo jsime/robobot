@@ -323,7 +323,7 @@ sub sender_nick_id {
     return $bot->{'db'}->{'nicks'}->{$sender}
         if $bot->{'db'}->{'nicks'} && $bot->{'db'}->{'nicks'}->{$sender};
 
-    my $res = $bot->db->do(q{ select id from nicks where nick = ? }, $sender);
+    my $res = $bot->db->do(q{ select id from nicks where lower(nick) = lower(?) }, $sender);
 
     $bot->{'db'}->{'nicks'} = {} unless $bot->{'db'}->{'nicks'};
 
