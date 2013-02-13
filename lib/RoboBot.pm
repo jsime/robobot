@@ -8,6 +8,7 @@ use DBIx::DataStore config => 'yaml';
 use Module::Pluggable require => 1;
 use POE;
 use POE::Component::IRC;
+use Term::ExtendedColor qw( fg bold );
 use Time::HiRes qw( usleep );
 
 use RoboBot::Config;
@@ -281,10 +282,8 @@ sub on_message {
     $message =~ s{(^\s+|\s+$)}{}ogs;
 
     my $msg_time = time();
-    my $msg_time_date = sprintf('%d-%02d-%02d', (localtime($msg_time))[5] + 1900, (localtime($msg_time))[4,3]);
-    my $msg_time_time = sprintf('%02d:%02d:%02d', (localtime($msg_time))[2,1,0]);
 
-    printf("%s %s [%s] <%s> %s\n", $msg_time_date, $msg_time_time, $channel, $sender_nick, $message);
+    log_to_console(time(), $channel, $sender_nick, $message);
 
     # set up skeleton of output options, with defaults
     my %options = (
@@ -398,15 +397,8 @@ sub on_message {
     }
 
     if (@output && scalar(grep { $_ =~ m{\w+}o } @output) > 0) {
-        my $resp_time = time();
-        my $resp_time_date = sprintf('%d-%02d-%02d', (localtime($resp_time))[5] + 1900, (localtime($resp_time))[4,3]);
-        my $resp_time_time = sprintf('%02d:%02d:%02d', (localtime($resp_time))[2,1,0]);
-
-        printf("%s %s [%s] <%s> %s\n",
-            $resp_time_date, $resp_time_time,
-            $channel, $self->config->nick(),
-            ($direct_to && length($direct_to) > 0 ? "$direct_to$_" : $_)
-        ) for grep { $_ =~ m{\w+}o } @output;
+        log_to_console(time(), $channel, $self->config->nick(), ($direct_to && length($direct_to) > 0 ? "$direct_to$_" : $_))
+            for grep { $_ =~ m{\w+}o } @output;
 
         # honor the message limit option, and append a message indicating that the
         # output has been truncated if it exceeds that limit
@@ -470,6 +462,31 @@ sub help {
         q{their clients may highlight the messages for easier recognition.});
 
     return @output;
+}
+
+sub log_to_console {
+    my $msg_time = shift;
+    my $channel = shift;
+
+    # Assume if there's only one argument remaining, that this was a system message or alert
+    # (such as a join, part, kick, etc.) instead of a regular chat line.
+    my $nick;
+    $nick = shift if scalar(@_) > 1;
+    my $message = shift;
+
+    my $time_date = sprintf('%d-%02d-%02d', (localtime($msg_time))[5] + 1900, (localtime($msg_time))[4,3]);
+    my $time_time = sprintf('%02d:%02d:%02d', (localtime($msg_time))[2,1,0]);
+
+    printf("%s [%s] %s\n",
+        fg('seagreen1', sprintf('%s %s', $time_date, $time_time)),
+        bold(fg('darkorange1', $channel)),
+        ( defined $nick
+            ? sprintf('<%s> %s', bold(fg('magenta8', $nick)), $message)
+            : bold(fg('lightslateblue', sprintf('* %s *', $message)))
+        )
+    );
+
+    return 1;
 }
 
 =head1 AUTHOR
