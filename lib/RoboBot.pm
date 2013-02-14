@@ -99,6 +99,10 @@ sub new {
                 irc_001     => "on_connect",
                 irc_msg     => "on_message",
                 irc_public  => "on_message",
+                irc_join    => "notice_join",
+                irc_kick    => "notice_kick",
+                irc_nick    => "notice_nick",
+                irc_part    => "notice_part",
             }
         ],
         options => { trace => 0, debug => 0 },
@@ -462,6 +466,38 @@ sub help {
         q{their clients may highlight the messages for easier recognition.});
 
     return @output;
+}
+
+sub notice_join {
+    my ($self, $kernel, $who, $channel) = @_[OBJECT, KERNEL, ARG0, ARG1];
+
+    my $sender_nick = (split(/!/, $who))[0];
+
+    log_to_console(time(), $channel, sprintf('%s has joined the channel.', $sender_nick));
+}
+
+sub notice_kick {
+    my ($self, $kernel, $kicker, $channel, $kicked, $reason) = @_[OBJECT, KERNEL, ARG0, ARG1, ARG2, ARG3];
+
+    my $kicker_nick = (split(/!/, $kicker))[0];
+
+    log_to_console(time(), $channel, sprintf('%s has kicked %s from %s (%s).', $kicker_nick, $kicked, $channel, $reason));
+}
+
+sub notice_nick {
+    my ($self, $kernel, $who, $new_nick) = @_[OBJECT, KERNEL, ARG0, ARG1];
+
+    my $sender_nick = (split(/!/, $who))[0];
+
+    log_to_console(time(), 'global', sprintf('%s is now known as %s.', $sender_nick, $new_nick));
+}
+
+sub notice_part {
+    my ($self, $kernel, $who, $channel, $reason) = @_[OBJECT, KERNEL, ARG0, ARG1, ARG2];
+
+    my $sender_nick = (split(/!/, $who))[0];
+
+    log_to_console(time(), $channel, sprintf('%s has left %s (%s).', $sender_nick, $channel, $reason));
 }
 
 sub log_to_console {
