@@ -57,7 +57,7 @@ sub add_karma {
     return unless $sender_id;
 
     my $nick_id = nick_id($bot, $nick);
-    return unless $nick_id;
+    return -1 unless $nick_id;
 
     return -1 if $sender_id == $nick_id;
 
@@ -75,7 +75,7 @@ sub remove_karma {
     return unless $sender_id;
 
     my $nick_id = nick_id($bot, $nick);
-    return unless $nick_id;
+    return -1 unless $nick_id;
 
     return -1 if $sender_id == $nick_id;
 
@@ -99,14 +99,6 @@ sub nick_id {
     $bot->{'db'}->{'nicks'} = {} unless $bot->{'db'}->{'nicks'};
 
     if ($res && $res->next) {
-        $bot->{'db'}->{'nicks'}->{$sender} = $res->{'id'};
-
-        return $res->{'id'};
-    } else {
-        $res = $bot->db->do(q{ insert into nicks (nick) values (?) returning id }, $sender);
-
-        return unless $res && $res->next;
-
         $bot->{'db'}->{'nicks'}->{$sender} = $res->{'id'};
 
         return $res->{'id'};
