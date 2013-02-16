@@ -17,8 +17,9 @@ sub handle_message {
     return remember_words($bot, $message) if $command && $command eq 'remember';
     return forget_words($bot, $message) if $command && $command eq 'forget';
 
-    # never spell check input that included a command
+    # never spell check input that included a command or is intended for NickBot
     return -1 if $command && length($command) > 0;
+    return -1 if $message =~ m{^\s*!!}o;
 
     # we don't want to fire off too often, so just return right away some portion of the time
     return -1 if rand() >= 0.75;

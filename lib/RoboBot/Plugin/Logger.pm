@@ -109,6 +109,8 @@ sub last_message {
 sub log_message {
     my ($bot, $sender, $channel, $message) = @_;
 
+    return if $message =~ m{^\s*!!}o; # don't log NickBot commands
+
     # normalize nicks to remove the common suffixes from unintended reconnects
     $sender =~ s{(\D)(?:_+|\d)\s*$}{$1}ogs;
 
