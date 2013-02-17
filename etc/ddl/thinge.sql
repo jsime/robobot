@@ -10,7 +10,7 @@ create unique index thinge_types_name_idx on thinge_types (name);
 create table thinge_thinges (
     id          serial not null primary key,
     type_id     integer not null,
-    thinge_id   integer not null,
+    thinge_num  integer not null,
     thinge_url  text not null,
     added_by    integer not null,
     added_at    timestamp with time zone not null default now(),
@@ -23,7 +23,7 @@ create index thinge_thinges_added_at_idx on thinge_thinges (added_at);
 create index thinge_thinges_deleted_idx  on thinge_thinges (deleted);
 
 create unique index thinge_thinges_type_id_thinge_url_idx on thinge_thinges (type_id, thinge_url);
-create unique index thinge_thinges_type_id_thinge_id_idx on thinge_thinges (type_id, thinge_id);
+create unique index thinge_thinges_type_id_thinge_num_idx on thinge_thinges (type_id, thinge_num);
 
 alter table thinge_thinges add foreign key (type_id) references thinge_types (id);
 alter table thinge_thinges add foreign key (added_by) references nicks (id);

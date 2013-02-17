@@ -18,7 +18,7 @@ sub handle_message {
     } elsif ($message =~ m{^untag\s+(\d+)\s+(\#?\S+)\s*}oi) {
         return untag_thinge($bot, $command, $1, $2);
     } elsif ($message =~ m{^\s*\#(\w+)\s*$}oi) {
-        return display_thinge($bot, $command, thinge_by_tag($bot, $command, $1));
+        return display_thinges($bot, $command, thinge_by_tag($bot, $command, $1));
     } elsif ($message =~ m{^\s*(\d+)\s*$}o) {
         return display_thinges($bot, $command, $1);
     } elsif ($message =~ m{^\s*$}o) {
@@ -36,11 +36,11 @@ sub display_thinges {
     return 'Nothing found matching that criteria.' unless scalar(@ids) > 0;
 
     my $res = $bot->db->do(q{
-        select tt.id, tt.thinge_url, n.nick, tt.added_at::date
+        select tt.id, tt.thinge_url, tt.thinge_num, n.nick, tt.added_at::date
         from thinge_thinges tt
             join thinge_types tty on (tty.id = tt.type_id)
             join nicks n on (n.id = tt.added_by)
-        where tt.id in ??? and tty.name = ? and not tt.deleted
+        where tt.thinge_num in ??? and tty.name = ? and not tt.deleted
     }, \@ids, $type);
 
     return unless $res;
@@ -68,7 +68,7 @@ sub display_thinges {
             if @t && scalar(@t) > 0;
 
         push(@thinges,
-            sprintf('[%d] %s (Added by %s on %s)', $res->{'id'}, $res->{'thinge_url'},
+            sprintf('[%d] %s (Added by %s on %s)', $res->{'thinge_num'}, $res->{'thinge_url'},
                 $res->{'nick'}, $res->{'added_at'})
         );
     }
@@ -86,47 +86,48 @@ sub save_thinge {
     my $type_id = thinge_type_id($bot, $type);
 
     my $res = $bot->db->do(q{
-        select id from thinge_thinges where type_id = ? and thinge_url = ?
+        select thinge_num from thinge_thinges where type_id = ? and lower(thinge_url) = lower(?)
     }, $type_id, $message);
 
     if ($res && $res->next) {
         return sprintf('That %s%s was already saved as ID %d.',
-            uc(substr($type, 0, 1)), substr($type, 1), $res->{'id'});
+            uc(substr($type, 0, 1)), substr($type, 1), $res->{'thinge_num'});
     }
 
     $res = $bot->db->do(q{
-        insert into thinge_thinges ??? returning id
-    }, {    type_id     => $type_id,
-            thinge_url  => $message,
-            added_by    => $nick_id,
-    });
+        insert into thinge_thinges
+            (type_id, thinge_url, added_by, thinge_num )
+        values
+            ( ?, ?, ?, (select max(thinge_num) + 1 from thinge_thinges where type_id = ?) )
+        returning thinge_id
+    }, $type_id, $message, $nick_id, $type_id);
 
     return sprintf('An error occurred while attempting to save the %s.', $type) unless $res && $res->next;
     return sprintf('%s%s %d saved.', uc(substr($type, 0, 1)), substr($type, 1), $res->{'id'});
 }
 
 sub delete_thinge {
-    my ($bot, $type, $thinge_id) = @_;
+    my ($bot, $type, $thinge_num) = @_;
 
     my $res = $bot->db->do(q{
         update thinge_thinges
         set deleted = true
-        where id = ? and type_id = (select id from thinge_types where name = ?)
-    }, $thinge_id, $type);
+        where thinge_num = ? and type_id = (select id from thinge_types where lower(name) = lower(?))
+    }, $thinge_num, $type);
 
-    return sprintf('An error occurred while deleting %s %d', $type, $thinge_id) unless $res;
-    return sprintf('%s%s %d has been deleted.', uc(substr($type, 0, 1)), substr($type, 1), $thinge_id);
+    return sprintf('An error occurred while deleting %s %d', $type, $thinge_num) unless $res;
+    return sprintf('%s%s %d has been deleted.', uc(substr($type, 0, 1)), substr($type, 1), $thinge_num);
 }
 
 sub tag_thinge {
-    my ($bot, $type, $thinge_id, $tag_name) = @_;
+    my ($bot, $type, $thinge_num, $tag_name) = @_;
 
     $tag_name = normalize_tag($tag_name);
     return unless length($tag_name) > 0;
 
     my $tag_id;
 
-    my $res = $bot->db->do(q{ select id from thinge_tags where tag_name = ? }, $tag_name);
+    my $res = $bot->db->do(q{ select id from thinge_tags where lower(tag_name) = lower(?) }, $tag_name);
 
     if ($res && $res->next) {
         $tag_id = $res->{'id'};
@@ -137,21 +138,36 @@ sub tag_thinge {
         $tag_id = $res->{'id'};
     }
 
-    $res = $bot->db->do(q{ select * from thinge_thinge_tags where thinge_id = ? and tag_id = ? }, $thinge_id, $tag_id);
+    $res = $bot->db->do(q{
+        select ttg.*
+        from thinge_thinge_tags ttg
+            join thinge_things tt on (tt.id = ttg.thinge_id)
+            join thinge_types tty on (tty.id = tt.type_id)
+        where tt.thinge_num = ? and ttg.tag_id = ? and lower(tty.name) = lower(?)
+    }, $thinge_num, $tag_id, $type);
 
     return unless $res;
     return sprintf('%s%s %d already tagged with #%s',
-        uc(substr($type, 0, 1)), substr($type, 1), $thinge_id, $tag_name) if $res->next;
+        uc(substr($type, 0, 1)), substr($type, 1), $thinge_num, $tag_name) if $res->next;
 
-    $res = $bot->db->do(q{ insert into thinge_thinge_tags (thinge_id, tag_id) values (?,?) }, $thinge_id, $tag_id);
+    $res = $bot->db->do(q{
+        insert into thinge_thinge_tags
+            (tag_id, thinge_id)
+        values ( ?, ( select tt.id
+                      from thinge_thinges tt
+                          join thinge_types tty on (tty.id = tt.type_id)
+                      where tt.thinge_num = ? and lower(tty.name) = lower(?)
+                    )
+            )
+    }, $tag_id, $thinge_num, $type);
 
-    return sprintf('An error occurred while tagging %s %d with #%s', $type, $thinge_id, $tag_name) unless $res;
+    return sprintf('An error occurred while tagging %s %d with #%s', $type, $thinge_num, $tag_name) unless $res;
     return sprintf('%s%s %d has now been tagged with #%s',
-        uc(substr($type, 0, 1)), substr($type, 1), $thinge_id, $tag_name);
+        uc(substr($type, 0, 1)), substr($type, 1), $thinge_num, $tag_name);
 }
 
 sub untag_thinge {
-    my ($bot, $type, $thinge_id, $tag_name) = @_;
+    my ($bot, $type, $thinge_num, $tag_name) = @_;
 
     $tag_name = normalize_tag($tag_name);
     return unless length($tag_name) > 0;
@@ -166,12 +182,20 @@ sub untag_thinge {
         return sprintf('No such tag exists: %s', $tag_name);
     }
 
-    $res = $bot->db->do(q{ delete from thinge_thinge_tags where thinge_id = ? and tag_id = ? }, $thinge_id, $tag_id);
+    $res = $bot->db->do(q{
+        delete from thinge_thinge_tags
+        where tag_id = ?
+            and thinge_id = ( select tt.id
+                              from thinge_thinges tt
+                                  join thinge_types tty on (tty.id = tt.type_id)
+                              where tt.thing_num = ? and lower(tty.name) = lower(?)
+                            )
+    }, $tag_id, $thinge_num, $type);
 
     return unless $res;
     return sprintf('Tag #%s removed from %s%s %d', $tag_name,
-        uc(substr($type, 0, 1)), substr($type, 1), $thinge_id) if $res->count() > 0;
-    return sprintf('%s%s %d was not tagged with #%s', uc(substr($type, 0, 1)), substr($type, 1), $thinge_id, $tag_name);
+        uc(substr($type, 0, 1)), substr($type, 1), $thinge_num) if $res->count() > 0;
+    return sprintf('%s%s %d was not tagged with #%s', uc(substr($type, 0, 1)), substr($type, 1), $thinge_num, $tag_name);
 }
 
 sub thinge_by_tag {
@@ -180,25 +204,25 @@ sub thinge_by_tag {
     $tag_name = normalize_tag($tag_name);
 
     my $res = $bot->db->do(q{
-        select tt.id
+        select tt.thinge_num
         from thinge_thinges tt
             join thinge_thinge_tags ttt on (ttt.thinge_id = tt.id)
             join thinge_tags tta on (tta.id = ttt.tag_id)
             join thinge_types tty on (tty.id = tt.type_id)
-        where tty.name = ? and tt.tag_name = ? and not tt.deleted
+        where tty.name = ? and tta.tag_name = ? and not tt.deleted
         order by random()
         limit 1
     }, $type, $tag_name);
 
     return unless $res && $res->next;
-    return $res->{'id'};
+    return $res->{'thinge_num'};
 }
 
 sub random_thinge {
     my ($bot, $type) = @_;
 
     my $res = $bot->db->do(q{
-        select tt.id
+        select tt.thinge_num
         from thinge_thinges tt
             join thinge_types tty on (tty.id = tt.type_id)
         where tty.name = ? and not tt.deleted
@@ -207,7 +231,7 @@ sub random_thinge {
     }, $type);
 
     return unless $res && $res->next;
-    return $res->{'id'};
+    return $res->{'thinge_num'};
 }
 
 sub display_tags {
