@@ -99,11 +99,11 @@ sub save_thinge {
             (type_id, thinge_url, added_by, thinge_num )
         values
             ( ?, ?, ?, (select max(thinge_num) + 1 from thinge_thinges where type_id = ?) )
-        returning thinge_id
+        returning thinge_num
     }, $type_id, $message, $nick_id, $type_id);
 
     return sprintf('An error occurred while attempting to save the %s.', $type) unless $res && $res->next;
-    return sprintf('%s%s %d saved.', uc(substr($type, 0, 1)), substr($type, 1), $res->{'id'});
+    return sprintf('%s%s %d saved.', uc(substr($type, 0, 1)), substr($type, 1), $res->{'thinge_num'});
 }
 
 sub delete_thinge {
