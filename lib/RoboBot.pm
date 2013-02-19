@@ -481,7 +481,7 @@ sub notice_kick {
 
     my $kicker_nick = (split(/!/, $kicker))[0];
 
-    log_to_console(time(), $channel, sprintf('%s has kicked %s from %s (%s).', $kicker_nick, $kicked, $channel, $reason));
+    log_to_console(time(), $channel, sprintf('%s has kicked %s from %s (%s).', $kicker_nick, $kicked, $channel, $reason || 'Kicked.'));
 }
 
 sub notice_nick {
@@ -497,7 +497,7 @@ sub notice_part {
 
     my $sender_nick = (split(/!/, $who))[0];
 
-    log_to_console(time(), $channel, sprintf('%s has left %s (%s).', $sender_nick, $channel, $reason));
+    log_to_console(time(), $channel, sprintf('%s has left %s (%s).', $sender_nick, $channel, $reason || 'Quit.'));
 }
 
 sub log_to_console {
