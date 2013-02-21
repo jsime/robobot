@@ -98,7 +98,7 @@ sub save_thinge {
         insert into thinge_thinges
             (type_id, thinge_url, added_by, thinge_num )
         values
-            ( ?, ?, ?, (select max(thinge_num) + 1 from thinge_thinges where type_id = ?) )
+            ( ?, ?, ?, (select coalesce(max(thinge_num),0) + 1 from thinge_thinges where type_id = ?) )
         returning thinge_num
     }, $type_id, $message, $nick_id, $type_id);
 
