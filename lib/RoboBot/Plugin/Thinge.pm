@@ -141,7 +141,7 @@ sub tag_thinge {
     $res = $bot->db->do(q{
         select ttg.*
         from thinge_thinge_tags ttg
-            join thinge_things tt on (tt.id = ttg.thinge_id)
+            join thinge_thinges tt on (tt.id = ttg.thinge_id)
             join thinge_types tty on (tty.id = tt.type_id)
         where tt.thinge_num = ? and ttg.tag_id = ? and lower(tty.name) = lower(?)
     }, $thinge_num, $tag_id, $type);
