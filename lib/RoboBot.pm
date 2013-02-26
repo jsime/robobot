@@ -305,7 +305,7 @@ sub on_message {
     my $direct_to;
 
     # check if the output should be redirected to a specific nick (or list of nicks)
-    if ($message =~ m{>\s*(\#?\w+(?:[, ]+\#?\w+)*)\s*$}o) {
+    if ($message =~ m{\s+>\s+(\#?\w+(?:[, ]+\#?\w+)*)\s*$}o) {
         $direct_to = $1;
         $direct_to =~ s{[, ]+}{, }og;
 
