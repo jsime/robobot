@@ -11,7 +11,7 @@ sub usage { '[[<id>] | [#<tag>] | [add|save <text>] | [delete|remove|forget <id>
 sub handle_message {
     my ($class, $bot, $sender, $channel, $command, $original, $timestamp, $message) = @_;
 
-    if ($message =~ m{^\s*(?:add|save)\s+(\w+.*)$}oi) {
+    if ($message =~ m{^\s*(?:add|save)\s+(\S+.*)$}oi) {
         return save_quote($bot, $sender, $1);
     } elsif ($message =~ m{^\s*(?:del(?:ete)?|rem(?:ove)?|rm|forget)\s+(\d+)\s*$}oi) {
         return delete_quote($bot, $1);
