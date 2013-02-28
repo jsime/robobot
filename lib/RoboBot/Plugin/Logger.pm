@@ -58,7 +58,7 @@ sub last_message {
 
     # because the offset is moving backwards, we need to make sure the limit doesn't
     # exceed it (as the limit then moves the end point back toward the most recent entry)
-    $limit = ($offset + 1) if $limit >= $offset;
+    $limit = ($offset + 1) if $limit > $offset;
 
     # then we move the offset to mark the end point (closest to most recent) since we'll
     # be grabbing these in reverse order initially
