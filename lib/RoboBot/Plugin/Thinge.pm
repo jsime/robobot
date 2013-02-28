@@ -3,13 +3,13 @@ package RoboBot::Plugin::Thinge;
 use strict;
 use warnings;
 
-sub commands { qw( catte dogge frogge pony bike bear vidya food koi ) }
+sub commands { qw( quote catte dogge frogge pony bike bear vidya food koi ) }
 sub usage { '[[<id>] | [#<tag>] | [add|save <url>] | [delete|remove|forget <id>] | [tag <id> <tag>] | [untag <id> <tag>] | [tags]]' }
 
 sub handle_message {
     my ($class, $bot, $sender, $channel, $command, $original, $timestamp, $message) = @_;
 
-    if ($message =~ m{^\s*(?:add|save)\s+(\w+.*)$}oi) {
+    if ($message =~ m{^\s*(?:add|save)\s+(\S+.*)$}oi) {
         return save_thinge($bot, $command, $sender, $1);
     } elsif ($message =~ m{^\s*(?:del(?:ete)?|rem(?:ove)?|rm|forget)\s+(\d+)\s*$}oi) {
         return delete_thinge($bot, $command, $1);
