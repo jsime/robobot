@@ -8,7 +8,7 @@ sub commands { qw( * ) }
 sub handle_message {
     my ($class, $bot, $sender, $channel, $command, $original, $timestamp, $message) = @_;
 
-    if ($message =~ m{^\s*!!(\w+)(\s.+)?$}o) {
+    if ($message =~ m{^\s*!!(\S+)(\s.+)?$}o) {
         return random_from_nick($bot, $channel, $1, $2 || undef);
     }
 
@@ -19,7 +19,31 @@ sub random_from_nick {
     my ($bot, $channel, $nick, $phrase) = @_;
 
     $phrase =~ s{(^\s+|\s+$)}{}ogs if defined $phrase;
-    my $res;
+
+    my ($res, $nick_ids);
+
+    if ($nick eq '*') {
+        $res = $bot->db->do(q{
+            select id from nicks
+        });
+
+        return (-1) unless $res;
+
+        while ($res->next) {
+            push(@{$nick_ids}, $res->{'id'});
+        }
+    } else {
+        $res = $bot->db->do(q{
+            select id
+            from nicks
+            where lower(nick) = lower(?)
+        }, $nick);
+
+        return (-1) unless $res && $res->next;
+        $nick_ids = [$res->{'id'}];
+    }
+
+    return (-1) unless scalar(@{$nick_ids}) > 0;
 
     if (defined $phrase && length($phrase) > 0) {
         $res = $bot->db->do(q{
@@ -28,11 +52,11 @@ sub random_from_nick {
                 join logger_log ll on (ll.nick_id = n.id)
                 join channels c on (c.id = ll.channel_id)
                 join servers s on (s.id = c.server_id)
-            where lower(n.nick) = lower(?) and lower(c.name) = lower(?)
+            where n.id in ??? and lower(c.name) = lower(?)
                 and lower(s.name) = lower(?) and ll.message ~* ?::text
             order by random()
             limit 1
-        }, $nick, $channel, $bot->config->server, $phrase);
+        }, $nick_ids, $channel, $bot->config->server, $phrase);
 
         return sprintf("No messages located for nick %s matching pattern '%s'.", $nick, $phrase)
             unless $res && $res->next;
@@ -43,11 +67,11 @@ sub random_from_nick {
                 join logger_log ll on (ll.nick_id = n.id)
                 join channels c on (c.id = ll.channel_id)
                 join servers s on (s.id = c.server_id)
-            where lower(n.nick) = lower(?) and lower(c.name) = lower(?)
+            where n.id in ??? and lower(c.name) = lower(?)
                 and lower(s.name) = lower(?)
             order by random()
             limit 1
-        }, $nick, $channel, $bot->config->server);
+        }, $nick_ids, $channel, $bot->config->server);
 
         return sprintf("No messages located for nick %s.", $nick)
             unless $res && $res->next;
