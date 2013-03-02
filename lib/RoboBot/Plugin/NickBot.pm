@@ -47,7 +47,7 @@ sub random_from_nick {
 
     if (defined $phrase && length($phrase) > 0) {
         $res = $bot->db->do(q{
-            select n.nick, ll.message
+            select n.nick, ll.message, to_char(ll.posted_at, 'YYYY-MM-DD HH24:MI') as posted_at
             from nicks n
                 join logger_log ll on (ll.nick_id = n.id)
                 join channels c on (c.id = ll.channel_id)
@@ -62,7 +62,7 @@ sub random_from_nick {
             unless $res && $res->next;
     } else {
         $res = $bot->db->do(q{
-            select n.nick, ll.message
+            select n.nick, ll.message, to_char(ll.posted_at, 'YYYY-MM-DD HH24:MI') as posted_at
             from nicks n
                 join logger_log ll on (ll.nick_id = n.id)
                 join channels c on (c.id = ll.channel_id)
@@ -77,7 +77,7 @@ sub random_from_nick {
             unless $res && $res->next;
     }
 
-    return sprintf('<%s> %s', $res->{'nick'}, $res->{'message'});
+    return sprintf('[%s] <%s> %s', $res->{'posted_at'}, $res->{'nick'}, $res->{'message'});
 }
 
 1;
