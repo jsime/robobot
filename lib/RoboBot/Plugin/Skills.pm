@@ -14,7 +14,6 @@ sub handle_message {
 
         my @t = split(/\s+/o, $message);
 
-print STDERR "SKILLS ARGS/t: [" . join('],[', @t) . "]\n";
         my $subcmd = lc(shift(@t));
         $message = join(' ', @t);
 
