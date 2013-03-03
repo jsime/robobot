@@ -20,21 +20,13 @@ print STDERR "SKILLS ARGS/t: [" . join('],[', @t) . "]\n";
 
         my ($nick_id, $skill_id);
 
-        if ($subcmd eq 'list') {
-            return list_skills($bot);
-        } elsif ($subcmd eq 'levels') {
-            return list_levels($bot);
-        } elsif ($subcmd eq 'register') {
-            return register_skill($bot, $sender, @t);
-        } elsif ($subcmd eq 'unregister') {
-            return unregister_skill($bot, $sender, @t);
-        } elsif ($subcmd eq 'add' || $subcmd eq 'save') {
-            return save_skill($bot, $sender, @t);
-        } elsif ($nick_id = lookup_nick_id($bot, $subcmd)) {
-            return show_nick_skills($bot, $nick_id);
-        } elsif ($skill_id = lookup_skill_id($bot, $subcmd)) {
-            return show_skill_nicks($bot, $skill_id);
-        }
+        return list_skills(     $bot                ) if $subcmd eq 'list';
+        return list_levels(     $bot                ) if $subcmd eq 'levels';
+        return register_skill(  $bot, $sender, @t   ) if $subcmd eq 'register';
+        return unregister_skill($bot, $sender, @t   ) if $subcmd eq 'unregister';
+        return save_skill(      $bot, $sender, @t   ) if ($subcmd eq 'add' || $subcmd eq 'save');
+        return show_nick_skills($bot, $nick_id      ) if ($nick_id = lookup_nick_id($bot, $subcmd));
+        return show_skill_nicks($bot, $skill_id     ) if ($skill_id = lookup_skill_id($bot, $subcmd));
     } else {
         return show_nick_skills($bot, lookup_nick_id($bot, $sender));
     }
