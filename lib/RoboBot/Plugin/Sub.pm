@@ -16,7 +16,7 @@ sub handle_message {
     my $source = $3;
 
     eval {
-        $source =~ s{$search}{$replace}g;
+        $source =~ s{$search}{$replace}ig;
     };
 
     return $source unless $@;
