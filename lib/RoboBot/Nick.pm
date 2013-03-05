@@ -3,6 +3,31 @@ package RoboBot::Nick;
 use strict;
 use warnings;
 
+=head1 NAME
+
+RoboBot::Nick - Manages looking up and saving nicks encountered during IRC
+message processing.
+
+=head1 SYNOPSIS
+
+Usage is simple:
+
+    my $nick = RoboBot::Nick->new($bot);
+
+Or:
+
+    my $nick = RoboBot::Nick->new->bot($bot);
+
+For database interaction and ensuring that nicks are properly associated to
+a server (given that a single RoboBot instance may be connected to any number
+of distinct servers), Nick objects created need to be given a reference to
+the caller's RoboBot instance (shown above as $bot).
+
+This gives the Nick module access to the same RoboBot::Config and DBIx::DataStore
+objects that RoboBot itself (as well as all its plugins) uses.
+
+=cut
+
 sub new {
     my ($class, $bot, %args) = @_;
 
