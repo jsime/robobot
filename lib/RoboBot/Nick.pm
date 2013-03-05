@@ -28,6 +28,15 @@ objects that RoboBot itself (as well as all its plugins) uses.
 
 =cut
 
+=head1 METHODS
+
+=head2 new
+
+Accepts one optional argument, which is the RoboBot $bot object for the current
+context (from which it will inherit the DBIx::DataStore database object).
+
+=cut
+
 sub new {
     my ($class, $bot, %args) = @_;
 
@@ -37,6 +46,12 @@ sub new {
 
     return $self;
 }
+
+=head2 bot
+
+Getter/setter for the current context's RoboBot object.
+
+=cut
 
 sub bot {
     my ($self, $bot) = @_;
@@ -52,6 +67,14 @@ sub bot {
     return;
 }
 
+=head2 db
+
+Getter/setter for the current context's DBIx::DataStore object. You can override
+this to an object which does not match that of the Nick's bot() reference, but
+you may find strange results result from such a strange approach.
+
+=cut
+
 sub db {
     my ($self, $dbh) = @_;
 
@@ -60,12 +83,28 @@ sub db {
     return;
 }
 
+=head2 id
+
+Getter method for the current nick's ID. Returns nothing if there is no associated
+nick (i.e. you have not called the nick() method yet). Will automatically save the
+nick to the database if it is new and has not yet received an ID. If the nick is
+already present in the database, this simply returns the existing ID.
+
+=cut
+
 sub id {
     my ($self) = @_;
 
+    return unless exists $self->{'nick'} && $self->{'nick'} =~ m{\w+}o;
     return $self->{'id'} if exists $self->{'id'} || $self->save;
     return;
 }
+
+=head2 nick
+
+Getter/setter for the object's nick.
+
+=cut
 
 sub nick {
     my ($self, $nick) = @_;
@@ -78,6 +117,18 @@ sub nick {
     return unless exists $self->{'nick'};
     return $self->{'nick'};
 }
+
+=head2 save
+
+Forces a save of the object's nick to the database. This method will first check
+the database for a match against the nick (case insensitive) and if one is found,
+then the current Nick object will be associated with that record by returning its
+ID. If no match it found, a new record will be created and the ID returned.
+
+This method is automatically called by the id() method, if the Nick object has
+not yet been saved.
+
+=cut
 
 sub save {
     my ($self) = @_;
