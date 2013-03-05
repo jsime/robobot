@@ -12,11 +12,14 @@ message processing.
 
 Usage is simple:
 
-    my $nick = RoboBot::Nick->new($bot);
+    my $nick = RoboBot::Nick->new($bot)->nick("chattychatterson");
+    my $nick_id = $nick->id;
 
 Or:
 
     my $nick = RoboBot::Nick->new->bot($bot);
+    $nick->nick("chattychatterson");
+    my $nick_id = $nick->id;
 
 For database interaction and ensuring that nicks are properly associated to
 a server (given that a single RoboBot instance may be connected to any number
