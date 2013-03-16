@@ -55,6 +55,64 @@ themselves.
 
 sub new {
     my ($class, $bot, %args) = @_;
+
+    my $self = bless {}, $class;
+
+    $args{'mode'} = 'run' unless exists $args{'mode'};
+
+    die "Macros require a name!" unless exists $args{'name'};
+
+    $self->mode($args{'mode'});
+    $self->name($args{'name'});
+    $self->bot($bot);
+
+    return $self;
+}
+
+sub process {
+    my ($self, $args) = @_;
+
+    
+}
+
+sub bot {
+    my ($self, $bot) = @_;
+
+    if (defined $bot && ref($bot) eq 'RoboBot') {
+        $self->{'bot'} = $bot;
+
+        $self->db($bot->db) unless $self->db;
+    }
+
+    return $self->{'bot'} if exists $self->{'bot'};
+    return;
+}
+
+sub db {
+    my ($self, $db) = @_;
+
+    $self->{'dbh'} = $db if defined $db && ref($db) eq 'DBIx::DataStore';
+
+    return $self->{'dbh'} if exists $self->{'dbh'};
+    return;
+}
+
+sub mode {
+    my ($self, $mode) = @_;
+
+    $self->{'mode'} = $mode if defined $mode;
+
+    return $self->{'mode'} if exists $self->{'mode'};
+    return;
+}
+
+sub name {
+    my ($self, $name) = @_;
+
+    $self->{'name'} = $name if defined $name;
+
+    return $self->{'name'} if exists $self->{'name'};
+    return;
 }
 
 1;
