@@ -74,6 +74,7 @@ sub new {
 sub process {
     my ($self, $msg_ref, $args) = @_;
 
+    return $self->macro_list if $self->mode eq 'list';
     return $self->macro_delete if $self->mode eq 'delete';
     return $self->macro_save($args) if $self->mode eq 'save';
     return $self->macro_run($msg_ref, $args) if $self->mode eq 'run';
@@ -127,6 +128,37 @@ sub nick {
     $self->{'nick'} = $nick if defined $nick && ref($nick) eq 'RoboBot::Nick';
 
     return $self->{'nick'} if exists $self->{'nick'};
+    return;
+}
+
+sub macro_list {
+    my ($self, $name) = @_;
+
+    if (defined $name) {
+        my $res = $self->db->do(q{
+            select * from macros where nick_id = ? and lower(name) = lower(?)
+        }, $self->nick->id, $name);
+
+        return sprintf('%s := %s', $res->{'name'}, $res->{'macro'}) if $res && $res->next;
+        return sprintf('You have no defined macros named "%s".', $name);
+    } else {
+        my $res = $self->db->do(q{
+        }, $self->nick->id);
+
+        my @macros;
+
+        while ($res->next) {
+            push(@macros, $res->{'name'});
+        }
+
+        return sprintf('You have no macros.') if scalar(@macros) < 1;
+
+        my @output = sprintf('Defined macros: %s', join(', ', take_n(20, \@macros)));
+        push(@output, join(', ', take_n(20, \@macros))) while scalar(@macros) > 0;
+
+        return @output;
+    }
+
     return;
 }
 
@@ -189,6 +221,17 @@ sub macro_run {
 
     $$msg_ref = $macro->{'macro'};
     return;
+}
+
+sub take_n {
+    my ($num, $ref) = @_;
+
+    my @ret;
+
+    my $i = 0;
+    push(@ret, shift @{$ref}) while $i++ < $num && scalar(@{$ref}) > 0;
+
+    return @ret;
 }
 
 1;
