@@ -397,41 +397,47 @@ sub on_message {
         }
     }
 
+    $self->privmsg(\%options, $channel, $sender_nick, $direct_to, @output);
+}
+
+sub privmsg {
+    my ($self, $options, $channel, $sender, $redirect, @output) = @_;
+
     # check first if a plugin has overridden the default recipient (which would be
     # the current channel), then check if this was a private message to us. if it
     # is a private message to the bot, and there is no direct_to then we send the
     # output back to the sender, otherwise we send it to direct_to -- and if this
     # wasn't a private message to us, it just goes back to the channel we
     # received it in.
-    if ($options{'to'} && $options{'to'} ne $channel) {
-        $channel = $options{'to'};
-        $direct_to = '';
+    if ($options->{'to'} && $options->{'to'} ne $channel) {
+        $channel = $options->{'to'};
+        $redirect = '';
     } elsif (lc($channel) eq lc($self->config->nick())) {
-        $channel = $direct_to && length($direct_to) > 0 ? $direct_to : $sender_nick;
-        $direct_to = '';
+        $channel = $redirect && length($redirect) > 0 ? $redirect : $sender;
+        $redirect = '';
     } else {
-        $direct_to = "$direct_to: " if $direct_to && length($direct_to) > 0;
+        $redirect = "$redirect: " if $redirect && length($redirect) > 0;
     }
 
     if (@output && scalar(grep { $_ =~ m{\w+}o } @output) > 0) {
-        log_to_console(time(), $channel, $self->config->nick(), ($direct_to && length($direct_to) > 0 ? "$direct_to$_" : $_))
+        log_to_console(time(), $channel, $self->config->nick(), ($redirect && length($redirect) > 0 ? "$redirect$_" : $_))
             for grep { $_ =~ m{\w+}o } @output;
 
         # honor the message limit option, and append a message indicating that the
         # output has been truncated if it exceeds that limit
-        @output = (@output[0..($options{'msg_limit'} - 1)], '... Output truncated ...')
-            if scalar(@output) > $options{'msg_limit'};
+        @output = (@output[0..($options->{'msg_limit'} - 1)], '... Output truncated ...')
+            if scalar(@output) > $options->{'msg_limit'};
 
         foreach my $line (@output) {
             $self->{'irc'}->yield(
                 privmsg => $channel,
-                ($direct_to && length($direct_to) > 0 ? "$direct_to$line" : $line)
+                ($redirect && length($redirect) > 0 ? "$redirect$line" : $line)
             );
 
             # sleep appropriate number of microseconds in a minor attempt at not
             # flooding the channel/recipient, based on the messages-per-second
             # option
-            usleep(1 / $options{'msg_per_sec'} * 1_000_000);
+            usleep(1 / $options->{'msg_per_sec'} * 1_000_000);
         }
     }
 }
