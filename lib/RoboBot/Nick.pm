@@ -61,7 +61,7 @@ sub bot {
 
     if (defined $bot && ref($bot) eq 'RoboBot') {
         $self->{'bot'} = $bot;
-        $self->db($bot->dbh);
+        $self->db($bot->db);
     } elsif (defined $bot) {
         delete $self->{'bot'};
     }
