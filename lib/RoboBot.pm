@@ -283,6 +283,8 @@ sub on_message {
     my $sender_nick = (split(/!/, $who))[0];
     my $channel = $where->[0];
 
+    my $sender = RoboBot::Nick->new($self)->nick($sender_nick);
+
     $message =~ s{(^\s+|\s+$)}{}ogs;
 
     my $msg_time = time();
@@ -311,7 +313,7 @@ sub on_message {
             $3 || ''
         );
 
-        my $macro = RoboBot::Macro->new($self, mode => $mode, name => $macroname);
+        my $macro = RoboBot::Macro->new($self, mode => $mode, name => $macroname, nick => $sender);
         my @macro_output = $macro->process(\$message, $macroargs);
 
         if (@macro_output) {
