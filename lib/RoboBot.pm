@@ -302,6 +302,19 @@ sub on_message {
     # skip if it's GitHub, since we don't want to spam the channel with URLs and misspellings
     return if $who =~ m{GitHub\d+}o;
 
+    # if this is a macro-laden message, process it before doing anything further, to ensure
+    # macro replacements are made
+    if ($message =~ m{^@([+-]?)(\S+)\s*(.*)}o) {
+        my ($mode, $macroname, $macroargs) = (
+            ($1 eq '+' ? 'save' : $1 eq '-' ? 'delete' : 'run' ),
+            $2,
+            $3 || ''
+        );
+
+        my $macro = RoboBot::Macro->new($self, mode => $mode, name => $macroname, args => $macroargs);
+        $macro->process;
+    }
+
     my $direct_to;
 
     # check if the output should be redirected to a specific nick (or list of nicks)
