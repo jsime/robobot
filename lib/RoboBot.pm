@@ -12,6 +12,8 @@ use Term::ExtendedColor qw( fg bold );
 use Time::HiRes qw( usleep );
 
 use RoboBot::Config;
+use RoboBot::Macro;
+use RoboBot::Nick;
 
 =head1 NAME
 
