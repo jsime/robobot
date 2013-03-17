@@ -154,7 +154,7 @@ sub macro_save {
             set macro = ?,
                 updated_at = now()
             where nick_id = ? and lower(name) = lower(?)
-        }, $args, $self->nick->id, $self->name);
+        }, $arg, $self->nick->id, $self->name);
 
         return sprintf('Macro "%s" successfully updated.', $self->name) if $res;
         return sprintf('Could not update macro "%s".', $self->name);
@@ -164,7 +164,7 @@ sub macro_save {
                 ( nick_id, name, macro )
             values
                 ( ?, ?, ? )
-        }, $self->nick->id, $self->name, $args);
+        }, $self->nick->id, $self->name, $arg);
 
         return sprintf('Macro "%s" successfully saved.', $self->name) if $res;
         return sprintf('Could not save macro "%s".', $self->name);
@@ -182,7 +182,7 @@ sub macro_run {
 
     return sprintf('No such macro "%s".', $self->name) unless $macro && $macro->next;
 
-    my @args = map { $_ =~ s{(^\s+|\s+$}{}ogs; } grep { defined $_ && length($_) > 0 } split(/\s+/, $arg);
+    my @args = map { $_ =~ s{(^\s+|\s+$)}{}ogs; } grep { defined $_ && length($_) > 0 } split(/\s+/, $arg);
 
     $macro->{'macro'} =~ s{\$\$}{ shift @args }oge;
 
