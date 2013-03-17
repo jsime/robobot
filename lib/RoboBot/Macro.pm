@@ -142,11 +142,39 @@ sub macro_delete {
 }
 
 sub macro_save {
-    my ($self) = @_;
+    my ($self, $args) = @_;
+
+    my $res = $self->db->do(q{
+        select macro_id from macros where nick_id = ? and lower(name) = lower(?)
+    }, $self->nick->id, $self->name);
+
+    if ($res && $res->next) {
+        $res = $self->db->do(q{
+            update macros
+            set macro = ?,
+                updated_at = now()
+            where nick_id = ? and lower(name) = lower(?)
+        }, $args, $self->nick->id, $self->name);
+
+        return sprintf('Macro "%s" successfully updated.', $self->name) if $res;
+        return sprintf('Could not update macro "%s".', $self->name);
+    } else {
+        $res = $self->db->do(q{
+            insert into macros
+                ( nick_id, name, macro )
+            values
+                ( ?, ?, ? )
+        }, $self->nick->id, $self->name, $args);
+
+        return sprintf('Macro "%s" successfully saved.', $self->name) if $res;
+        return sprintf('Could not save macro "%s".', $self->name);
+    }
+
+    return;
 }
 
 sub macro_run {
-    my ($self) = @_;
+    my ($self, $msg_ref, $args) = @_;
 }
 
 1;
