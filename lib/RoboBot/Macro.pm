@@ -66,13 +66,19 @@ sub new {
     $self->name($args{'name'});
     $self->bot($bot);
 
+    $self->nick($args{'nick'}) if exists $args{'nick'};
+
     return $self;
 }
 
 sub process {
-    my ($self, $args) = @_;
+    my ($self, $msg_ref, $args) = @_;
 
-    
+    return $self->macro_delete if $self->mode eq 'delete';
+    return $self->macro_save($args) if $self->mode eq 'save';
+    return $self->macro_run($msg_ref, $args) if $self->mode eq 'run';
+
+    return;
 }
 
 sub bot {
@@ -113,6 +119,34 @@ sub name {
 
     return $self->{'name'} if exists $self->{'name'};
     return;
+}
+
+sub nick {
+    my ($self, $nick) = @_;
+
+    $self->{'nick'} = $nick if defined $nick && ref($nick) eq 'RoboBot::Nick';
+
+    return $self->{'nick'} if exists $self->{'nick'};
+    return;
+}
+
+sub macro_delete {
+    my ($self) = @_;
+
+    my $res = $self->db->do(q{
+        delete from macros where nick_id = ? and lower(name) = lower(?)
+    }, $self->nick->id, $self->name);
+
+    return sprintf('Macro "%s" deleted.', $self->name) if $res;
+    return sprintf('Could not delete macro by the name of "%s".', $self->name);
+}
+
+sub macro_save {
+    my ($self) = @_;
+}
+
+sub macro_run {
+    my ($self) = @_;
 }
 
 1;
