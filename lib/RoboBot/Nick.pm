@@ -165,7 +165,7 @@ sub save {
         } else {
             $res = $self->db->do(q{
                 insert into nicks (nick) values (?) returning id
-            }, $self->{'nick'};
+            }, $self->{'nick'});
 
             unless ($res && $res->next && $res->{'id'} =~ m{^\d+$}o) {
                 $self->db->rollback;
