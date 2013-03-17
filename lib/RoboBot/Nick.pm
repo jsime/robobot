@@ -152,17 +152,30 @@ sub save {
             $self->db->rollback;
             return;
         }
-    } else {
+    } elsif (exists $self->{'nick'}) {
         $res = $self->db->do(q{
-            insert into nicks (nick) values (?) returning id
-        }, $self->{'nick'};
+            select * from nicks where lower(name) = lower(?)
+        }, $self->{'nick'});
 
-        unless ($res && $res->next && $res->{'id'} =~ m{^\d+$}o) {
-            $self->db->rollback;
-            return;
+        if ($res && $res->next) {
+            $self->{'id'} = $res->{'id'};
+
+            # for now this is sufficient, but if we begin to track more attributes
+            # on nicks, this may potentially be able to just recursively call ->save
+        } else {
+            $res = $self->db->do(q{
+                insert into nicks (nick) values (?) returning id
+            }, $self->{'nick'};
+
+            unless ($res && $res->next && $res->{'id'} =~ m{^\d+$}o) {
+                $self->db->rollback;
+                return;
+            }
+
+            $self->{'id'} = $res->{'id'};
         }
-
-        $self->{'id'} = $res->{'id'};
+    } else {
+        return;
     }
 
     $self->db->commit;
