@@ -309,7 +309,10 @@ sub on_message {
 
     # if this is a macro-laden message, process it before doing anything further, to ensure
     # macro replacements are made
-    if ($message =~ m{^@([+-]?)(\S+)\s*(.*)}o) {
+    if ($message =~ m{^@\?(\S+)?}o) {
+        my $macro = RoboBot::Macro->new($self, mode => 'list', name => ':list', nick => $sender);
+        return $self->privmsg(\%options, $channel, $sender->nick, '', $macro->process(\$message, $1));
+    } elsif ($message =~ m{^@([+-]?)(\S+)\s*(.*)}o) {
         my ($mode, $macroname, $macroargs) = (
             ($1 eq '+' ? 'save' : $1 eq '-' ? 'delete' : 'run' ),
             $2,
