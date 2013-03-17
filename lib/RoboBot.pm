@@ -285,7 +285,8 @@ sub on_message {
     my $sender_nick = (split(/!/, $who))[0];
     my $channel = $where->[0];
 
-    my $sender = RoboBot::Nick->new($self)->nick($sender_nick);
+    my $sender = RoboBot::Nick->new($self);
+    $sender->nick($sender_nick);
 
     $message =~ s{(^\s+|\s+$)}{}ogs;
 
