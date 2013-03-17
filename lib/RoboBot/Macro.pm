@@ -142,7 +142,7 @@ sub macro_delete {
 }
 
 sub macro_save {
-    my ($self, $args) = @_;
+    my ($self, $arg) = @_;
 
     my $res = $self->db->do(q{
         select macro_id from macros where nick_id = ? and lower(name) = lower(?)
@@ -174,7 +174,20 @@ sub macro_save {
 }
 
 sub macro_run {
-    my ($self, $msg_ref, $args) = @_;
+    my ($self, $msg_ref, $arg) = @_;
+
+    my $macro = $self->db->do(q{
+        select * from macros where nick_id = ? and lower(name) = lower(?)
+    }, $self->nick->id, $self->name);
+
+    return sprintf('No such macro "%s".', $self->name) unless $macro && $macro->next;
+
+    my @args = map { $_ =~ s{(^\s+|\s+$}{}ogs; } grep { defined $_ && length($_) > 0 } split(/\s+/, $arg);
+
+    $macro->{'macro'} =~ s{\$\$}{ shift @args }oge;
+
+    $$msg_ref = $macro->{'macro'};
+    return;
 }
 
 1;
