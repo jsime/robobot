@@ -74,7 +74,7 @@ sub new {
 sub process {
     my ($self, $msg_ref, $args) = @_;
 
-    return $self->macro_list if $self->mode eq 'list';
+    return $self->macro_list($args || undef) if $self->mode eq 'list';
     return $self->macro_delete if $self->mode eq 'delete';
     return $self->macro_save($args) if $self->mode eq 'save';
     return $self->macro_run($msg_ref, $args) if $self->mode eq 'run';
@@ -143,6 +143,10 @@ sub macro_list {
         return sprintf('You have no defined macros named "%s".', $name);
     } else {
         my $res = $self->db->do(q{
+            select name
+            from macros
+            where nick_id = ?
+            order by name asc
         }, $self->nick->id);
 
         my @macros;
