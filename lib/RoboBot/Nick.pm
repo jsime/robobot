@@ -12,12 +12,7 @@ message processing.
 
 Usage is simple:
 
-    my $nick = RoboBot::Nick->new($bot)->nick("chattychatterson");
-    my $nick_id = $nick->id;
-
-Or:
-
-    my $nick = RoboBot::Nick->new->bot($bot);
+    my $nick = RoboBot::Nick->new($bot);
     $nick->nick("chattychatterson");
     my $nick_id = $nick->id;
 
