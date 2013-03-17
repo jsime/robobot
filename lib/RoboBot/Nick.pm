@@ -149,7 +149,7 @@ sub save {
         }
     } elsif (exists $self->{'nick'}) {
         $res = $self->db->do(q{
-            select * from nicks where lower(name) = lower(?)
+            select * from nicks where lower(nick) = lower(?)
         }, $self->{'nick'});
 
         if ($res && $res->next) {
