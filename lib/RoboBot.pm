@@ -311,8 +311,13 @@ sub on_message {
             $3 || ''
         );
 
-        my $macro = RoboBot::Macro->new($self, mode => $mode, name => $macroname, args => $macroargs);
-        $macro->process;
+        my $macro = RoboBot::Macro->new($self, mode => $mode, name => $macroname);
+        my @macro_output = $macro->process(\$message, $macroargs);
+
+        if (@macro_output) {
+            $self->privmsg(\%options, $channel, $sender_nick, $direct_to, @output);
+            return;
+        }
     }
 
     my $direct_to;
