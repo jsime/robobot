@@ -182,7 +182,8 @@ sub macro_run {
 
     return sprintf('No such macro "%s".', $self->name) unless $macro && $macro->next;
 
-    my @args = map { $_ =~ s{(^\s+|\s+$)}{}ogs; } grep { defined $_ && length($_) > 0 } split(/\s+/, $arg);
+    my @args = grep { defined $_ && length($_) > 0 } split(/\s+/, $arg);
+    $_ =~ s{(^\s+|\s+$)}{}ogs for @args;
 
     $macro->{'macro'} =~ s{\$\$}{ shift @args }oge;
 
