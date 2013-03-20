@@ -364,7 +364,7 @@ sub on_message {
             last MESSAGE_PART;
         } elsif ($command) {
             # make sure the nick sending the message has permission to use it
-            unless (RoboBot::Plugin::Auth::has_permission($self, $command, $sender_nick)) {
+            unless (RoboBot::Plugin::Auth::has_permission($self, $command, $sender)) {
                 @output = (sprintf('You do not have permission to use the !%s command. Self-destruct initiated...',
                     $command));
                 last MESSAGE_PART;
