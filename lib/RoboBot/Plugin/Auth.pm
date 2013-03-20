@@ -34,9 +34,8 @@ sub has_permission {
         select 'user' as name, ap.state
         from auth_permissions ap
             join servers s on (ap.server_id = s.id)
-            join nicks n on (ap.nick_id = n.id)
-        where s.name = ? and ap.command = lower(?) and lower(n.nick) = lower(?)
-    }, $bot->config->server, $command, $bot->config->server, $command, $nick);
+        where s.name = ? and ap.command = lower(?) and ap.nick_id = ?
+    }, $bot->config->server, $command, $bot->config->server, $command, $nick->id);
 
     return 0 unless $res;
 
