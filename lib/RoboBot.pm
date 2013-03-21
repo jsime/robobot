@@ -389,7 +389,10 @@ sub on_message {
 
             unless (@t_output && scalar(grep { $_ =~ m{\w+}o } @t_output) > 0) {
                 if ($plugin->can('usage')) {
-                    @output = ("Usage: \!$command " . $plugin->usage());
+                    my @usage = $plugin->usage($command);
+
+                    @output = ("Usage: \!$command " . shift(@usage));
+                    push(@output, @usage);
                 } else {
                     @output = ("Unknown command error, and plugin provided no usage information.");
                 }
