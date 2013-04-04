@@ -39,19 +39,20 @@ sub check_memos {
 
     return (-1) unless $res;
 
-    my (@ids, @r);
+    my (@ids);
+
+    my @r = ({ to => $nick });
 
     while ($res->next) {
         push(@ids, $res->{'memo_id'});
-
-        push(@r, sprintf('%s: Memo from %s (%s) > %s',
-            $nick, $res->{'nick'}, $res->{'memo_time'}, $res->{'message'}));
+        push(@r, sprintf('Memo from %s (%s) > %s',
+            $res->{'nick'}, $res->{'memo_time'}, $res->{'message'}));
     }
 
     return (-1) unless scalar(@ids) > 0;
 
     $res = $bot->db->do(q{ update memo_memos set delivered_at = now() where memo_id in ??? }, \@ids);
-    return @r if scalar(@r) > 0;
+    return @r if scalar(@r) > 1;
 
     return (-1);
 }
