@@ -39,6 +39,26 @@ sub handle_message {
                 # two URLs is greater than X% of the lenght of the input URL.
                 push(@output, sprintf('Redirected to: %s', $final_url))
                     if distance($final_url, $url) >= length($url) * 0.1;
+
+                my $res = $bot->db->do(q{
+                    select n.nick, c.name as channel, to_char(u.linked_at, 'YYYY-MM-DD HH24:MI') as linked_at
+                    from urltitle_urls u
+                        join nicks n on (n.id = u.nick_id)
+                        join channels c on (c.id = u.channel_id)
+                    where u.final_url = ?
+                    order by u.linked_at desc
+                }, $final_url);
+
+                if ($res && $res->next) {
+                    push(@output, sprintf('Last posted by %s on %s in channel %s.',
+                        $res->{'nick'}, $res->{'linked_at'}, $res->{'channel'}));
+
+                    if ($res->count > 1) {
+                        $output[-1] .= sprintf(' Posted a total of %d times.', $res->count);
+                    }
+                }
+
+                log_url($bot, $sender, $channel, $title, $url, $final_url);
             }
         }
 
@@ -46,6 +66,21 @@ sub handle_message {
     }
 
     return (-1);
+}
+
+sub log_url {
+    my ($bot, $nick, $channel, $title, $url, $final_url) = @_;
+
+    my $res = $bot->db->do(q{
+        insert into urltitle_urls
+            ( channel_id, nick_id, title, original_url, final_url )
+        select (select id from channels where lower(name) = lower(?)),
+               (select id from nicks where lower(nick) = lower(?)),
+               ?, ?, ?
+    }, $channel, $nick, $title, $url, $final_url);
+
+    return 1 if $res;
+    return;
 }
 
 1;
