@@ -49,4 +49,20 @@ sub list_notes {
     return sprintf('You have not saved any notes.');
 }
 
+sub add_note {
+    my ($bot, $nick, $note) = @_;
+
+    my $res = $bot->db->do(q{
+        insert into note_notes
+            ( nick_id, note )
+        select n.id, ?
+        from nicks n
+        where lower(n.nick) = lower(?)
+        returning note_id
+    }, $note, $nick);
+
+    return unless $res && $res->next;
+    return sprintf('Note %d saved.', $res->{'note_id'});
+}
+
 1;
