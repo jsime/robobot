@@ -65,4 +65,20 @@ sub add_note {
     return sprintf('Note %d saved.', $res->{'note_id'});
 }
 
+sub update_note {
+    my ($bot, $nick, $note_id, $note) = @_;
+
+    my $res = $bot->db->do(q{
+        update note_notes
+        set note = ?,
+            updated_at = now()
+        where nick_id = (select id from nicks where lower(nick) = lower(?))
+            and note_id = ?
+        returning note_id
+    }, $note, $nick, $note_id);
+
+    return unless $res && $res->next;
+    return sprintf('Note %d updated.', $res->{'note_id'});
+}
+
 1;
