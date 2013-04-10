@@ -22,6 +22,31 @@ sub list_notes {
     my ($bot, $nick) = @_;
 
     my $res = $bot->db->do(q{
+        select row_number() over () as rownum,
+            no.note_id, no.note, n.nick,
+            to_char(no.created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at,
+            to_char(no.updated_at, 'YYYY-MM-DD HH24:MI:SS') as updated_at
+        from note_notes no
+            join nicks n on (n.id = no.nick_id)
+        where lower(n.nick) = lower(?)
+        order by coalesce(no.updated_at, no.created_at) desc
+        limit 10;
+    });
+
+    return (-1) unless $res;
+
+    my @output = ({ to => $nick });
+
+    while ($res->next) {
+        push(@output, sprintf('%d. %s (%s)',
+            $res->{'rownum'},
+            substr($res->{'note'}, 0, 128),
+            $res->{'updated_at'} || $res->{'created_at'}
+        ));
+    }
+
+    return @output if @output > 0;
+    return sprintf('You have not saved any notes.');
 }
 
 1;
