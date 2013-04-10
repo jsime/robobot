@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 sub commands { qw( note ) }
-sub usage { '[[<id> ] | list | add <text> | delete <id> | update <id> <text> ]' }
+sub usage { '[[ <id> ] | list | add <text> | delete <id> | update <id> <text> ]' }
 
 sub handle_message {
     my ($class, $bot, $sender, $channel, $command, $original, $timestamp, $message) = @_;
@@ -31,7 +31,7 @@ sub list_notes {
         where lower(n.nick) = lower(?)
         order by coalesce(no.updated_at, no.created_at) desc
         limit 10;
-    });
+    }, $nick);
 
     return (-1) unless $res;
 
