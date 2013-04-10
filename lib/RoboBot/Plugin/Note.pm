@@ -40,7 +40,7 @@ sub list_notes {
     while ($res->next) {
         push(@output, sprintf('%d. %s (%s)',
             $res->{'rownum'},
-            substr($res->{'note'}, 0, 128),
+            substr($res->{'note'}, 0, 64) . (length($res->{'note'}) > 64 ? '...' : ''),
             $res->{'updated_at'} || $res->{'created_at'}
         ));
     }
