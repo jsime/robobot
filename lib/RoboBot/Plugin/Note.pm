@@ -81,4 +81,20 @@ sub update_note {
     return sprintf('Note %d updated.', $res->{'note_id'});
 }
 
+sub show_note {
+    my ($bot, $nick, $note_id) = @_;
+
+    my $res = $bot->db->do(q{
+        select no.note_id, no.note, to_char(no.created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at,
+            to_char(no.updated_at, 'YYYY-MM-DD HH24:MI:SS') as updated_at
+        from note_notes no
+            join nicks n on (n.id = no.nick_id)
+        where lower(n.nick) = lower(?) and no.note_id = ?
+    }, $nick, $note_id);
+
+    return unless $res;
+    return sprintf('Note %d is not valid for your nick.', $note_id) unless $res->next;
+    return ($res->{'note'}, sprintf('Created: %s / Updated: %s', $res->{'created_at'}, $res->{'updated_at'} || 'never'));
+}
+
 1;
