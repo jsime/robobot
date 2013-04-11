@@ -97,4 +97,17 @@ sub show_note {
     return ($res->{'note'}, sprintf('Created: %s / Updated: %s', $res->{'created_at'}, $res->{'updated_at'} || 'never'));
 }
 
+sub delete_note {
+    my ($bot, $nick, $note_id) = @_;
+
+    my $res = $bot->db->do(q{
+        delete from note_notes
+        where nick_id = (select id from nicks where lower(nick) = lower(?))
+            and note_id = ?
+    }, $nick, $note_id);
+
+    return unless $res;
+    return sprintf('Note %d deleted.', $note_id);
+}
+
 1;
