@@ -10,6 +10,8 @@ sub handle_message {
     my ($class, $bot, $sender, $channel, $command, $original, $timestamp, $message) = @_;
 
     if ($command eq 'memo') {
+        return unread_memos($bot, $sender) if $message =~ m{^\s*unread}oi;
+
         my @t = split(/\s+/o, $message);
         return unless scalar(@t) > 1;
 
@@ -83,6 +85,33 @@ sub save_memo {
     return sprintf("I'm sorry, but there was an error saving your memo.")
         unless $res && $res->next;
     return sprintf("Your memo has been saved and will be sent to %s when they next speak.", $to_nick);
+}
+
+sub unread_memos {
+    my ($bot, $nick) = @_;
+
+    my @output = ({ to => $nick });
+
+    my $res = $bot->db->do(q{
+        select n.nick as to, to_char(mm.created_at, 'YYYY-MM-DD HH24:MI:SS') as created,
+            mm.message
+        from memo_memos mm
+            join nicks n on (n.id = mm.to_nick_id)
+            join nicks n2 on (n2.id = mm.from_nick_id)
+        where lower(n2.nick) = lower(?) and mm.delivered_at is null
+        order by mm.created_at asc
+    }, $nick);
+
+    return unless $res;
+
+    while ($res->next) {
+        push(@output, sprintf('[%s] To: %s, Memo: %s',
+            $res->{'created'}, $res->{'to'}, substr($res->{'message'}, 0, 64)));
+    }
+
+    push(@output, 'None of your memos are still unread.') if @output < 2;
+
+    return @output;
 }
 
 1;
