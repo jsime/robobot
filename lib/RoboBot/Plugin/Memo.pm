@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 sub commands { qw( * memo ) }
-sub usage { "<nick> <message>" }
+sub usage { "[ unread | <nick> <message> ]" }
 
 sub handle_message {
     my ($class, $bot, $sender, $channel, $command, $original, $timestamp, $message) = @_;
