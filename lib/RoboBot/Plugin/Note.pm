@@ -72,8 +72,12 @@ sub update_note {
         update note_notes
         set note = ?,
             updated_at = now()
-        where nick_id = (select id from nicks where lower(nick) = lower(?))
-            and note_id = ?
+        where note_id = ( select note_id
+                          from note_notes nn
+                              join nicks n on (n.id = nn.nick_id)
+                          where lower(n.nick) = lower(?)
+                          order by coalesce(nn.updated_at, nn.created_at) desc
+                          limit 1 offset ? )
         returning note_id
     }, $note, $nick, $note_id);
 
