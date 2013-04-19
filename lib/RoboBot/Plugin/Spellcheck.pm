@@ -22,7 +22,7 @@ sub handle_message {
     return -1 if $message =~ m{^\s*!!}o;
 
     # we don't want to fire off too often, so just return right away some portion of the time
-    return -1 if rand() >= 0.85;
+    return -1 if rand() > 0.25;
 
     my $ts = Text::Aspell->new();
     return unless $ts;
@@ -59,7 +59,7 @@ sub handle_message {
     @new = @new[0..3] if scalar(@new) > 4;
 
     return -1 unless $misspelled;
-    return sprintf('%s: %s', $sender, join(', ', map { "*$_" } @new)) unless rand() > 0.85;
+    return sprintf('%s: %s', $sender, join(', ', map { "*$_" } @new)) unless rand() > 0.25;
     return -1;
 }
 
