@@ -57,6 +57,41 @@ sub has_permission {
 
 sub set_default_permissions {
     my ($bot, $command, $mode, $granter) = @_;
+
+    $granter = $bot->db->do(q{
+        select *
+        from nicks
+        where lower(nick) = lower(?) and can_grant
+    }, $granter);
+
+    return 'Unauthorized attempt to alter permissions.' unless $granter && $granter->next;
+
+    my $res = $bot->db->do(q{
+        select ap.*
+        from auth_permissions ap
+            join servers s on (s.id = ap.server_id)
+        where s.name = ? and ap.command = lower(?) and ap.nick_id is null
+    }, $bot->config->server, $command);
+
+    if ($res && $res->next) {
+        $res = $bot->db->do(q{
+            update auth_permissions
+            set state      = ?,
+                granted_by = ?
+            where permission_id = ?
+        }, $mode, $granter->{'id'}, $res->{'permission_id'});
+    } else {
+        $res = $bot->db->do(q{
+            insert into auth_permissions
+                ( server_id, command, state, granted_by )
+            select s.id, ?, ?, ?
+            from servers s
+            where s.name = ?
+        }, $command, $mode, $granter->{'id'}, $bot->config->server);
+    }
+
+    return 'Error encountered while modifying default permissions.' unless $res;
+    return sprintf('Default permission for !%s set to %s.', $command, $mode);
 }
 
 sub show_permissions {
