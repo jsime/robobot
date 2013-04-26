@@ -12,7 +12,7 @@ my $builder = Module::Build->new(
         'Test::More' => 0,
     },
     requires => {
-        'perl' => 5.10,
+        'perl' => '5.010',
         'Acme::Scurvy::Whoreson::BilgeRat'  => undef,
         'DateTime::Format::Flexible'        => undef,
         'DBIx::DataStore'                   => undef,
