@@ -21,11 +21,11 @@ RoboBot - An extensible IRC bot in Perl.
 
 =head1 VERSION
 
-Version 0.1
+Version 0.099
 
 =cut
 
-our $VERSION = '0.1';
+our $VERSION = '0.099';
 
 =head1 SYNOPSIS
 
