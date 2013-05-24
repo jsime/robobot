@@ -216,7 +216,9 @@ sub macro_run {
         select * from macros where nick_id = ? and lower(name) = lower(?)
     }, $self->nick->id, $self->name);
 
-    return sprintf('No such macro "%s".', $self->name) unless $macro && $macro->next;
+    # don't complain about invalid macro names, since some people like to use twitter-ish
+    # style addressing in-channel (e.g. "@nick: arglebargle")
+    return unless $macro && $macro->next;
 
     my @args = grep { defined $_ && length($_) > 0 } split(/\s+/, $arg);
     $_ =~ s{(^\s+|\s+$)}{}ogs for @args;
