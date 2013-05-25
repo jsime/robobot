@@ -182,7 +182,9 @@ sub pilot_info {
 
         $xml = $xs->XMLin($resp) || "Error parsing XML response from EVE Online CharacterInfo API.";
 
-        my @corps = sort { $a->{'startDate'} cmp $b->{'startDate'} } @{$xml->{'result'}{'rowset'}{'row'}};
+        my @corps = exists $xml->{'result'}{'rowset'}{'row'} && ref($xml->{'result'}{'rowset'}{'row'}) eq 'ARRAY'
+            ? sort { $a->{'startDate'} cmp $b->{'startDate'} } @{$xml->{'result'}{'rowset'}{'row'}}
+            : ();
 
         $pilot = {
             pilot_id    => $xml->{'result'}{'characterID'},
