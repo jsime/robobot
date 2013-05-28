@@ -232,7 +232,7 @@ sub pilot_info {
                 $corp = update_corporation($bot, $corps[$i]->{'corporationID'});
             }
 
-            my $end_date = $i < scalar(@corps) - 1 ? $corps[$i - 1]->{'startDate'} . '+00' : undef;
+            my $end_date = $i < scalar(@corps) - 1 ? $corps[$i + 1]->{'startDate'} . '+00' : undef;
 
             push(@insert, { pilot_id    => $pilot->{'pilot_id'},
                             corp_id     => $corp->{'corp_id'},
