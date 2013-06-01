@@ -61,7 +61,7 @@ create table eve_pilots (
     gender        text not null,
     race          text not null,
     bloodline     text not null,
-    dob           timestamp with time zone not null,
+    dob           timestamp with time zone,
     security      numeric(6,4) not null default 0.0000,
     cached_until  timestamp with time zone
 );
