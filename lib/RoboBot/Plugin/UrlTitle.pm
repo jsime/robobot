@@ -20,12 +20,13 @@ sub handle_message {
 
         my @output = ();
 
+        URL:
         foreach my $url (@urls) {
             my $r = $ua->get($url);
 
             if ($r->is_success) {
                 my $parser = HTML::HeadParser->new();
-                $parser->parse($r->decoded_content());
+                next URL unless eval { $parser->parse($r->decoded_content()) };
 
                 my $title = $parser->header('Title');
 
