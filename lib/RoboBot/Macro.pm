@@ -212,9 +212,23 @@ sub macro_save {
 sub macro_run {
     my ($self, $msg_ref, $arg) = @_;
 
-    my $macro = $self->db->do(q{
-        select * from macros where nick_id = ? and lower(name) = lower(?)
-    }, $self->nick->id, $self->name);
+    my $macro;
+
+    if ($self->name =~ m{^([^\.]+)\.(\w+)}o) {
+        my $macro_owner = $1;
+        my $macro_name  = $2;
+
+        $macro = $self->db->do(q{
+            select m.*
+            from macros m
+                join nicks n on (n.id = m.nick_id)
+            where lower(n.nick) = lower(?) and lower(m.name) = lower(?)
+        }, $macro_owner, $macro_name);
+    } else {
+        $macro = $self->db->do(q{
+            select * from macros where nick_id = ? and lower(name) = lower(?)
+        }, $self->nick->id, $self->name);
+    }
 
     # don't complain about invalid macro names, since some people like to use twitter-ish
     # style addressing in-channel (e.g. "@nick: arglebargle")
