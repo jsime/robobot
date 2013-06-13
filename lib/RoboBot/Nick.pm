@@ -107,7 +107,7 @@ Getter/setter for the object's nick.
 sub nick {
     my ($self, $nick) = @_;
 
-    if (defined $nick && $nick =~ m{^\w+$}o) {
+    if (defined $nick && $nick =~ m{^[\w_-]+$}o) {
         $nick =~ s{(^\s+|\s+$)}{}ogs;
         $self->{'nick'} = $nick;
     }
