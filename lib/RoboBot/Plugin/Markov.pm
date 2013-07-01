@@ -169,6 +169,8 @@ sub normalize_text {
 sub parse_descriptives {
     my ($text) = @_;
 
+    return unless defined $$text;
+
     my @phrases = ();
 
     my @ap = $$text =~ m{
@@ -197,6 +199,8 @@ sub parse_descriptives {
 sub parse_misc {
     my ($text) = @_;
 
+    return unless defined $$text;
+
     my @phrases = ();
 
     my @words = grep { $_->{'type'} && $_->{'type'} !~ m{^(PP.?|POS)$}o }
@@ -216,6 +220,8 @@ sub parse_misc {
 
 sub parse_noun_phrases {
     my ($text) = @_;
+
+    return unless defined $$text;
 
     my @phrases = ();
 
@@ -244,6 +250,8 @@ sub parse_noun_phrases {
 
 sub parse_verbs {
     my ($text) = @_;
+
+    return unless defined $$text;
 
     my @phrases = ();
 
@@ -293,6 +301,8 @@ sub save_phrase {
 
 sub save_sentence_form {
     my ($bot, $nick_id, $form) = @_;
+
+    return unless defined $form;
 
     my @parts_of_speech = $form =~ m{\b([A-Z]+)\b}og;
 
