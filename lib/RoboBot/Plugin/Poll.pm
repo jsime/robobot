@@ -134,7 +134,7 @@ sub poll_status {
                 left join poll_votes v using (poll_id, choice_num)
             where c.poll_id = ?
             group by c.choice, c.choice_num
-            order by 3 desc
+            order by 4 desc
         }, $poll->{'poll_id'}, $poll->{'poll_id'});
 
         if ($res) {
