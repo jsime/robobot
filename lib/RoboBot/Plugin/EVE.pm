@@ -411,9 +411,11 @@ sub lookup_item_prices {
     foreach my $region_id (keys %regions) {
         next unless scalar(keys(%{$regions{$region_id}{'items'}})) > 0;
 
-        my $lwp_res = get('http://api.eve-central.com/api/marketstat?hours=72&regionlimit='
+        my $ec_url = 'http://api.eve-central.com/api/marketstat?hours=72&regionlimit='
             . $region_id . '&'
-            . join('&', map { sprintf('typeid=%d', $_) } keys %{$regions{$region_id}{'items'}}));
+            . join('&', map { sprintf('typeid=%d', $_) } keys %{$regions{$region_id}{'items'}});
+
+        my $lwp_res = get($ec_url);
         next unless $lwp_res;
 
         my $dom = XML::LibXML->load_xml( string => $lwp_res );
