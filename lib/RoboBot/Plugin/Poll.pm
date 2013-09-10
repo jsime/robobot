@@ -127,19 +127,19 @@ sub poll_status {
         my @output = (sprintf('The current poll is "%s" by %s. The results:', $poll->{'question'}, $poll->{'nick'}));
 
         my $res = $bot->db->do(q{
-            select c.choice,
+            select c.choice, c.choice_num,
                 coalesce((select max(length(choice)) from poll_choices where poll_id = ?), 16) as len,
                 count(distinct(v.nick_id)) as votes
             from poll_choices c
                 left join poll_votes v using (poll_id, choice_num)
             where c.poll_id = ?
-            group by c.choice
+            group by c.choice, c.choice_num
             order by 3 desc
         }, $poll->{'poll_id'}, $poll->{'poll_id'});
 
         if ($res) {
             while ($res->next) {
-                push(@output, sprintf('  %-'.$res->{'len'}.'s >> %d', $res->{'choice'}, $res->{'votes'}));
+                push(@output, sprintf('  [%2d] %-'.$res->{'len'}.'s >> %d', $res->{'choice_num'}, $res->{'choice'}, $res->{'votes'}));
             }
         }
         push(@output, sprintf('Vote with: !vote [num]'));
