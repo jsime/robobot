@@ -144,6 +144,7 @@ sub poll_status {
                 push(@output, sprintf('  %-'.$res->{'len'}.'s >> %d', $res->{'choice'}, $res->{'votes'}));
             }
         }
+        push(@output, sprintf('Vote with: !vote [num]'));
 
         return @output;
     }
