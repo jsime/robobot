@@ -6,7 +6,7 @@ use warnings;
 use Number::Format;
 
 sub commands { qw( poll vote ) }
-sub usage { ["!poll new Ask a question? [1] Choice 1 [2] Choice 2 ...","!poll close","!vote n"] }
+sub usage { ("!poll new Ask a question? [1] Choice 1 [2] Choice 2 ...","!poll close","!vote n") }
 
 sub handle_message {
     my ($class, $bot, $sender, $channel, $command, $original, $timestamp, $message) = @_;
