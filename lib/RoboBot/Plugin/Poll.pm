@@ -3,8 +3,6 @@ package RoboBot::Plugin::Poll;
 use strict;
 use warnings;
 
-use Number::Format;
-
 sub commands { qw( poll vote ) }
 sub usage { ("!poll new Ask a question? [1] Choice 1 [2] Choice 2 ...","!poll close","!vote n") }
 
