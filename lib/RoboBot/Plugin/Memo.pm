@@ -11,6 +11,7 @@ sub handle_message {
 
     if ($command eq 'memo') {
         return unread_memos($bot, $sender) if $message =~ m{^\s*unread}oi;
+        return memo_history($bot, $sender) if $message =~ m{^\s*hist(ory)}oi;
 
         my @t = split(/\s+/o, $message);
         return unless scalar(@t) > 1;
@@ -56,6 +57,29 @@ sub check_memos {
     $res = $bot->db->do(q{ update memo_memos set delivered_at = now() where memo_id in ??? }, \@ids);
     return @r if scalar(@r) > 1;
 
+    return (-1);
+}
+
+sub memo_history {
+    my ($bot, $nick) = @_;
+
+    my $res = $bot->db->do(q{
+        select m.memo_id, m.message, nto.nick,
+            to_char(m.created_at, 'YYYY-MM-DD HH24:MI TZ') as memo_time
+        from memo_memos m
+            join nicks nto on (nto.nick_id = m.to_nick_id)
+            join nicks nfrom on (nfrom.nick_id = m.from_nick_id)
+        where lower(nfrom.nick) = lower(?)
+        order by m.created_at desc limit 5
+    }, $nick);
+
+    my @r = ({ to => $nick });
+
+    while ($res->next) {
+        push(@r, sprintf('[%s] %s <= %s', $res->{'memo_time'}, $res->{'nick'}, $res->{'message'}));
+    }
+
+    return @r if scalar(@r) > 1;
     return (-1);
 }
 
