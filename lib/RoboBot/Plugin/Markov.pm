@@ -330,15 +330,15 @@ sub sender_nick_id {
 
     $sender =~ s{\_+$}{}og;
 
-    return $bot->{'db'}->{'nicks'}->{$sender}
-        if $bot->{'db'}->{'nicks'} && $bot->{'db'}->{'nicks'}->{$sender};
+    return $bot->{'db'}{'nicks'}{$sender}
+        if $bot->{'db'}{'nicks'} && $bot->{'db'}{'nicks'}{$sender};
 
     my $res = $bot->db->do(q{ select id from nicks where lower(nick) = lower(?) }, $sender);
 
-    $bot->{'db'}->{'nicks'} = {} unless $bot->{'db'}->{'nicks'};
+    $bot->{'db'}{'nicks'} = {} unless $bot->{'db'}{'nicks'};
 
     if ($res && $res->next) {
-        $bot->{'db'}->{'nicks'}->{$sender} = $res->{'id'};
+        $bot->{'db'}{'nicks'}{$sender} = $res->{'id'};
 
         return $res->{'id'};
     } else {
@@ -346,7 +346,7 @@ sub sender_nick_id {
 
         return unless $res && $res->next;
 
-        $bot->{'db'}->{'nicks'}->{$sender} = $res->{'id'};
+        $bot->{'db'}{'nicks'}{$sender} = $res->{'id'};
 
         return $res->{'id'};
     }
