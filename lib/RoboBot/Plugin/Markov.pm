@@ -11,7 +11,7 @@ sub usage { "<nick> [seed phrase]" }
 sub handle_message {
     my ($class, $bot, $sender, $channel, $command, $original, $timestamp, $message) = @_;
 
-    if ($command && $command eq 'markov') {
+    if ($command && lc($command) eq 'markov') {
         return build_phrase($bot, $message);
     } elsif (!$command) {
         log_phrases($bot, $sender, $message);
