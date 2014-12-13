@@ -7,7 +7,7 @@ use HTML::HeadParser;
 use LWP::UserAgent;
 use Text::Levenshtein qw(distance);
 
-sub commands { qw( * ) }
+sub commands { qw( !title ) }
 
 sub handle_message {
     my ($class, $bot, $sender, $channel, $command, $original, $timestamp, $message) = @_;
