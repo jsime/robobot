@@ -3,7 +3,7 @@ package RoboBot::Plugin::Thinge;
 use strict;
 use warnings;
 
-sub commands { qw( quote catte dogge frogge pony bike bear panda vidya food koi nasa ) }
+sub commands { qw( quote catte dogge frogge pony bike bear panda vidya food koi nasa kio ) }
 sub usage { '[[<id>] | [#<tag>] | [add|save <url>] | [delete|remove|forget <id>] | [tag <id> <tag>] | [untag <id> <tag>] | [tags]]' }
 
 sub handle_message {
@@ -17,7 +17,7 @@ sub handle_message {
         return tag_thinge($bot, $command, $1, $2);
     } elsif ($message =~ m{^untag\s+(\d+)\s+(\#?\S+)\s*}oi) {
         return untag_thinge($bot, $command, $1, $2);
-    } elsif ($message =~ m{^\s*\#(\w+)\s*$}oi) {
+    } elsif ($message =~ m{^\s*\#(\S+)\s*$}oi) {
         return display_thinges($bot, $command, thinge_by_tag($bot, $command, $1));
     } elsif ($message =~ m{^\s*(\d+)\s*$}o) {
         return display_thinges($bot, $command, $1);
