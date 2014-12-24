@@ -112,7 +112,7 @@ sub has_n_numbers {
     my ($self, $message, $n, @args) = @_;
 
     unless (@args && @args == $n) {
-        $message->response->raise(sprintf('Must supply exactly %d %s for the given mathematical function.', $n, ($n == 1 ? 'number' : 'numbers'));
+        $message->response->raise(sprintf('Must supply exactly %d %s for the given mathematical function.', $n, ($n == 1 ? 'number' : 'numbers')));
         return 0;
     }
 
