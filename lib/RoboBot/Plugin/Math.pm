@@ -7,10 +7,6 @@ use Moose;
 use MooseX::SetOnce;
 use namespace::autoclean;
 
-use Math::BigInt;
-use Math::BigFloat;
-use Number::Format;
-
 extends 'RoboBot::Plugin';
 
 has '+name' => (
@@ -58,93 +54,72 @@ has '+commands' => (
 sub add {
     my ($self, $message, $command, @args) = @_;
 
-    my $nf = Number::Format->new();
-
-    if (@args && @args == 2 && $args[0] =~ m{^\d*(\.\d+)?$}o && $args[1] =~ m{^\d*(\.\d+)?$}o) {
-        my $result = $args[0] + $args[1];
-        $message->response->content([$nf->format_number($result)]);
-        return $result;
-    }
-
-    return $self->usage($message, 'add');
+    return unless $self->has_two_numbers($message, @args);
+    return $args[0] + $args[1];
 }
 
 sub subtract {
     my ($self, $message, $command, @args) = @_;
 
-    my $nf = Number::Format->new();
-
-    if (@args && @args == 2 && $args[0] =~ m{^\d*(\.\d+)?$}o && $args[1] =~ m{^\d*(\.\d+)?$}o) {
-        my $result = $args[0] - $args[1];
-        $message->response->content([$nf->format_number($result)]);
-        return $result;
-    }
-
-    return $self->usage($message, 'subtract');
+    return unless $self->has_two_numbers($message, @args);
+    return $args[0] - $args[1];
 }
 
 sub multiply {
     my ($self, $message, $command, @args) = @_;
 
-    my $nf = Number::Format->new();
-
-    if (@args && @args == 2 && $args[0] =~ m{^\d*(\.\d+)?$}o && $args[1] =~ m{^\d*(\.\d+)?$}o) {
-        my $result = $args[0] * $args[1];
-        $message->response->content([$nf->format_number($result)]);
-        return $result;
-    }
-
-    return $self->usage($message, 'multiply');
+    return unless $self->has_two_numbers($message, @args);
+    return $args[0] * $args[1];
 }
 
 sub divide {
     my ($self, $message, $command, @args) = @_;
 
-    my $nf = Number::Format->new();
-
-    if (@args && @args == 2 && $args[0] =~ m{^\d*(\.\d+)?$}o && $args[1] =~ m{^\d*(\.\d+)?$}o) {
-        if ($args[1] == 0) {
-            return $message->response->raise('Cannot divide by zero.');
-        } else {
-            my $result = $args[0] / $args[1];
-            $message->response->content([$nf->format_number($result)]);
-            return $result;
-        }
-    }
-
-    return $self->usage($message, 'divide');
+    return unless $self->has_two_numbers($message, @args);
+    return unless $self->denominator_not_zero($message, @args);
+    return $args[0] / $args[1];
 }
 
 sub modulo {
     my ($self, $message, $command, @args) = @_;
 
-    my $nf = Number::Format->new();
-
-    if (@args && @args == 2 && $args[0] =~ m{^\d*(\.\d+)?$}o && $args[1] =~ m{^\d*(\.\d+)?$}o) {
-        if ($args[1] == 0) {
-            return $message->response->raise('Cannot divide by zero.');
-        } else {
-            my $result = $args[0] % $args[1];
-            $message->response->content([$nf->format_number($result)]);
-            return $result;
-        }
-    }
-
-    return $self->usage($message, 'modulo');
+    return unless $self->has_two_numbers($message, @args);
+    return unless $self->denominator_not_zero($message, @args);
+    return $args[0] % $args[1];
 }
 
 sub power {
     my ($self, $message, $command, @args) = @_;
 
-    my $nf = Number::Format->new();
+    return unless $self->has_two_numbers($message, @args);
+    return $args[0] ** $args[1];
+}
 
-    if (@args && @args == 2 && $args[0] =~ m{^\d*(\.\d+)?$}o && $args[1] =~ m{^\d*(\.\d+)?$}o) {
-        my $result = $args[0] ** $args[1];
-        $message->response->content([$nf->format_number($result)]);
-        return $result;
+sub has_two_numbers {
+    my ($self, $message, @args) = @_;
+
+    unless (@args && @args == 2) {
+        $message->response->raise('Must supply exactly two values for the given mathematical function.');
+        return 0;
     }
 
-    return $self->usage($message, 'power');
+    unless ($args[0] =~ m{^\-?(\d+(\.\d+)?|\d*\.\d+)$}o && $args[1] =~ m{^\-?(\d+(\.\d+)?|\d*\.\d+)$}o) {
+        $message->response->raise('Both values must be numeric.');
+        return 0;
+    }
+
+    return 1;
+}
+
+sub denominator_not_zero {
+    my ($self, $message, @args) = @_;
+
+    if ($args[1] == 0) {
+        $message->response->raise('Cannot divide by zero.');
+        return 0;
+    }
+
+    return 1;
 }
 
 __PACKAGE__->meta->make_immutable;
