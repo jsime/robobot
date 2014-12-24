@@ -14,7 +14,7 @@ has '+name' => (
 );
 
 has '+description' => (
-    default => 'Provides a set of functions for basic mathematical operations.',
+    default => 'Provides a set of functions for mathematical operations.',
 );
 
 has '+commands' => (
@@ -48,34 +48,39 @@ has '+commands' => (
                    usage   => '<num> <num>',
                    example => '3 2',
                    result  => '8' },
+
+        'sqrt' => { method  => 'sqrt',
+                    usage   => '<num>',
+                    example => '4',
+                    result  => '2' },
     }},
 );
 
 sub add {
     my ($self, $message, $command, @args) = @_;
 
-    return unless $self->has_two_numbers($message, @args);
+    return unless $self->has_n_numbers($message, 2, @args);
     return $args[0] + $args[1];
 }
 
 sub subtract {
     my ($self, $message, $command, @args) = @_;
 
-    return unless $self->has_two_numbers($message, @args);
+    return unless $self->has_n_numbers($message, 2, @args);
     return $args[0] - $args[1];
 }
 
 sub multiply {
     my ($self, $message, $command, @args) = @_;
 
-    return unless $self->has_two_numbers($message, @args);
+    return unless $self->has_n_numbers($message, 2, @args);
     return $args[0] * $args[1];
 }
 
 sub divide {
     my ($self, $message, $command, @args) = @_;
 
-    return unless $self->has_two_numbers($message, @args);
+    return unless $self->has_n_numbers($message, 2, @args);
     return unless $self->denominator_not_zero($message, @args);
     return $args[0] / $args[1];
 }
@@ -83,7 +88,7 @@ sub divide {
 sub modulo {
     my ($self, $message, $command, @args) = @_;
 
-    return unless $self->has_two_numbers($message, @args);
+    return unless $self->has_n_numbers($message, 2, @args);
     return unless $self->denominator_not_zero($message, @args);
     return $args[0] % $args[1];
 }
@@ -91,20 +96,63 @@ sub modulo {
 sub power {
     my ($self, $message, $command, @args) = @_;
 
-    return unless $self->has_two_numbers($message, @args);
+    return unless $self->has_n_numbers($message, 2, @args);
     return $args[0] ** $args[1];
 }
 
-sub has_two_numbers {
-    my ($self, $message, @args) = @_;
+sub sqrt {
+    my ($self, $message, $command, @args) = @_;
 
-    unless (@args && @args == 2) {
-        $message->response->raise('Must supply exactly two values for the given mathematical function.');
+    return unless $self->has_n_numbers($message, 1, @args);
+    return unless $self->has_all_positive_numbers($message, @args);
+    return sqrt($args[0]);
+}
+
+sub has_n_numbers {
+    my ($self, $message, $n, @args) = @_;
+
+    unless (@args && @args == $n) {
+        $message->response->raise(sprintf('Must supply exactly %d %s for the given mathematical function.', $n, ($n == 1 ? 'number' : 'numbers'));
         return 0;
     }
 
-    unless ($args[0] =~ m{^\-?(\d+(\.\d+)?|\d*\.\d+)$}o && $args[1] =~ m{^\-?(\d+(\.\d+)?|\d*\.\d+)$}o) {
-        $message->response->raise('Both values must be numeric.');
+    return $self->has_only_numbers($message, @args);
+}
+
+sub has_only_numbers {
+    my ($self, $message, @args) = @_;
+
+    my $non_number = 0;
+
+    foreach my $arg (@args) {
+        unless ($arg =~ m{^\-?(\d+(\.\d+)?|\d*\.\d+)$}o) {
+            $non_number++;
+            last;
+        }
+    }
+
+    if ($non_number) {
+        $message->response->raise('All values must be numeric.');
+        return 0;
+    }
+
+    return 1;
+}
+
+sub has_all_positive_numbers {
+    my ($self, $message, @args) = @_;
+
+    my $neg_number = 0;
+
+    foreach my $arg (@args) {
+        unless ($arg >= 0) {
+            $neg_number++;
+            last;
+        }
+    }
+
+    if ($neg_number) {
+        $message->response->raise('All values must be positive.');
         return 0;
     }
 
