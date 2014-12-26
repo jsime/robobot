@@ -15,13 +15,17 @@ has 'content' => (
 );
 
 has 'channel' => (
-    is  => 'rw',
-    isa => 'RoboBot::Channel',
+    is        => 'rw',
+    isa       => 'RoboBot::Channel',
+    predicate => 'has_channel',
+    clearer   => 'clear_channel',
 );
 
 has 'nick' => (
-    is  => 'rw',
-    isa => 'RoboBot::Nick',
+    is        => 'rw',
+    isa       => 'RoboBot::Nick',
+    predicate => 'has_nick',
+    clearer   => 'clear_nick',
 );
 
 has 'error' => (
@@ -66,14 +70,14 @@ sub send {
         );
     }
 
-    if ($self->channel) {
+    if ($self->has_channel) {
         foreach my $line (@{$self->content}) {
             $self->bot->irc->yield(
                 privmsg => '#' . $self->channel->channel,
                 $line
             );
         }
-    } elsif ($self->nick) {
+    } elsif ($self->has_nick) {
         foreach my $line (@{$self->content}) {
             $self->bot->irc->yield(
                 privmsg => $self->nick->nick,
@@ -87,6 +91,8 @@ sub send {
     # absolutely necessary while still short-circuiting most remaining evaluations
     # with a quick $response->has_error
     $self->clear_content;
+
+    return;
 }
 
 sub push {
