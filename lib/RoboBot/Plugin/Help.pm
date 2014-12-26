@@ -7,8 +7,6 @@ use Moose;
 use MooseX::SetOnce;
 use namespace::autoclean;
 
-use Data::Dumper;
-
 extends 'RoboBot::Plugin';
 
 has '+name' => (
@@ -44,6 +42,8 @@ sub help {
     } else {
         $self->general_help($message);
     }
+
+    return;
 }
 
 sub general_help {
@@ -55,6 +55,8 @@ sub general_help {
     $message->response->push(sprintf('For additional help, use (help <function>) or (help :plugin "<plugin>").'));
     $message->response->push(sprintf('Installed plugins: %s', join(', ', sort keys %plugins)));
     $message->response->push(sprintf('Available functions: %s', join(', ', sort keys %{$self->bot->commands})));
+
+    return;
 }
 
 sub plugin_help {
@@ -69,6 +71,8 @@ sub plugin_help {
     } else {
         $message->response->push(sprintf('Unknown plugin: %s', $plugin_name));
     }
+
+    return;
 }
 
 sub command_help {
@@ -85,6 +89,8 @@ sub command_help {
     } else {
         $message->response->push(sprintf('Unknown function: %s', $command_name));
     }
+
+    return;
 }
 
 __PACKAGE__->meta->make_immutable;
