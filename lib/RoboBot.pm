@@ -165,7 +165,15 @@ sub on_message {
 
     # Process the message itself
     if ($message->has_expression) {
-        $self->process_list($message, $_) foreach @{$message->expression};
+        my (@r);
+
+        foreach my $expr (@{$message->expression}) {
+            @r = $self->process_list($message, $expr);
+        }
+
+        if (@r && scalar(@r) > 0) {
+            $self->commands->{'print'}->process($message, 'print', @r);
+        }
     }
 
     # Process any after-hooks on the outgoing response
