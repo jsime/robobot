@@ -63,11 +63,11 @@ sub send {
     my $n = scalar(@{$self->content});
 
     if ($n > 10) {
-        $self->content(
+        $self->content([
             @{$self->content}[0..3],
-            '... Output Truncated (' . scalar(@{$self->content}) - 7 . ' lines removed) ...',
+            '... Output Truncated (' . (scalar(@{$self->content}) - 7) . ' lines removed) ...',
             @{$self->content}[($n-3)..($n-1)]
-        );
+        ]);
     }
 
     if ($self->has_channel) {
