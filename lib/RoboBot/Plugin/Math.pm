@@ -20,41 +20,53 @@ has '+description' => (
 has '+commands' => (
     default => sub {{
         '+' => { method  => 'add',
-                 usage   => '<num> <num>',
+                 usage   => '<addend> <addend>',
                  example => '3 5',
                  result  => '8' },
 
         '-' => { method  => 'subtract',
-                 usage   => '<num> <num>',
+                 usage   => '<minuend> <subtrahend>',
                  example => '9 2',
                  result  => '7' },
 
         '*' => { method  => 'multiply',
-                 usage   => '<num> <num>',
+                 usage   => '<factor> <factor>',
                  example => '4 5',
                  result  => '20' },
 
         '/' => { method  => 'divide',
-                 usage   => '<num> <num>',
+                 usage   => '<dividend> <divisor>',
                  example => '9 3',
                  result  => '3' },
 
         'modulo' => { method  => 'modulo',
-                      usage   => '<num> <num>',
+                      usage   => '<dividend> <divisor>',
                       example => '6 4',
                       result  => '2' },
 
         'pow' => { method  => 'power',
-                   usage   => '<num> <num>',
+                   usage   => '<base> <exponent>',
                    example => '3 2',
                    result  => '8' },
 
         'sqrt' => { method  => 'sqrt',
-                    usage   => '<num>',
+                    usage   => '<numeral>',
                     example => '4',
                     result  => '2' },
+
+        'abs' => { method  => 'abs',
+                   usage   => '<numeral>',
+                   example => '-4',
+                   result  => '4' },
     }},
 );
+
+sub abs {
+    my ($self, $message, $command, @args) = @_;
+
+    return unless $self->has_n_number($message, 1, @args);
+    return $args[0] >= 0 ? $args[0] : $args[0] * -1;
+}
 
 sub add {
     my ($self, $message, $command, @args) = @_;
