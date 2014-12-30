@@ -45,6 +45,12 @@ has 'bot' => (
 sub process {
     my ($self, $message, $command, @args) = @_;
 
+    # Remove namespace from command if present (by the time we reach this point, we
+    # already know what plugin namespace we're in)
+    if ($command =~ m{\:\:(.*)$}) {
+        $command = $1;
+    }
+
     return $message->response->raise("Invalid command processor executed.")
         unless exists $self->commands->{$command};
 
@@ -85,7 +91,7 @@ sub hook_before {
 
     return $message unless $self->has_before_hook;
 
-    my $hook = $self->before;
+    my $hook = $self->before_hook;
     return $self->$hook($message);
 }
 
@@ -94,7 +100,7 @@ sub hook_after {
 
     return $message unless $self->has_after_hook;
 
-    my $hook = $self->after;
+    my $hook = $self->after_hook;
     return $self->$hook($message);
 }
 
