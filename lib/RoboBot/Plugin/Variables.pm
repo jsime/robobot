@@ -19,30 +19,31 @@ has '+description' => (
 
 has '+commands' => (
     default => sub {{
-        'setvar' => { method  => 'setvar',
-                      usage   => '<variable name> <value or expression>',
-                      example => 'foo "A Value"',
-                      result  => 'A Value' },
+        'setvar' => { method          => 'set_var',
+                      preprocess_args => 0,
+                      description     => 'Sets the value of a variable.',
+                      usage           => '<variable name> <value or expression>',
+                      example         => 'foo 10',
+                      result          => '10' },
 
-        'undef' => { method  => 'undef_var',
-                     usage   => '<variable name>',
-                     example => 'foo',
-                     result  => '' },
+        'unsetvar' => { method          => 'unset_var',
+                        preprocess_args => 0,
+                        description     => 'Unsets a variable and removes it from the symbol table.',
+                        usage           => '<variable name>',
+                        example         => 'foo',
+                        result          => '' },
     }},
 );
 
-sub setvar {
+sub set_var {
     my ($self, $message, $command, @args) = @_;
 
     if (@args && @args == 2 && $args[0] =~ m{^[\$\@\*\:\+0-9a-zA-Z_-]+$}) {
-print STDERR "Setting variable $args[0] to $args[1]\n";
-        return $message->vars->{$args[0]} = $args[1];
+        return $message->vars->{$args[0]} = $self->bot->process_list($message, $args[1]);
     }
-
-    return $self->usage($message, 'setvar');
 }
 
-sub undef_var {
+sub unset_var {
     my ($self, $message, $command, @args) = @_;
 
     if (@args && @args == 1) {
@@ -52,8 +53,6 @@ sub undef_var {
             return $message->response->raise('No such variable.');
         }
     }
-
-    return $self->usage($message, 'undef');
 }
 
 __PACKAGE__->meta->make_immutable;
