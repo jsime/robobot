@@ -54,7 +54,9 @@ sub general_help {
     $message->response->push(sprintf('RoboBot v%s', $self->bot->version));
     $message->response->push(sprintf('For additional help, use (help <function>) or (help :plugin "<plugin>").'));
     $message->response->push(sprintf('Installed plugins: %s', join(', ', sort keys %plugins)));
-    $message->response->push(sprintf('Available functions: %s', join(', ', sort keys %{$self->bot->commands})));
+    # TODO break into multiple lines as necessary so that function list does not overflow
+    # the server/client line limit
+    $message->response->push(sprintf('Available functions: %s', join(', ', sort grep { $_ !~ m{\:\:}o } keys %{$self->bot->commands})));
 
     return;
 }
