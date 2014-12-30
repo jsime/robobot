@@ -14,8 +14,9 @@ use DateTime;
 use RoboBot::Response;
 
 has 'raw' => (
-    is  => 'rw',
-    isa => 'Str',
+    is       => 'rw',
+    isa      => 'Str',
+    required => 1,
 );
 
 has 'expression' => (
@@ -25,27 +26,31 @@ has 'expression' => (
 );
 
 has 'sender' => (
-    is     => 'rw',
-    isa    => 'RoboBot::Nick',
-    traits => [qw( SetOnce )],
+    is       => 'rw',
+    isa      => 'RoboBot::Nick',
+    traits   => [qw( SetOnce )],
+    required => 1,
 );
 
 has 'channel' => (
-    is     => 'rw',
-    isa    => 'RoboBot::Channel',
-    traits => [qw( SetOnce )],
+    is        => 'rw',
+    isa       => 'RoboBot::Channel',
+    traits    => [qw( SetOnce )],
+    predicate => 'has_channel',
 );
 
 has 'network' => (
-    is     => 'rw',
-    isa    => 'RoboBot::Network',
-    traits => [qw( SetOnce )],
+    is       => 'rw',
+    isa      => 'RoboBot::Network',
+    traits   => [qw( SetOnce )],
+    required => 1,
 );
 
 has 'timestamp' => (
-    is      => 'ro',
-    isa     => 'DateTime',
-    default => sub { DateTime->now },
+    is       => 'ro',
+    isa      => 'DateTime',
+    default  => sub { DateTime->now },
+    required => 1,
 );
 
 has 'response' => (
@@ -60,8 +65,9 @@ has 'vars' => (
 );
 
 has 'bot' => (
-    is  => 'ro',
-    isa => 'RoboBot',
+    is       => 'ro',
+    isa      => 'RoboBot',
+    required => 1,
 );
 
 sub BUILD {
@@ -73,6 +79,11 @@ sub BUILD {
         nick    => $self->sender,
     ));
 
+    # If the message is nothing but "help" or "!help" then convert it to "(help)"
+    if ($self->raw =~ m{^\s*\!?help\s*$}oi) {
+        $self->raw("(help)");
+    }
+
     if ($self->raw =~ m{^\s*\(\S+}o) {
         unless ($self->expressions_balanced) {
             return $self->response->raise('Unbalanced S-Expression provided.');
@@ -80,7 +91,6 @@ sub BUILD {
 
         my $ds = Data::SExpression->new({
             fold_lists       => 1,
-            symbol_case      => 'down',
             use_symbol_class => 1,
         });
 
