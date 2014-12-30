@@ -7,6 +7,8 @@ use Moose;
 use MooseX::SetOnce;
 use namespace::autoclean;
 
+use List::Util qw( shuffle );
+
 extends 'RoboBot::Plugin';
 
 has '+name' => (
@@ -36,6 +38,12 @@ has '+commands' => (
                     usage       => '<... list ...>',
                     example     => '"James" "Alice" "Frank" "Janet"',
                     result      => 'Janet' },
+
+        'shuffle' => { method      => 'list_shuffle',
+                       description => 'Returns the list elements in a randomized order.',
+                       usage       => '<... list ...>',
+                       example     => '"James" "Alice" "Frank" "Janet"',
+                       result      => '"Alice" "Janet" "James" "Frank"' },
     }},
 );
 
@@ -71,6 +79,12 @@ sub list_last {
     my ($self, $message, $command, @args) = @_;
 
     return $self->list_nth($message, $command, scalar(@args), @args);
+}
+
+sub list_shuffle {
+    my ($self, $message, $command, @args) = @_;
+
+    return shuffle @args;
 }
 
 __PACKAGE__->meta->make_immutable;
