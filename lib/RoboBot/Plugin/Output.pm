@@ -7,6 +7,8 @@ use Moose;
 use MooseX::SetOnce;
 use namespace::autoclean;
 
+use Number::Format;
+
 extends 'RoboBot::Plugin';
 
 has '+name' => (
@@ -36,7 +38,25 @@ has '+commands' => (
                      usage       => '<value> [<value 2> ... <value N>]',
                      example     => '"Hello, " "my name is" "RoboBot."',
                      result      => 'Hello, my name isRoboBot.' },
+
+        'format' => { method      => 'format_str',
+                      description => 'Provides a printf-like string formatter. Placeholders follow the same rules as printf(1).',
+                      usage       => '"<format>" [<value 1> ... <value N>]',
+                      example     => '"%d / %d = %.2f" 5 3 (/ 5 3)',
+                      result      => '5 / 3 = 1.67' },
+
+        'format-number' => { method      => 'format_num',
+                             description => 'Provides numeric formatting for thousands separators, fixed precisions, and trailing zeroes.',
+                             usage       => '<number> [<precision> [<trailing zeroes>]]',
+                             example     => '1830472.2 4 1',
+                             result      => '1,830,472.2000' },
     }},
+);
+
+has 'nf' => (
+    is      => 'ro',
+    isa     => 'Number::Format',
+    default => sub { Number::Format->new() },
 );
 
 sub clear_output {
@@ -56,6 +76,27 @@ sub print_str {
     my ($self, $message, $command, @args) = @_;
 
     $message->response->push(join('', @args));
+}
+
+sub format_str {
+    my ($self, $message, $command, $format, @args) = @_;
+
+    my $str;
+
+    eval { $str = sprintf($format, @args) };
+
+    if ($@) {
+        $message->response->raise(sprintf('Error: %s', $@));
+        return;
+    }
+
+    return $str;
+}
+
+sub format_num {
+    my ($self, $message, $command, @args) = @_;
+
+    return $self->nf->format_number(@args);
 }
 
 __PACKAGE__->meta->make_immutable;
