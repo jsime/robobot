@@ -41,12 +41,14 @@ has 'before_hooks' => (
     is        => 'rw',
     isa       => 'ArrayRef',
     predicate => 'run_before_hooks',
+    default   => sub { [] },
 );
 
 has 'after_hooks' => (
     is        => 'rw',
     isa       => 'ArrayRef',
     predicate => 'run_after_hooks',
+    default   => sub { [] },
 );
 
 has 'irc' => (
@@ -72,7 +74,9 @@ sub BUILD {
                          $self->commands->{$command}->name, $command, $plugin->name, $command)
                 if exists $self->commands->{$command};
 
+            # Offer both plain and namespaced access to individual functions
             $self->commands->{$command} = $plugin;
+            $self->commands->{sprintf('%s::%s', lc($plugin->name), $command)} = $plugin;
         }
 
         # Gather list of plugins which have before/after hooks.
@@ -161,6 +165,9 @@ sub on_message {
 
     # Process any before-hooks on incoming messages
     if ($self->run_before_hooks) {
+        foreach my $plugin (@{$self->before_hooks}) {
+            $plugin->hook_before($message);
+        }
     }
 
     # Process the message itself
@@ -178,6 +185,9 @@ sub on_message {
 
     # Process any after-hooks on the outgoing response
     if ($self->run_after_hooks) {
+        foreach my $plugin (@{$self->after_hooks}) {
+            $plugin->hook_after($message);
+        }
     }
 
     # Deliver the response
@@ -201,11 +211,13 @@ sub process_list {
 
     return $list unless ref($list) eq 'ARRAY';
 
-    if (exists $self->commands->{scalar($list->[0])}) {
+    my $command = lc(scalar($list->[0]));
+
+    if (exists $self->commands->{$command}) {
         # If first element is a recognized command, pass list to appropriate plugin
-        return $self->commands->{scalar($list->[0])}->process(
+        return $self->commands->{$command}->process(
             $message,
-            scalar($list->[0]),
+            $command,
             @{$list}[1..$#$list]
         );
     } else {
