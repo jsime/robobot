@@ -42,6 +42,10 @@ has 'bot' => (
     traits => [qw( SetOnce )],
 );
 
+sub init {
+    my ($self) = @_;
+}
+
 sub process {
     my ($self, $message, $command, @args) = @_;
 
