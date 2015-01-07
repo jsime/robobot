@@ -7,6 +7,8 @@ use Moose;
 use MooseX::SetOnce;
 use namespace::autoclean;
 
+use Text::Wrap qw( wrap );
+
 extends 'RoboBot::Plugin';
 
 has '+name' => (
@@ -54,9 +56,10 @@ sub general_help {
     $message->response->push(sprintf('RoboBot v%s', $self->bot->version));
     $message->response->push(sprintf('For additional help, use (help <function>) or (help :plugin "<plugin>").'));
     $message->response->push(sprintf('Installed plugins: %s', join(', ', sort keys %plugins)));
-    # TODO break into multiple lines as necessary so that function list does not overflow
-    # the server/client line limit
-    $message->response->push(sprintf('Available functions: %s', join(', ', sort grep { $_ !~ m{\:\:}o } keys %{$self->bot->commands})));
+
+    local $Text::Wrap::columns = 200;
+    my @functions = split(/\n/o, wrap('Available functions: ','', join(', ', sort grep { $_ !~ m{\:\:}o } keys %{$self->bot->commands})));
+    $message->response->push($_) for @functions;
 
     return;
 }
@@ -84,10 +87,19 @@ sub command_help {
         my $plugin = $self->bot->commands->{$command_name};
         my $metadata = $plugin->commands->{$command_name};
 
-        $message->response->push(sprintf('(%s %s)', $command_name, $metadata->{'usage'}));
+        if (exists $metadata->{'usage'} && $metadata->{'usage'} =~ m{\w+}o) {
+            $message->response->push(sprintf('(%s %s)', $command_name, $metadata->{'usage'}));
+        } else {
+            $message->response->push(sprintf('(%s)', $command_name));
+        }
+
         $message->response->push($metadata->{'description'}) if exists $metadata->{'description'};
-        $message->response->push(sprintf('Example: (%s %s) -> %s', $command_name, $metadata->{'example'}, $metadata->{'result'}))
-            if exists $metadata->{'example'} && exists $metadata->{'result'};
+
+        if (exists $metadata->{'example'} && exists $metadata->{'result'}) {
+            $message->response->push(sprintf('Example: (%s %s) -> %s', $command_name, $metadata->{'example'}, $metadata->{'result'}));
+        } elsif (exists $metadata->{'example'}) {
+            $message->response->push(sprintf('Example: (%s %s)', $command_name, $metadata->{'example'}));
+        }
     } else {
         $message->response->push(sprintf('Unknown function: %s', $command_name));
     }
