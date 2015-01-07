@@ -37,6 +37,12 @@ has 'commands' => (
     default => sub { {} },
 );
 
+has 'macros' => (
+    is      => 'rw',
+    isa     => 'HashRef',
+    default => sub { {} },
+);
+
 has 'before_hooks' => (
     is        => 'rw',
     isa       => 'ArrayRef',
@@ -68,6 +74,7 @@ sub BUILD {
     foreach my $plugin ($finder->plugins) {
         push(@{$self->plugins}, $plugin);
         $plugin->bot($self);
+        $plugin->init();
 
         foreach my $command (keys %{$plugin->commands}) {
             warn sprintf("Command name collision: %s::%s superseded by %s::%s",
@@ -83,6 +90,9 @@ sub BUILD {
         push(@{$self->before_hooks}, $plugin) if $plugin->has_before_hook;
         push(@{$self->after_hooks}, $plugin) if $plugin->has_after_hook;
     }
+
+    # Pre-load all saved macros
+    $self->macros({ RoboBot::Macro->load_all($self->config) });
 
     $self->irc(POE::Component::IRC->spawn());
 
@@ -220,6 +230,15 @@ sub process_list {
             $command,
             @{$list}[1..$#$list]
         );
+    } elsif (exists $self->macros->{$command}) {
+        # And if it's a macro name (which cannot override built-in/plugin commands)
+        # expand the macro and process the results of that expansion.
+        return $self->process_list(
+            $message,
+            $self->macros->{$command}->expand(
+               $message, @{$list}[1..$#$list]
+            )
+        );
     } else {
         # Otherwise, just process any sub expressions in the order they appear,
         # then return the processed list
@@ -247,6 +266,44 @@ sub version {
     my ($self) = @_;
 
     return $VERSION;
+}
+
+sub add_macro {
+    my ($self, $nick, $macro_name, $args, $body) = @_;
+
+    if (exists $self->macros->{$macro_name}) {
+        $self->macros->{$macro_name}->name("$macro_name");
+        $self->macros->{$macro_name}->arguments($args);
+        $self->macros->{$macro_name}->definition($body);
+        $self->macros->{$macro_name}->definer($nick);
+
+        return unless $self->macros->{$macro_name}->save;
+    } else {
+        my $macro = RoboBot::Macro->new(
+            config     => $self->config,
+            name       => "$macro_name",
+            arguments  => $args,
+            definition => $body,
+            definer    => $nick,
+        );
+
+        return unless $macro->save;
+
+        $self->macros->{$macro_name} = $macro;
+    }
+
+    return 1;
+}
+
+sub remove_macro {
+    my ($self, $macro_name) = @_;
+
+    return unless exists $self->macros->{$macro_name};
+
+    $self->macros->{$macro_name}->delete;
+    delete $self->macros->{$macro_name};
+
+    return 1;
 }
 
 __PACKAGE__->meta->make_immutable;
