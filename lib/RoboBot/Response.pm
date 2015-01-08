@@ -14,6 +14,13 @@ has 'content' => (
     clearer   => 'clear_content',
 );
 
+has 'network' => (
+    is        => 'rw',
+    isa       => 'RoboBot::Network',
+    predicate => 'has_network',
+    clearer   => 'clear_network',
+);
+
 has 'channel' => (
     is        => 'rw',
     isa       => 'RoboBot::Channel',
