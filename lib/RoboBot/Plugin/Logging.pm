@@ -8,6 +8,7 @@ use MooseX::SetOnce;
 use namespace::autoclean;
 
 use Number::Format;
+use Term::ExtendedColor qw( fg bold );
 
 extends 'RoboBot::Plugin';
 
@@ -144,6 +145,8 @@ sub log_incoming {
             posted_at      => $message->timestamp->iso8601(),
         });
     }
+
+    $self->log_to_terminal($message);
 }
 
 sub log_outgoing {
@@ -157,6 +160,36 @@ sub log_outgoing {
             nick_id    => $message->network->nick->id,
             message    => $_,
         }} @{$message->response->content}] );
+    }
+
+    $self->log_to_terminal($message->response);
+}
+
+sub log_to_terminal {
+    my ($self, $msg) = @_;
+
+    if ($msg->isa('RoboBot::Message')) {
+        my $where = $msg->has_channel ? '#' . $msg->channel->channel : $msg->sender->nick;
+
+        printf("%s [%s] <%s> %s\n",
+            fg('seagreen1', sprintf('%s %s', $msg->timestamp->ymd, $msg->timestamp->hms)),
+            bold(fg('darkorange1', $where)),
+            bold(fg('magenta8', $msg->sender->nick)),
+            $msg->raw
+        );
+    } elsif ($msg->isa('RoboBot::Response') && $msg->has_content) {
+        my $response = $msg; # for readability
+        my $where = $response->has_channel ? '#' . $response->channel->channel : $response->nick->nick;
+        my $when = DateTime->now();
+
+        foreach my $line (@{$response->content}) {
+            printf("%s [%s] <%s> %s\n",
+                fg('seagreen1', sprintf('%s %s', $when->ymd, $when->hms)),
+                bold(fg('darkorange1', $where)),
+                bold(fg('magenta8', $response->network->nick->nick)),
+                $line
+            );
+        }
     }
 }
 
