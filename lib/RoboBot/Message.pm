@@ -75,6 +75,7 @@ sub BUILD {
 
     $self->response(RoboBot::Response->new(
         bot     => $self->bot,
+        network => $self->network,
         channel => $self->channel,
         nick    => $self->sender,
     ));
