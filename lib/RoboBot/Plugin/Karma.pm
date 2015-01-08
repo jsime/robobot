@@ -7,6 +7,8 @@ use Moose;
 use MooseX::SetOnce;
 use namespace::autoclean;
 
+use RoboBot::Nick;
+
 use Number::Format;
 
 extends 'RoboBot::Plugin';
@@ -28,6 +30,14 @@ has '+commands' => (
         'karma' => { method      => 'display_karma',
                      description => 'Displays current karma/reputation points for given nicks. Defaults to displaying karma of caller.',
                      usage       => '[<nick> ... <nick N>]' },
+
+        '++karma' => { method      => 'add_karma',
+                       description => "Explicitly adds to the given nick's karma rating.",
+                       usage       => '<nick>' },
+
+        '--karma' => { method      => 'subtract_karma',
+                       description => "Explicitly subtracts from the given nick's karma rating.",
+                       usage       => '<nick>' },
     }},
 );
 
@@ -36,6 +46,42 @@ has 'nf' => (
     isa     => 'Number::Format',
     default => sub { Number::Format->new() }
 );
+
+sub add_karma {
+    my ($self, $message, $command, $nick) = @_;
+
+    $nick = RoboBot::Nick->new( config => $self->bot->config, nick => "$nick" );
+
+    if (defined $nick) {
+        my $res = $self->bot->config->db->do(q{
+            insert into karma_karma ???
+        }, {
+            nick_id      => $nick->id,
+            karma        => 1,
+            from_nick_id => $message->sender->id,
+        });
+    }
+
+    return;
+}
+
+sub subtract_karma {
+    my ($self, $message, $command, $nick) = @_;
+
+    $nick = RoboBot::Nick->new( config => $self->bot->config, nick => "$nick" );
+
+    if (defined $nick) {
+        my $res = $self->bot->config->db->do(q{
+            insert into karma_karma ???
+        }, {
+            nick_id      => $nick->id,
+            karma        => -1,
+            from_nick_id => $message->sender->id,
+        });
+    }
+
+    return;
+}
 
 sub update_karma {
     my ($self, $message) = @_;
