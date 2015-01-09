@@ -24,9 +24,15 @@ has '+before_hook' => (
 sub gertz_alert {
     my ($self, $message) = @_;
 
+    return if $message->has_expression;
+
     if ($message->raw =~ m{\b(gertz)\b}oi) {
-        $message->response->unshift('GERTZ ALERTZ!');
+        # do not respond if we matched on another bot's gertz alertz
+        $message->response->unshift('GERTZ ALERTZ!')
+            unless $message->raw =~ m{gertz\s+alertz}oi;
     }
+
+    return;
 }
 
 __PACKAGE__->meta->make_immutable;
