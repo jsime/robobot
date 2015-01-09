@@ -165,13 +165,26 @@ sub on_message {
 
     my $sender_nick = RoboBot::Nick->new( config => $self->config, nick => (split(/!/, $who))[0] );
 
-    my $message = RoboBot::Message->new(
-        bot     => $self,
-        raw     => $msg,
-        sender  => $sender_nick,
-        network => $network,
-        channel => $channel,
-    );
+    my ($message);
+
+    # TODO better Message creation for receipt of private messages (not passing channel =>
+    # into new() can currently cause issues for the ::Response object and elsewhere)
+    if (defined $channel) {
+        $message = RoboBot::Message->new(
+            bot     => $self,
+            raw     => $msg,
+            sender  => $sender_nick,
+            network => $network,
+            channel => $channel,
+        );
+    } else {
+        $message = RoboBot::Message->new(
+            bot     => $self,
+            raw     => $msg,
+            sender  => $sender_nick,
+            network => $network,
+        );
+    }
 
     # Process any before-hooks on incoming messages
     if ($self->run_before_hooks) {
