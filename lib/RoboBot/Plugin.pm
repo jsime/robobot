@@ -60,6 +60,11 @@ sub process {
 
     my $method = $self->commands->{$command}{'method'};
 
+    # Ensure that the nick is permitted to call the function.
+    if (exists $self->message->sender->denied_functions->{$command}) {
+        return $message->response->raise('You are not permitted to call the function (%s).', $command);
+    }
+
     # By default, we pre-process all arguments, but some plugins can opt out
     # of this to handle things like conditional evaluations or loops
     unless (exists $self->commands->{$command}{'preprocess_args'} && $self->commands->{$command}{'preprocess_args'} == 0) {
