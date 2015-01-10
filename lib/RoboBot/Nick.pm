@@ -8,9 +8,10 @@ use MooseX::SetOnce;
 use namespace::autoclean;
 
 has 'id' => (
-    is     => 'rw',
-    isa    => 'Int',
-    traits => [qw( SetOnce )],
+    is        => 'rw',
+    isa       => 'Int',
+    traits    => [qw( SetOnce )],
+    predicate => 'has_id',
 );
 
 has 'nick' => (

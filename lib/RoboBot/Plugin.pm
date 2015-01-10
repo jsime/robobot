@@ -61,7 +61,7 @@ sub process {
     my $method = $self->commands->{$command}{'method'};
 
     # Ensure that the nick is permitted to call the function.
-    if (exists $self->message->sender->denied_functions->{$command}) {
+    if (exists $message->sender->denied_functions->{$command}) {
         return $message->response->raise('You are not permitted to call the function (%s).', $command);
     }
 

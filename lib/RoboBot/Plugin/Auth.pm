@@ -50,7 +50,7 @@ sub auth_default {
         return;
     }
 
-    unless exists ($self->bot->commands->{lc($function_name)}) {
+    unless (exists $self->bot->commands->{lc($function_name)}) {
         $message->response->raise('The function "%s" is not known.', $function_name);
         return;
     }
@@ -91,7 +91,7 @@ sub auth_modify {
         return;
     }
 
-    my $nick = RoboBot::Nick->new( config => $self->bot->config, nick => $nick_name );
+    my $nick = RoboBot::Nick->new( config => $self->bot->config, nick => "$nick_name" );
 
     unless ($nick->has_id) {
         $message->response->raise('The nick %s is unfamiliar to me. I cannot modify permissions for them yet.', $nick_name);
@@ -101,7 +101,7 @@ sub auth_modify {
     my $res = $self->bot->config->db->do(q{
         update auth_permissions
         set ???
-        where server_id = ? and nick_id = ? lower(command) = lower(?)
+        where server_id = ? and nick_id = ? and lower(command) = lower(?)
     }, { state => $mode, granted_by => $message->sender->id }, $message->network->id, $nick->id, $function_name);
 
     unless ($res && $res->count > 0) {
