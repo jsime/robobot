@@ -37,6 +37,7 @@ has 'channel' => (
     isa       => 'RoboBot::Channel',
     traits    => [qw( SetOnce )],
     predicate => 'has_channel',
+    trigger   => \&update_response_channel,
 );
 
 has 'network' => (
@@ -54,8 +55,9 @@ has 'timestamp' => (
 );
 
 has 'response' => (
-    is  => 'rw',
-    isa => 'RoboBot::Response',
+    is        => 'rw',
+    isa       => 'RoboBot::Response',
+    predicate => 'has_response',
 );
 
 has 'vars' => (
@@ -76,9 +78,10 @@ sub BUILD {
     $self->response(RoboBot::Response->new(
         bot     => $self->bot,
         network => $self->network,
-        channel => $self->channel,
         nick    => $self->sender,
     ));
+
+    $self->response->channel($self->channel) if $self->has_channel;
 
     # If the message is nothing but "help" or "!help" then convert it to "(help)"
     if ($self->raw =~ m{^\s*\!?help\s*$}oi) {
@@ -109,6 +112,14 @@ sub BUILD {
         if (@exps > 0) {
             $self->expression(\@exps);
         }
+    }
+}
+
+sub update_response_channel {
+    my ($self, $new_channel, $old_channel) = @_;
+
+    if ($self->has_response && $self->has_channel) {
+        $self->response->channel($new_channel);
     }
 }
 
