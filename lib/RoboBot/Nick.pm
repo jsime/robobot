@@ -25,6 +25,13 @@ has 'alts' => (
     isa => 'ArrayRef[Str]',
 );
 
+has 'denied_functions' => (
+    is      => 'ro',
+    isa     => 'HashRef',
+    default => sub { {} },
+    writer  => '_set_denied_functions',
+);
+
 has 'config' => (
     is       => 'ro',
     isa      => 'RoboBot::Config',
@@ -54,6 +61,41 @@ sub BUILD {
             $self->id($res->{'id'});
         }
     }
+
+    # TODO look into possibility of restoring the old style of per-server permission
+    # lists (right now we don't have enough info in this method to know which server
+    # we're loading permissions for)
+    my %denied;
+
+    $res = $self->config->db->do(q{
+        select command, granted_by
+        from auth_permissions
+        where nick_id is null and state = 'deny'
+    });
+
+    if ($res) {
+        while ($res->next) {
+            $denied{$res->{'command'}} = $res->{'granted_by'};
+        }
+    }
+
+    $res = $self->config->db->do(q{
+        select command, granted_by, state
+        from auth_permissions
+        where nick_id = ?
+    }, $self->id);
+
+    if ($res) {
+        while ($res->next) {
+            if ($res->{'state'} eq 'allow') {
+                delete $denied{$res->{'command'}} if exists $denied{$res->{'command'}};
+            } else {
+                $denied{$res->{'command'}} = $res->{'granted_by'};
+            }
+        }
+    }
+
+    $self->_set_denied_functions(\%denied);
 }
 
 sub add_alt {
