@@ -33,6 +33,12 @@ has '+commands' => (
                     example     => '", " 1 2 3 4 5',
                     result      => '1, 2, 3, 4, 5' },
 
+        'split' => { method      => 'split_str',
+                     description => 'Splits a string into a list based on the delimiter provided. Delimiters may be a regular expression or fixed string.',
+                     usage       => '<delimiter> <string>',
+                     example     => '"[,\s]+" "1, 2, 3,4,    5"',
+                     result      => '(1 2 3 4 5)' },
+
         'print' => { method      => 'print_str',
                      description => 'Echoes input arguments, concatenated into a single string with no separators.',
                      usage       => '<value> [<value 2> ... <value N>]',
@@ -70,6 +76,25 @@ sub join_str {
 
     return unless @args && scalar(@args) >= 2;
     return join($args[0], @args[1..$#args]);
+}
+
+sub split_str {
+    my ($self, $message, $command, $pattern, $string) = @_;
+
+    return unless defined $pattern && defined $string;
+
+    my @list;
+
+    eval {
+        @list = split(m{$pattern}, $string);
+    };
+
+    if ($@) {
+        $message->response->raise('Invalid pattern provided for splitting.');
+        return;
+    }
+
+    return @list;
 }
 
 sub print_str {
