@@ -13,7 +13,7 @@ sub handle_message {
     my ($class, $bot, $sender, $channel, $command, $original, $timestamp, $message) = @_;
 
     # transitioning to the new robobot and disabling automatic URL parsing in this version
-    return;
+    return -1;
 
     my @urls = ($message =~ m{\b(https?://\S+)\b}oig);
 
