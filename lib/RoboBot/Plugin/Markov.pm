@@ -132,6 +132,9 @@ sub pick_sentence_form {
 sub log_phrases {
     my ($bot, $sender, $message) = @_;
 
+    # in the transition to the new robobot, we are disabling parsing and logging on new messages
+    return;
+
     # we don't want to put the words of one person into another's history, so if it looks
     # like they had pasted in something from elsewhere, skip logging it
     return if $message =~ m{^\<[ \w]+\>\s+}o;       # irc messages

@@ -8,6 +8,9 @@ sub commands { qw( * ) }
 sub handle_message {
     my ($class, $bot, $sender, $channel, $command, $original, $timestamp, $message) = @_;
 
+    # transitioning to the new robobot, gertz alertz will be disabled in this version
+    return;
+
     if ($message =~ m{\b(gertz)\b}oi) {
       return 'GERTZ ALERTZ!';
     }

@@ -11,9 +11,11 @@ sub handle_message {
 
     if ($command && $command eq 'karma') {
         return display_karma($bot, $message);
-    } elsif ($message =~ m{(\w+)[:,]?\s*(\-\-|\+\+)}o) {
-        return add_karma($bot, $sender, $1) if $2 eq '++';
-        return remove_karma($bot, $sender, $1) if $2 eq '--';
+# transitioning to the new robobot, disabling of karma modification parsing (which is handled
+# in a slightly better way in the new version)
+#    } elsif ($message =~ m{(\w+)[:,]?\s*(\-\-|\+\+)}o) {
+#        return add_karma($bot, $sender, $1) if $2 eq '++';
+#        return remove_karma($bot, $sender, $1) if $2 eq '--';
     }
 
     return -1;
