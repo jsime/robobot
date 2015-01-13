@@ -6,14 +6,14 @@ interaction.
 ## Example
 
 The following expression randomly selects one of `4`, `8`, or `20`, passes that
-as the first argument to (roll) to indicate a die-size to be rolled 1,000 times,
+as the first argument to `(roll)` to indicate a die-size to be rolled `1000` times,
 and then nicely formats the resulting number with commas, decimals, etc. as
 necessary.
 
-> `(setvar die-size (first (shuffle 4 8 20))) (format-number (roll dize-size 1000))`
+> `(setvar die-size (first (shuffle 4 8 20))) (format-number (roll die-size 1000))`
 
 All of the functions in the example above are provided by plugins loaded by the
-bot upon startup, and are called via the standard expression syntax.
+bot upon startup, and are called via the standard S-Expression syntax.
 
 ## Main Features
 
@@ -26,7 +26,7 @@ advanced features of a real Lisp - only a thin and cheap imitation of their
 visual style.
 
 Every expression is a list of symbols, strings, and/or numbers. That list may
-contain any number of elements, from zero to N. If the first element of the list
+contain any number of elements, from *0* to *n*. If the first element of the list
 is a symbol that matches a function name, it is considered a function expression,
 and the remainder of the list will be supplied to that function as its arguments.
 
@@ -36,6 +36,11 @@ the numbers two and three together, then multiply their sum by five" by writing
 the following:
 
 > `(* (+ 2 3) 5)`
+
+This syntax applies to all interactions with RoboBot, except in cases where a
+plugin hooks into the pre-evaluation phase and parses text from the raw incoming
+messages itself (see the *Karma* plugin for an example of parsing meaning from
+the raw messages directly).
 
 ### Plugins
 
@@ -101,7 +106,7 @@ delivering responses back to channels or private messages.
 
 Individual functions should all be provided by a plugin. Each plugin is required
 to extend the RoboBot::Plugin class, which provides default metadata and handles
-common functionality such as ussage/help information, as well as argument
+common functionality such as usage/help information, as well as argument
 evaluation, variable interpolation, and so on.
 
 RoboBot uses Moose for its object system, and all plugins should follow the
@@ -110,8 +115,8 @@ conventions used by RoboBot as well as the Moose Best Practices.
 ### Plugin Metadata
 
 The base RoboBot::Plugin class defines the following common metadata which every
-plugin is expected to override. This should be done at the beginning of your
-plugin by declaring:
+plugin is expected to override as necessary. This should be done at the
+beginning of your plugin by declaring:
 
 > `has '+<attribute>' => ( ... );`
 
@@ -127,7 +132,7 @@ non-printable or control characters, and parentheses).
 #### description
 
 A brief description, generally no more than a sentence or two, explaining the
-purpose and general utility of the plugin. This is displayed in the (help)
+purpose and general utility of the plugin. This is displayed in the `(help)`
 output.
 
 #### commands
@@ -135,9 +140,9 @@ output.
 The list of exported functions from this plugin. The attribute is required to
 be a hash reference, with the keys being the function name as it will be exported
 by RoboBot in IRC sessions. Function names may contain almost any characters
-other than whitspace, control characters (or otherwise non-printables), and
+other than whitespace, control characters (or otherwise non-printables), and
 parentheses. Letters, numbers, and most punctuation or grammatical symbols are
-acceptabled.
+acceptable.
 
 While it is possible to export functions that are named solely with integers
 (e.g. "123"), that is not advisable as it will produce unexpected side effects
