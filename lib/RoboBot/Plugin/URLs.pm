@@ -66,6 +66,9 @@ sub check_urls {
             my $title = $self->get_title($r);
 
             if (defined $title && length($title) > 0 && $title =~ m{\w+}o) {
+                $title =~ s{\s+}{ }ogs;
+                $title =~ s{(^\s+|\s+$)}{}ogs;
+
                 $message->response->push(sprintf('Title: %s', $title));
             }
 
