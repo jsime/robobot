@@ -168,6 +168,8 @@ sub log_outgoing {
 sub log_to_terminal {
     my ($self, $msg) = @_;
 
+    binmode STDOUT, ":encoding(UTF-8)";
+
     if ($msg->isa('RoboBot::Message')) {
         my $where = $msg->has_channel ? '#' . $msg->channel->channel : $msg->sender->nick;
 
