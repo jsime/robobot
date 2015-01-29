@@ -202,7 +202,13 @@ sub on_message {
         }
 
         if (@r && scalar(@r) > 0) {
-            $self->commands->{'print'}->process($message, 'print', @r);
+            # Special-case a check for the last top-level function called being
+            # (print ...) and do not run the auto-printer if that was the case.
+            # Otherwise, assume that the return values of the final expression
+            # should be printed back to the channel/sender.
+            unless (lc($message->expression->[-1][0]) eq 'print') {
+                $self->commands->{'print'}->process($message, 'print', @r);
+            }
         }
     }
 
