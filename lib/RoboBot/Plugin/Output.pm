@@ -7,6 +7,7 @@ use Moose;
 use MooseX::SetOnce;
 use namespace::autoclean;
 
+use Data::Dumper;
 use Number::Format;
 
 extends 'RoboBot::Plugin';
@@ -40,10 +41,10 @@ has '+commands' => (
                      result      => '(1 2 3 4 5)' },
 
         'print' => { method      => 'print_str',
-                     description => 'Echoes input arguments, concatenated into a single string with no separators.',
+                     description => 'Prints input arguments. If one argument is given, it is simply echoed unaltered. If multiple arguments are given they are printed in array notation.',
                      usage       => '<value> [<value 2> ... <value N>]',
-                     example     => '"Hello, " "my name is" "RoboBot."',
-                     result      => 'Hello, my name isRoboBot.' },
+                     example     => 'foo 123 bar 456',
+                     result      => '[foo, 123, bar, 456]' },
 
         'format' => { method      => 'format_str',
                       description => 'Provides a printf-like string formatter. Placeholders follow the same rules as printf(1).',
@@ -100,7 +101,18 @@ sub split_str {
 sub print_str {
     my ($self, $message, $command, @args) = @_;
 
-    $message->response->push(join('', @args));
+    if (@args) {
+        if (@args > 1) {
+            local $Data::Dumper::Indent = 0;
+            local $Data::Dumper::Terse  = 1;
+
+            $message->response->push(Dumper(\@args));
+        } else {
+            $message->response->push($args[0]);
+        }
+
+        return @args;
+    }
 }
 
 sub format_str {
