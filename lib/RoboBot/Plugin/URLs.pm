@@ -10,6 +10,7 @@ use namespace::autoclean;
 
 use HTML::TreeBuilder::LibXML;
 use LWP::UserAgent;
+use Text::Levenshtein qw( distance );
 use URI::Find;
 
 extends 'RoboBot::Plugin';
@@ -75,7 +76,13 @@ sub check_urls {
             if (scalar($r->redirects) > 0) {
                 my $redir = ($r->redirects)[-1];
 
-                $message->response->push(sprintf('Redirected to: %s', $redir->base));
+                # Limit notification of redirects to only those which differ from the
+                # original URL by a distance of greater than 10% of the length of
+                # original URL. This prevents some odd issues from reporting a
+                # redirect to the same URL.
+                if (distance($url, $redir) >= length($url) * 0.10) {
+                    $message->response->push(sprintf('Redirected to: %s', $redir->base));
+                }
             }
         }
 
