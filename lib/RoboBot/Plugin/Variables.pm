@@ -32,6 +32,11 @@ has '+commands' => (
                         usage           => '<variable name>',
                         example         => 'foo',
                         result          => '' },
+
+        'incr' => { method          => 'increment_var',
+                    preprocess_args => 0,
+                    description     => 'Increments a numeric variable by the given amount. If no increment amount is provided, 1 is assumed. Negative amounts are permissible.',
+                    usage           => '<variable name> [<amount>]' },
     }},
 );
 
@@ -53,6 +58,27 @@ sub unset_var {
             return $message->response->raise('No such variable.');
         }
     }
+}
+
+sub increment_var {
+    my ($self, $message, $command, $var_name, $amount) = @_;
+
+    $amount = 1 unless defined $amount;
+
+    unless (defined $var_name && exists $self->message->vars->{$var_name}) {
+        return $message->response->raise('Variable name unspecified or invalid.');
+    }
+
+    unless ($amount =~ m{\d+}o && m{^-?\d*\.\d*$}o) {
+        return $message->response->raise('Increment amount "%s" does not appear to be a valid number.', $amount);
+    }
+
+    unless ($self->message->vars->{$var_name} =~ m{^-?\d*\.\d*$}o) {
+        return $message->response->raise('Variable "%s" is not numeric. Cannot increment.', $var_name);
+    }
+
+    $self->message->vars->{$var_name} += $amount;
+    return $self->message->vars->{$var_name};
 }
 
 __PACKAGE__->meta->make_immutable;
