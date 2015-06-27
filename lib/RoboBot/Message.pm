@@ -83,15 +83,26 @@ sub BUILD {
 
     $self->response->channel($self->channel) if $self->has_channel;
 
-    # TODO: Fake an expression if it looks like the message is a !command style
-    #       bot command (from the mbot and early robobot days). Might help ease
-    #       usage for people who don't want to type so many parentheses.
-    # TODO: Consider feasbility of also converting old-style piped command
-    #       sequences into properly nested expressions.
-
     # If the message is nothing but "help" or "!help" then convert it to "(help)"
     if ($self->raw =~ m{^\s*\!?help\s*$}oi) {
         $self->raw("(help)");
+    }
+
+    # If the very first character is an exclamation point, check the following
+    # non-whitespace characters to see if they match a known command. If they
+    # do, convert the incoming message to a simple expression to allow people
+    # to interact with the bot using the older "!command arg arg arg" syntax.
+    if (substr($self->raw, 0, 1) eq '!') {
+        if ($self->raw =~ m{^\!+((\S+).*)}) {
+            # TODO: Consider feasbility of also converting old-style piped command
+            #       sequences into properly nested expressions.
+
+            my ($no_excl, $maybe_cmd) = ($1, $2);
+
+            $self->raw('('.$no_excl.')')
+                if exists $self->bot->commands->{lc($maybe_cmd)}
+                || exists $self->bot->macros->{lc($maybe_cmd)};
+        }
     }
 
     if ($self->raw =~ m{^\s*\(\S+}o) {
