@@ -51,21 +51,22 @@ sub BUILD {
         if ($res && $res->next) {
             $self->id($res->{'id'});
         } else {
-
+            # TODO
         }
     }
 }
 
 sub join {
-    my ($self, $irc) = @_;
+    my ($self) = @_;
 
-   $irc->yield( join => '#' . $self->channel );
+    $self->network->join_channel($self);
 }
 
 sub part {
     my ($self, $irc) = @_;
 
-   $irc->yield( part => '#' . $self->channel );
+    # TODO switch to AnyEvent and perform part appropriate to network's type
+    $irc->yield( part => '#' . $self->channel );
 }
 
 __PACKAGE__->meta->make_immutable;

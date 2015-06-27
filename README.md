@@ -1,6 +1,6 @@
 # RoboBot
 
-Pluggable IRC bot written in Perl and using an S-Expression syntax for user
+Pluggable chatbot written in Perl and using an S-Expression syntax for user
 interaction.
 
 ## Example
@@ -42,10 +42,36 @@ plugin hooks into the pre-evaluation phase and parses text from the raw incoming
 messages itself (see the *Karma* plugin for an example of parsing meaning from
 the raw messages directly).
 
+### Multi-Network
+
+RoboBot can be configured to connect to many chat networks simultaneously, all
+managed by the same parent process. The event loop is managed through AnyEvent
+to provide a portable interface for possibly embedding RoboBot into other code
+which uses any of the common Perl event libraries. Internally, RoboBot
+constructs a new RoboBot::Network object (actually, a sub-class specific to the
+protocol used by the individual networks) for each connection made. Aside from
+memory and the volume of incoming messages, there is no real limit on the
+number of networks a single instance of RoboBot may listen on.
+
+### Multi-Protocol
+
+RoboBot is not strictly limited to IRC. Any text-based chat protocol can be
+supported via the network plugin interface. Out of the box, RoboBot supports
+standard IRC networks (with or without SSL) and the Slack RTM API. A single
+instance of RoboBot may mix and match connections to as many different chat
+protocols as you wish.
+
+Other chat protocols, such as the various instant messaging platforms, could be
+added fairly easily, providing there is already a CPAN module (compatible with
+AnyEvent) or you are willing to write one. Network plugins need only implement
+a handful of methods (connect, disconnect, join\_channel, and send) as well as
+register any callbacks required to deal with messages coming in over the wire.
+Any functionality beyond that is purely optional.
+
 ### Plugins
 
 The bulk of RoboBot's functionality is implemented through a generic plugin
-interface, allowing developers to export functions for direct use by IRC channel
+interface, allowing developers to export functions for direct use by channel
 members, or to hook into message and response parsing phases before and after
 expression evaluation.
 
@@ -59,7 +85,7 @@ Refer to the section *Developing Plugins* below for more details.
 ### Macros
 
 RoboBot provides a basic evaluation-phase macro system, which permits any
-authorized users to extend the functionality of RoboBot directly from IRC channels
+authorized users to extend the functionality of RoboBot directly from channels
 without having to author a plugin.
 
 ### Message Variables
@@ -79,11 +105,12 @@ Combining the features already mentioned, RoboBot provides what amounts to a ful
 (though fairly simplified) programming environment within each message sent to
 it. Variable state is reset with every message (unless a plugin were written to
 provide a state-preserving feature), so programs are effectively limited to the
-size of your IRC server's message limit (typically 240 characters).
+size of your chat server's message limit (typically a few hundred characters on
+IRC, or about 16 kilobytes on Slack; other networks will vary).
 
 But between the built-in functions, and the writing of macros by users, it is in
 theory possible to develop non-trivial functionality entirely within the context
-of an IRC message.
+of a chat message.
 
 ### Access Control
 
@@ -93,8 +120,8 @@ functions (such as those granting operator status, changing topics, and particul
 those allowing modification of the access control lists) be restricted to only
 trusted users.
 
-Access is granted/revoked by IRC nickname, which means the controls are only as
-good as your IRC server's ability to authenticate/identify nicks. This should by
+Access is granted/revoked by chat nickname, which means the controls are only as
+good as your chat server's ability to authenticate/identify nicks. This should by
 no means be considered a very strong access control mechanism.
 
 ## Developing Plugins
@@ -139,7 +166,7 @@ output.
 
 The list of exported functions from this plugin. The attribute is required to
 be a hash reference, with the keys being the function name as it will be exported
-by RoboBot in IRC sessions. Function names may contain almost any characters
+by RoboBot in chat sessions. Function names may contain almost any characters
 other than whitespace, control characters (or otherwise non-printables), and
 parentheses. Letters, numbers, and most punctuation or grammatical symbols are
 acceptable.
@@ -205,7 +232,7 @@ this is useful).
 
 ### Exporting Functions
 
-Functions are exported for use in IRC by overriding the RoboBot::Plugin attribute
+Functions are exported for use in chat by overriding the RoboBot::Plugin attribute
 `commands` as detailed in the section above. Name collisions are tolerated,
 though the last plugin to be loaded (which must be assumed to be a randomized
 order) will take precedence. All functions are also accessible by prefixing

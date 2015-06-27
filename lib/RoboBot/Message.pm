@@ -83,6 +83,12 @@ sub BUILD {
 
     $self->response->channel($self->channel) if $self->has_channel;
 
+    # TODO: Fake an expression if it looks like the message is a !command style
+    #       bot command (from the mbot and early robobot days). Might help ease
+    #       usage for people who don't want to type so many parentheses.
+    # TODO: Consider feasbility of also converting old-style piped command
+    #       sequences into properly nested expressions.
+
     # If the message is nothing but "help" or "!help" then convert it to "(help)"
     if ($self->raw =~ m{^\s*\!?help\s*$}oi) {
         $self->raw("(help)");
@@ -121,6 +127,91 @@ sub BUILD {
                 $self->expression(\@exps);
             }
         }
+    }
+}
+
+sub process {
+    my ($self) = @_;
+
+    # Process any before-hooks first
+    if ($self->bot->run_before_hooks) {
+        foreach my $plugin (@{$self->bot->before_hooks}) {
+            $plugin->hook_before($self);
+        }
+    }
+
+    # Process the message itself
+    if ($self->has_expression) {
+        my (@r);
+
+        foreach my $expr (@{$self->expression}) {
+            @r = $self->process_list($expr);
+        }
+
+        if (@r && scalar(@r) > 0) {
+            # Special-case a check for the last top-level function called being
+            # (print ...) and do not run the auto-printer if that was the case.
+            # Otherwise, assume that the return values of the final expression
+            # should be printed back to the channel/sender.
+            unless (lc($self->expression->[-1][0]) eq 'print') {
+                $self->bot->commands->{'print'}->process($self, 'print', @r);
+            }
+        }
+    }
+
+    # Process any after-hooks before sending response
+    if ($self->bot->run_after_hooks) {
+        foreach my $plugin (@{$self->bot->after_hooks}) {
+            $plugin->hook_after($self);
+        }
+    }
+
+    # Deliver the response
+    $self->response->send;
+}
+
+sub process_list {
+    my ($self, $list) = @_;
+
+    return $list unless ref($list) eq 'ARRAY';
+
+    my $command = lc(scalar($list->[0]));
+
+    if (exists $self->bot->commands->{$command}) {
+        # If first element is a recognized command, pass list to appropriate plugin
+        return $self->bot->commands->{$command}->process(
+            $self,
+            $command,
+            @{$list}[1..$#$list]
+        );
+    } elsif (exists $self->bot->macros->{$command}) {
+        # And if it's a macro name (which cannot override built-in/plugin commands)
+        # expand the macro and process the results of that expansion.
+        return $self->process_list(
+            $self->bot->macros->{$command}->expand(
+               $self, @{$list}[1..$#$list]
+            )
+        );
+    } else {
+        # Otherwise, just process any sub expressions in the order they appear,
+        # then return the processed list
+        my @r;
+        foreach my $el (@{$list}) {
+            if (ref($el) eq 'ARRAY') {
+                push(@r, $self->process_list($el));
+            } else {
+                if (exists $self->vars->{$el}) {
+                    if (ref($self->vars->{$el}) eq 'ARRAY') {
+                        push(@r, $self->process_list($self->vars->{$el}));
+                    } else {
+                        push(@r, $self->vars->{$el});
+                    }
+                } else {
+                    push(@r, $el);
+                }
+            }
+        }
+        return @r;
     }
 }
 

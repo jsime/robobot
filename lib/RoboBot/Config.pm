@@ -1,19 +1,23 @@
 package RoboBot::Config;
 
-use strict;
-use warnings FATAL => 'all';
+use namespace::autoclean;
+
+use Moose;
+use MooseX::SetOnce;
 
 use Config::Any::Merge;
 use DBIx::DataStore ( config => 'yaml' );
 use File::HomeDir;
 
-use RoboBot::Network;
+use RoboBot::NetworkFactory;
 use RoboBot::Channel;
 use RoboBot::Nick;
 
-use Moose;
-use MooseX::SetOnce;
-use namespace::autoclean;
+has 'bot' => (
+    is       => 'ro',
+    isa      => 'RoboBot',
+    required => 1,
+);
 
 has 'config_paths' => (
     is        => 'rw',
@@ -54,6 +58,8 @@ sub load_config {
         $self->validate_database;
         $self->validate_globals;
         $self->validate_networks;
+
+        $self->bot->networks([ values %{$self->networks} ]);
     } else {
         die "Could not load configuration files: " . join(', ', @{$self->config_paths});
     }
@@ -64,7 +70,7 @@ sub locate_config {
 
     my $home = File::HomeDir->my_home();
     my @exts = qw( conf yml yaml json xml ini );
-    my @bases = ("$home/.robobot/robobot.", "$home/.robobot.", "/etc/robobot.");
+    my @bases = ("$home/.lispy/lispy.", "$home/.lispy.", "/etc/lispy.");
 
     my @configs;
 
@@ -92,7 +98,7 @@ sub validate_globals {
     my ($self) = @_;
 
     my %global = (
-        nick => 'RoboBot',
+        nick => 'lispy',
     );
 
     $self->config->{'global'} = \%global unless exists $self->config->{'global'};
@@ -126,16 +132,23 @@ sub validate_networks {
     my @networks;
     my @channels;
 
+    my $nfactory = RoboBot::NetworkFactory->new(
+        bot    => $self->bot,
+        config => $self,
+        nick   => $self->config->{'global'}{'nick'},
+    );
+
     foreach my $network_name (keys %{$self->config->{'network'}}) {
         my $net_cfg = $self->config->{'network'}{$network_name};
 
-        push(@networks, RoboBot::Network->new(
-            name   => $network_name,
-            config => $self,
-            nick   => $self->config->{'global'}{'nick'},
-            %{$net_cfg}));
+        push(@networks, $nfactory->create($network_name, $net_cfg));
 
         my @network_channels;
+
+        # Coerce channel list into an arrayref if only a single channel is
+        # listed for this network.
+        $net_cfg->{'channel'} = [] unless exists $net_cfg->{'channel'};
+        $net_cfg->{'channel'} = [$net_cfg->{'channel'}] if ref($net_cfg->{'channel'}) ne 'ARRAY';
 
         foreach my $chan_name (@{$net_cfg->{'channel'}}) {
             push(@network_channels, RoboBot::Channel->new( config => $self, network => $networks[-1], channel => $chan_name));

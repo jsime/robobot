@@ -42,6 +42,12 @@ has 'error' => (
     clearer   => 'clear_error',
 );
 
+has 'collapsible' => (
+    is      => 'rw',
+    isa     => 'Bool',
+    default => 0,
+);
+
 has 'bot' => (
     is  => 'ro',
     isa => 'RoboBot',
@@ -66,40 +72,14 @@ sub send {
 
     return unless $self->has_content;
 
-    # TODO: move the max line count for output back into config like in previous robobot
-    my $n = scalar(@{$self->content});
+    # Delegate sending to network protocol plugin, since length limits and
+    # features like multi-line output vary.
+    my @r = $self->network->send($self);
 
-    if ($n > 10) {
-        $self->content([
-            @{$self->content}[0..3],
-            '... Output Truncated (' . (scalar(@{$self->content}) - 7) . ' lines removed) ...',
-            @{$self->content}[($n-3)..($n-1)]
-        ]);
-    }
+    # Reset the response's collapsible flag to 0 for new content.
+    $self->collapsible(0);
 
-    if ($self->has_channel) {
-        foreach my $line (@{$self->content}) {
-            $self->bot->irc->yield(
-                privmsg => '#' . $self->channel->channel,
-                $line
-            );
-        }
-    } elsif ($self->has_nick) {
-        foreach my $line (@{$self->content}) {
-            $self->bot->irc->yield(
-                privmsg => $self->nick->nick,
-                $line
-            );
-        }
-    }
-
-    # We clear content that has been sent, but we do not clear the error condition
-    # (if there was one), as this allows us to continue to send new output if
-    # absolutely necessary while still short-circuiting most remaining evaluations
-    # with a quick $response->has_error
-    $self->clear_content;
-
-    return;
+    return @r;
 }
 
 sub push {
@@ -140,6 +120,13 @@ sub unshift {
             $self->content(\@args);
         }
     }
+}
+
+sub num_lines {
+    my ($self) = @_;
+
+    return 0 unless $self->has_content;
+    return scalar(@{$self->content});
 }
 
 __PACKAGE__->meta->make_immutable;

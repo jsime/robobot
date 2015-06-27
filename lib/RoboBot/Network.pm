@@ -1,11 +1,15 @@
 package RoboBot::Network;
 
-use strict;
-use warnings FATAL => 'all';
+use namespace::autoclean;
 
 use Moose;
 use MooseX::SetOnce;
-use namespace::autoclean;
+
+has 'id' => (
+    is     => 'rw',
+    isa    => 'Num',
+    traits => [qw( SetOnce )],
+);
 
 has 'config' => (
     is       => 'ro',
@@ -13,10 +17,10 @@ has 'config' => (
     required => 1,
 );
 
-has 'id' => (
-    is     => 'rw',
-    isa    => 'Num',
-    traits => [qw( SetOnce )],
+has 'bot' => (
+    is       => 'ro',
+    isa      => 'RoboBot',
+    required => 1,
 );
 
 has 'name' => (
@@ -25,45 +29,15 @@ has 'name' => (
     required => 1,
 );
 
-has 'host' => (
-    is  => 'ro',
-    isa => 'Str',
-);
-
-has 'port' => (
-    is  => 'ro',
-    isa => 'Num',
-);
-
-has 'ssl' => (
-    is  => 'ro',
-    isa => 'Bool',
-);
-
-has 'username' => (
-    is  => 'ro',
-    isa => 'Str',
-);
-
-has 'password' => (
-    is  => 'ro',
-    isa => 'Str',
-);
-
 has 'nick' => (
-    is  => 'ro',
-    isa => 'RoboBot::Nick',
+    is       => 'ro',
+    isa      => 'RoboBot::Nick',
+    required => 1,
 );
 
 has 'channels' => (
     is  => 'rw',
     isa => 'ArrayRef[RoboBot::Channel]',
-);
-
-has 'connected' => (
-    is      => 'rw',
-    isa     => 'Bool',
-    default => 0,
 );
 
 sub BUILD {
@@ -85,25 +59,27 @@ sub BUILD {
         if ($res && $res->next) {
             $self->id($res->{'id'});
         } else {
-
+            die "Could not generate a new network ID.";
         }
     }
+
 }
 
-sub connect {
-    my ($self) = @_;
-}
+sub get_nick_data {
+    my ($self, %args) = @_;
 
-sub disconnect {
-    my ($self) = @_;
-}
+    # Does not cache and only returns nick data based on what it is given. This
+    # method should be overridden by any protocol specific classes which can
+    # actually do something meaningful about resolving unknown nicks.
 
-sub add_channel {
-    my ($self, $channel) = @_;
-}
+    # Fail if neither of nick and full_name exist.
+    return unless exists $args{'nick'} || exists $args{'full_name'};
 
-sub remove_channel {
-    my ($self, $channel) = @_;
+    # Use the full name as the nick if the nick wasn't already present. Leave
+    # any other keys intact.
+    $args{'nick'} = $args{'full_name'} unless exists $args{'nick'};
+
+    return %args;
 }
 
 __PACKAGE__->meta->make_immutable;

@@ -75,11 +75,11 @@ sub process {
         # processing code instead (especially for clean handling of variables)
         foreach my $arg (@args) {
             if (ref($arg) eq 'ARRAY') {
-                push(@processed_args, $self->bot->process_list($message, $arg));
+                push(@processed_args, $message->process_list($arg));
             } else {
                 if (exists $message->vars->{$arg}) {
                     if (ref($message->vars->{$arg}) eq 'ARRAY') {
-                        push(@processed_args, $self->bot->process_list($message, $arg));
+                        push(@processed_args, $message->process_list($arg));
                     } else {
                         push(@processed_args, $message->vars->{$arg});
                     }
