@@ -24,6 +24,7 @@ has '+before_hook' => (
 sub gertz_alert {
     my ($self, $message) = @_;
 
+return; # no gertz alertz for the time being
     return if $message->has_expression;
 
     if ($message->raw =~ m{\b(gertz)\b}oi) {
