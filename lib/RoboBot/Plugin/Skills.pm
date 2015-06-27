@@ -1,0 +1,282 @@
+package RoboBot::Plugin::Skills;
+
+use v5.20;
+
+use namespace::autoclean;
+
+use Moose;
+use MooseX::SetOnce;
+
+use Text::Wrap qw( wrap );
+
+extends 'RoboBot::Plugin';
+
+has '+name' => (
+    default => 'Skills',
+);
+
+has '+description' => (
+    default => 'Provides functions for managing skillsets and user proficiency levels.',
+);
+
+has '+commands' => (
+    default => sub {{
+        'iknow' => { method      => 'skill_know',
+                     description => 'Assigns a proficiency level to yourself for the named skill. If no skill is named, shows a list of all skills you possess.',
+                     usage       => '[<skill name> [<proficiency name or number>]]' },
+
+        'theyknow' => { method      => 'skill_theyknow',
+                        description => 'Displays all of the registered skills of the named person. You cannot modify another user\'s skills or proficiencies.',
+                        usage       => '<nick>' },
+
+        'idontknow' => { method      => 'skill_dontknow',
+                         description => 'Removes you from the list of people with any proficiency in the named skill.',
+                         usage       => '<skill name>' },
+
+        'whoknows' => { method      => 'skill_whoknows',
+                        description => 'Shows a list of all the people who claim any proficiency in the named skill.',
+                        usage       => '<skill name>' },
+
+        'skills' => { method      => 'skill_list',
+                      description => 'Returns a list of all skills.', },
+
+        'skill-levels' => { method      => 'skill_level',
+                            description => 'Displays and manages the enumeration of skill proficiencies.' },
+    }},
+);
+
+sub skill_know {
+    my ($self, $message, $command, $skill_name, $skill_level) = @_;
+
+    unless (defined $skill_name && $skill_name =~ m{\w+}) {
+        my @skills = $self->show_user_skills($message, $message->sender->id);
+
+        if (@skills < 1) {
+            $message->response->push('You have no registered skills.');
+            return;
+        } else {
+            $message->response->push('You have the following skills registered:', @skills);
+            return;
+        }
+    }
+
+    my ($res, $level_id, $level_name);
+
+    # We have a skill name (and unknown skills will be added automatically), but we need
+    # to figure out what skill level they want to register at. Provided, but invalid,
+    # skill levels are an error, unprovided levels default to the lowest by sort_order.
+    if (defined $skill_level && $skill_level =~ m{.+}) {
+        no warnings 'numeric';
+
+        $res = $self->bot->config->db->do(q{
+            select level_id, name
+            from skills_levels
+            where level_id = ? or lower(name) = lower(?)
+            order by sort_order desc
+            limit 1
+        }, int($skill_level), $skill_level);
+
+        if ($res && $res->next) {
+            ($level_id, $level_name) = ($res->{'level_id'}, $res->{'name'});
+        } else {
+            $message->response->raise('The proficiency level "%s" does not appear to be valid. Check (skill-levels) for the known list.', $skill_level);
+            return;
+        }
+    } else {
+        $res = $self->bot->config->db->do(q{
+            select level_id, name
+            from skills_levels
+            order by sort_order asc
+            limit 1
+        });
+
+        unless ($res && $res->next) {
+            $message->response->raise('Could not determine the default proficiency level.');
+            return;
+        }
+
+        ($level_id, $level_name) = ($res->{'level_id'}, $res->{'name'});
+    }
+
+    $res = $self->bot->config->db->do(q{
+        select skill_id, name
+        from skills_skills
+        where lower(name) = lower(?)
+    }, $skill_name);
+
+    my ($skill_id);
+
+    if ($res && $res->next) {
+        $skill_id = $res->{'skill_id'};
+    } else {
+        $res = $self->bot->config->db->do(q{
+            insert into skills_skills ??? returning skill_id
+        }, { name => $skill_name, created_by => $message->sender->id });
+
+        unless ($res && $res->next) {
+            $message->response->raise('Could not create the new skill. Please try again.');
+            return;
+        }
+
+        $skill_id = $res->{'skill_id'};
+    }
+
+    $res = $self->bot->config->db->do(q{
+        select *
+        from skills_nicks
+        where skill_id = ? and nick_id = ?
+    }, $skill_id, $message->sender->id);
+
+    if ($res && $res->next) {
+        $res = $self->bot->config->db->do(q{
+            update skills_nicks
+            set skill_level_id = ?
+            where skill_id = ? and nick_id = ?
+        }, $level_id, $skill_id, $message->sender->id);
+
+        if ($res) {
+            $message->response->push('Your proficiency in "%s" has been changed to %s.', $skill_name, $level_name);
+            return;
+        } else {
+            $message->response->raise(sprintf('Could not update your proficiency in "%s". Please try again.', $skill_name));
+            return;
+        }
+    } else {
+        $res = $self->bot->config->db->do(q{
+            insert into skills_nicks ???
+        }, { skill_id => $skill_id, skill_level_id => $level_id, nick_id => $message->sender->id });
+
+        if ($res) {
+            $message->response->push('Your proficiency in "%s" has been registered as %s.', $skill_name, $level_name);
+            return;
+        } else {
+            $message->response->raise(sprintf('Could not register your proficiency in "%s". Please try again.', $skill_name));
+            return;
+        }
+    }
+
+    return;
+}
+
+sub skill_theyknow {
+    my ($self, $message, $command, $targetname) = @_;
+
+    my $res = $self->bot->config->db->do(q{
+        select id, nick
+        from nicks
+        where lower(nick) = lower(?)
+    }, $targetname);
+
+    unless ($res && $res->next) {
+        $message->response->raise('%s is not known to me.', $targetname);
+        return;
+    }
+
+    my ($nick_id, $nick_name) = ($res->{'id'}, $res->{'nick'});
+
+    my @skills = $self->show_user_skills($message, $nick_id);
+
+    if (@skills < 1) {
+        $message->response->push(sprintf('%s does not have any skills registered. Pester them to add a few!', $nick_name));
+    } else {
+        $message->response->push(sprintf('%s has registered the following skills:', $nick_name), @skills);
+    }
+
+    return;
+}
+
+sub show_user_skills {
+    my ($self, $message, $nick_id) = @_;
+
+    my $res = $self->bot->config->db->do(q{
+        select l.name, array_agg(s.name) as skills
+        from skills_nicks n
+            join skills_levels l on (l.level_id = n.skill_level_id)
+            join skills_skills s on (s.skill_id = n.skill_id)
+        where n.nick_id = ?
+        group by l.name, l.sort_order
+        order by l.sort_order asc
+    }, $nick_id);
+
+    unless ($res) {
+        $message->response->raise('Could not retrieve skill list. Please try again.');
+        return;
+    }
+
+    my @l;
+
+    while ($res->next) {
+        push(@l, sprintf('*%s:* %s', $res->{'name'}, join(', ', sort { $a cmp $b } @{$res->{'skills'}})));
+    }
+
+    return @l;
+}
+
+sub skill_whoknows {
+    my ($self, $message, $command, $skill_name) = @_;
+
+    my $res = $self->bot->config->db->do(q{
+        select l.name, array_agg(n.nick) as nicks
+        from skills_nicks sn
+            join skills_levels l on (l.level_id = sn.skill_level_id)
+            join skills_skills s on (s.skill_id = sn.skill_id)
+            join nicks n on (n.id = sn.nick_id)
+        where lower(s.name) = lower(?)
+        group by l.name, l.sort_order
+        order by l.sort_order asc
+    }, $skill_name);
+
+    if ($res->count < 1) {
+        $message->response->push(sprintf('Nobody has yet claimed to know about "%s".', $skill_name));
+        return;
+    }
+
+    $message->response->push(sprintf('The following people have expressed some level of proficiency with "%s":', $skill_name));
+    while ($res->next) {
+        $message->response->push(sprintf('*%s:* %s', $res->{'name'}, join(', ', sort { $a cmp $b } @{$res->{'nicks'}})));
+    }
+
+    return;
+}
+
+sub skill_list {
+    my ($self, $message, $command) = @_;
+
+    my $res = $self->bot->config->db->do(q{
+        select s.name, count(n.nick_id) as knowers
+        from skills_skills s
+            left join skills_nicks n using (skill_id)
+        group by s.name
+        order by s.name asc
+    });
+
+    unless ($res) {
+        $message->response->raise('Could not retrieve list of skills. Please try again.');
+        return;
+    }
+
+    my @skills;
+
+    while ($res->next) {
+        push(@skills, sprintf('%s (%d)', $res->{'name'}, $res->{'knowers'}));
+    }
+
+    if (@skills < 1) {
+        $message->response->push('Apparently nobody knows anything. There are no skills registered yet.');
+        return;
+    }
+
+    $message->response->push(sprintf('%d skills have been registered:', scalar(@skills)));
+
+    local $Text::Wrap::columns = 120;
+    @skills = split(/\n/o, wrap('','',join(', ', @skills)));
+    $message->response->push($_) for @skills;
+
+    $message->response->collapsible(1);
+
+    return;
+}
+
+__PACKAGE__->meta->make_immutable;
+
+1;
