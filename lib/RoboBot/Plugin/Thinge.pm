@@ -71,7 +71,7 @@ sub thinge {
     if (defined $id_or_tag) {
         if ($id_or_tag =~ m{^\d+$}o) {
             $res = $self->bot->config->db->do(q{
-                select t.id, t.thinge_num, t.thinge_url, n.nick,
+                select t.id, t.thinge_num, t.thinge_url, n.name as nick,
                     to_char(t.added_at, 'FMDay, FMMonth FMDDth, YYYY') as added_date,
                     to_char(t.added_at, 'FMHH12:MIpm') as added_time
                 from thinge_thinges t
@@ -82,7 +82,7 @@ sub thinge {
             $id_or_tag =~ s{^\#+}{}ogs;
 
             $res = $self->bot->config->db->do(q{
-                select t.id, t.thinge_num, t.thinge_url, n.nick,
+                select t.id, t.thinge_num, t.thinge_url, n.name as nick,
                     to_char(t.added_at, 'FMDay, FMMonth FMDDth, YYYY') as added_date,
                     to_char(t.added_at, 'FMHH12:MIpm') as added_time
                 from thinge_thinges t
@@ -97,7 +97,7 @@ sub thinge {
         }
     } else {
         $res = $self->bot->config->db->do(q{
-            select t.id, t.thinge_num, t.thinge_url, n.nick,
+            select t.id, t.thinge_num, t.thinge_url, n.name as nick,
                 to_char(t.added_at, 'FMDay, FMMonth FMDDth, YYYY') as added_date,
                 to_char(t.added_at, 'FMHH12:MIpm') as added_time
             from thinge_thinges t

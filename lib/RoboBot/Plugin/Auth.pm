@@ -58,14 +58,14 @@ sub auth_default {
     my $res = $self->bot->config->db->do(q{
         update auth_permissions
         set ???
-        where server_id = ? and lower(command) = lower(?)
+        where network_id = ? and lower(command) = lower(?)
     }, { state => $mode, granted_by => $message->sender->id }, $message->network->id, $function_name);
 
     unless ($res && $res->count > 0) {
         $res = $self->bot->config->db->do(q{
             insert into auth_permissions ???
         }, {
-            server_id  => $message->network->id,
+            network_id => $message->network->id,
             command    => lc($function_name),
             state      => $mode,
             granted_by => $message->sender->id,
@@ -91,7 +91,7 @@ sub auth_modify {
         return;
     }
 
-    my $nick = RoboBot::Nick->new( config => $self->bot->config, nick => "$nick_name" );
+    my $nick = RoboBot::Nick->new( config => $self->bot->config, name => "$nick_name" );
 
     unless ($nick->has_id) {
         $message->response->raise('The nick %s is unfamiliar to me. I cannot modify permissions for them yet.', $nick_name);
@@ -101,14 +101,14 @@ sub auth_modify {
     my $res = $self->bot->config->db->do(q{
         update auth_permissions
         set ???
-        where server_id = ? and nick_id = ? and lower(command) = lower(?)
+        where network_id = ? and nick_id = ? and lower(command) = lower(?)
     }, { state => $mode, granted_by => $message->sender->id }, $message->network->id, $nick->id, $function_name);
 
     unless ($res && $res->count > 0) {
         $res = $self->bot->config->db->do(q{
             insert into auth_permissions ???
         }, {
-            server_id  => $message->network->id,
+            network_id  => $message->network->id,
             nick_id    => $nick->id,
             command    => lc($function_name),
             state      => $mode,
@@ -116,7 +116,7 @@ sub auth_modify {
         });
     }
 
-    $message->response->push(sprintf('The nick %s is now %s permission to run the function %s.', $nick->nick, ($mode eq 'allow' ? 'allowed' : 'denied'), $function_name));
+    $message->response->push(sprintf('The nick %s is now %s permission to run the function %s.', $nick->name, ($mode eq 'allow' ? 'allowed' : 'denied'), $function_name));
     return;
 }
 

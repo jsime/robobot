@@ -36,6 +36,7 @@ has '+commands' => (
 sub channels {
     my ($self, $message) = @_;
 
+    # TODO: Fix this to work with the new multi-protocol network library.
     my $network = $self->bot->irc->{'alias'};
 
     unless (exists $self->bot->config->networks->{$network}) {
@@ -43,7 +44,7 @@ sub channels {
         return;
     }
 
-    return join(', ', sort { lc($a) cmp lc($b) } map { '#' . $_->channel } @{$self->bot->config->networks->{$network}->channels});
+    return join(', ', sort { lc($a) cmp lc($b) } map { '#' . $_->name } @{$self->bot->config->networks->{$network}->channels});
 }
 
 sub networks {

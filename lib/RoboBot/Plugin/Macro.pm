@@ -110,7 +110,7 @@ sub show_macro {
     my $macro = $self->bot->macros->{$macro_name};
 
     $message->response->push(sprintf('(defmacro %s (%s) \'%s)', $macro->name, join(' ', @{$macro->arguments}), $macro->definition));
-    $message->response->push(sprintf('Defined by <%s> on %s', $macro->definer->nick, $macro->timestamp->ymd));
+    $message->response->push(sprintf('Defined by <%s> on %s', $macro->definer->name, $macro->timestamp->ymd));
 
     return;
 }

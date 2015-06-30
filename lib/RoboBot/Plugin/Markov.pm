@@ -98,7 +98,7 @@ sub generate_markov {
             $res = $self->bot->config->db->do(q{
                 select id
                 from nicks
-                where lower(nick) = lower(?)
+                where lower(name) = lower(?)
             }, $target);
 
             if ($res && $res->next) {

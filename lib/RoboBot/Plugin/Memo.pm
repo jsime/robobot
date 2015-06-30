@@ -37,7 +37,7 @@ sub check_memos {
 
     my $res = $self->bot->config->db->do(q{
         select m.memo_id, m.message, to_char(m.created_at, 'YYYY-MM-DD HH24:MI') as created,
-            n.nick as sender
+            n.name as sender
         from memo_memos m
             join nicks n on (n.id = m.from_nick_id)
         where m.to_nick_id = ?
@@ -92,9 +92,9 @@ sub memo_save {
     }
 
     my $res = $self->bot->config->db->do(q{
-        select id, nick
+        select id, name
         from nicks
-        where lower(nick) = lower(?)
+        where lower(name) = lower(?)
     }, $nick);
 
     unless ($res && $res->next) {
@@ -103,7 +103,7 @@ sub memo_save {
     }
 
     my $nick_id = $res->{'id'};
-    $nick = $res->{'nick'};
+    $nick = $res->{'name'};
 
     $res = $self->bot->config->db->do(q{
         insert into memo_memos ???

@@ -50,7 +50,7 @@ has 'nf' => (
 sub add_karma {
     my ($self, $message, $command, $nick) = @_;
 
-    $nick = RoboBot::Nick->new( config => $self->bot->config, nick => "$nick" );
+    $nick = RoboBot::Nick->new( config => $self->bot->config, name => "$nick" );
 
     if (defined $nick) {
         my $res = $self->bot->config->db->do(q{
@@ -68,7 +68,7 @@ sub add_karma {
 sub subtract_karma {
     my ($self, $message, $command, $nick) = @_;
 
-    $nick = RoboBot::Nick->new( config => $self->bot->config, nick => "$nick" );
+    $nick = RoboBot::Nick->new( config => $self->bot->config, name => "$nick" );
 
     if (defined $nick) {
         my $res = $self->bot->config->db->do(q{
@@ -96,7 +96,7 @@ sub update_karma {
         my $res = $self->bot->config->db->do(q{
             select id
             from nicks
-            where lower(nick) = lower(?)
+            where lower(name) = lower(?)
         }, $nick);
 
         if ($res && $res->next) {
@@ -117,14 +117,14 @@ sub display_karma {
     my ($self, $message, $command, @nicks) = @_;
 
     if (!@nicks || @nicks < 1) {
-        @nicks = ($message->sender->nick);
+        @nicks = ($message->sender->name);
     }
 
     foreach my $nick (@nicks) {
         my $res = $self->bot->config->db->do(q{
             select id
             from nicks
-            where lower(nick) = lower(?)
+            where lower(name) = lower(?)
         }, $nick);
 
         next unless $res && $res->next;

@@ -44,19 +44,19 @@ sub last_seen {
     my ($self, $message, $command, $nick) = @_;
 
     my $res = $self->bot->config->db->do(q{
-        select id, nick
+        select id, name
         from nicks
-        where lower(nick) = lower(?)
+        where lower(name) = lower(?)
     }, $nick);
 
     if ($res && $res->next) {
         $res = $self->bot->config->db->do(q{
             select to_char(l.posted_at, 'on FMDay, FMMonth FMDDth, YYYY at FMHH:MI PM') as last_seen,
-                n.nick, c.name as channel_name, s.name as network_name, l.message
+                n.name, c.name as channel_name, nt.name as network_name, l.message
             from logger_log l
                 join nicks n on (n.id = l.nick_id)
                 join channels c on (c.id = l.channel_id)
-                join servers s on (s.id = c.server_id)
+                join networks nt on (nt.id = c.network_id)
             where l.nick_id = ?
             order by l.posted_at desc
             limit 1
@@ -64,8 +64,8 @@ sub last_seen {
 
         if ($res && $res->next) {
             $message->response->push(sprintf('%s was last observed %s speaking in %s on the %s network. Their last words were:',
-                $res->{'nick'}, $res->{'last_seen'}, $res->{'channel_name'}, $res->{'network_name'}));
-            $message->response->push(sprintf('<%s> %s', $res->{'nick'}, $res->{'message'}));
+                $res->{'name'}, $res->{'last_seen'}, $res->{'channel_name'}, $res->{'network_name'}));
+            $message->response->push(sprintf('<%s> %s', $res->{'name'}, $res->{'message'}));
         } else {
             $message->response->raise(sprintf('The nick %s is known to me, but I cannot seem to find a message from them in my logs.', $nick));
         }
@@ -81,7 +81,7 @@ sub show_last {
 
     my $include_expressions = 0;
     my $step = 1;
-    my ($nick, $nick_id) = ($message->sender->nick, $message->sender->id);
+    my ($nick, $nick_id) = ($message->sender->name, $message->sender->id);
 
     my ($res);
 
@@ -96,13 +96,13 @@ sub show_last {
 
     if (@args && @args > 0) {
         $res = $self->bot->config->db->do(q{
-            select id, nick
+            select id, name
             from nicks
-            where lower(nick) = lower(?)
+            where lower(name) = lower(?)
         }, $args[0]);
 
         if ($res && $res->next) {
-            ($nick_id, $nick) = ($res->{'id'}, $res->{'nick'});
+            ($nick_id, $nick) = ($res->{'id'}, $res->{'name'});
         } else {
             $message->response->raise(sprintf('Could not locate the nick: %s', $args[0]));
             return;
@@ -113,7 +113,7 @@ sub show_last {
     $step = 1 unless $step > 1;
 
     $res = $self->bot->config->db->do(q{
-        select n.nick, l.message
+        select n.name, l.message
         from logger_log l
             join nicks n on (n.id = l.nick_id)
         where n.id = ? and l.channel_id = ?
@@ -124,7 +124,7 @@ sub show_last {
     }, $nick_id, $message->channel->id, ($include_expressions ? 't' : 'f'), $message->timestamp->iso8601(), $step - 1);
 
     if ($res && $res->next) {
-        return sprintf('<%s> %s', $res->{'nick'}, $res->{'message'});
+        return sprintf('<%s> %s', $res->{'name'}, $res->{'message'});
     } else {
         $message->response->raise('Could not locate a message in this channel for the nick: %s', $nick);
         return;
@@ -171,24 +171,24 @@ sub log_to_terminal {
     binmode STDOUT, ":encoding(UTF-8)";
 
     if ($msg->isa('RoboBot::Message')) {
-        my $where = $msg->has_channel ? '#' . $msg->channel->channel : $msg->sender->nick;
+        my $where = $msg->has_channel ? '#' . $msg->channel->name : $msg->sender->name;
 
         printf("%s [%s] <%s> %s\n",
             fg('seagreen1', sprintf('%s %s', $msg->timestamp->ymd, $msg->timestamp->hms)),
             bold(fg('darkorange1', $where)),
-            bold(fg('magenta8', $msg->sender->nick)),
+            bold(fg('magenta8', $msg->sender->name)),
             $msg->raw
         );
     } elsif ($msg->isa('RoboBot::Response') && $msg->has_content) {
         my $response = $msg; # for readability
-        my $where = $response->has_channel ? '#' . $response->channel->channel : $response->nick->nick;
+        my $where = $response->has_channel ? '#' . $response->channel->name : $response->nick->name;
         my $when = DateTime->now();
 
         foreach my $line (@{$response->content}) {
             printf("%s [%s] <%s> %s\n",
                 fg('seagreen1', sprintf('%s %s', $when->ymd, $when->hms)),
                 bold(fg('darkorange1', $where)),
-                bold(fg('magenta8', $response->network->nick->nick)),
+                bold(fg('magenta8', $response->network->nick->name)),
                 $line
             );
         }

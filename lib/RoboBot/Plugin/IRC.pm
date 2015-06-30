@@ -30,7 +30,9 @@ sub channel_topic {
 
     return unless $message->has_channel;
 
-    my $channel_name = '#' . $message->channel->channel;
+    # TODO: Needs to delegate to protocol-specific Network plugin to obtain
+    #       channel topic.
+    my $channel_name = '#' . $message->channel->name;
 
     if (defined $new_topic) {
         $self->bot->irc->yield( topic => '#' . $channel_name, $new_topic );

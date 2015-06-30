@@ -40,7 +40,11 @@ has '+commands' => (
         'skills' => { method      => 'skill_list',
                       description => 'Returns a list of all skills.', },
 
-        'skill-levels' => { method      => 'skill_level',
+        'skill-add' => { method      => 'skill_add',
+                         description => 'Adds a new skill to the collection.',
+                         usage       => '<skill name>', },
+
+        'skill-levels' => { method      => 'skill_levels',
                             description => 'Displays and manages the enumeration of skill proficiencies.' },
     }},
 );
@@ -118,6 +122,7 @@ sub skill_know {
             return;
         }
 
+        $message->response->push(sprintf('The skill "%s" was newly added to the collection.', $skill_name));
         $skill_id = $res->{'skill_id'};
     }
 
@@ -135,10 +140,10 @@ sub skill_know {
         }, $level_id, $skill_id, $message->sender->id);
 
         if ($res) {
-            $message->response->push('Your proficiency in "%s" has been changed to %s.', $skill_name, $level_name);
+            $message->response->push(sprintf('Your proficiency in "%s" has been changed to %s.', $skill_name, $level_name));
             return;
         } else {
-            $message->response->raise(sprintf('Could not update your proficiency in "%s". Please try again.', $skill_name));
+            $message->response->raise('Could not update your proficiency in "%s". Please try again.', $skill_name);
             return;
         }
     } else {
@@ -147,10 +152,10 @@ sub skill_know {
         }, { skill_id => $skill_id, skill_level_id => $level_id, nick_id => $message->sender->id });
 
         if ($res) {
-            $message->response->push('Your proficiency in "%s" has been registered as %s.', $skill_name, $level_name);
+            $message->response->push(sprintf('Your proficiency in "%s" has been registered as %s.', $skill_name, $level_name));
             return;
         } else {
-            $message->response->raise(sprintf('Could not register your proficiency in "%s". Please try again.', $skill_name));
+            $message->response->raise('Could not register your proficiency in "%s". Please try again.', $skill_name);
             return;
         }
     }
@@ -162,9 +167,9 @@ sub skill_theyknow {
     my ($self, $message, $command, $targetname) = @_;
 
     my $res = $self->bot->config->db->do(q{
-        select id, nick
+        select id, name
         from nicks
-        where lower(nick) = lower(?)
+        where lower(name) = lower(?)
     }, $targetname);
 
     unless ($res && $res->next) {
@@ -172,7 +177,7 @@ sub skill_theyknow {
         return;
     }
 
-    my ($nick_id, $nick_name) = ($res->{'id'}, $res->{'nick'});
+    my ($nick_id, $nick_name) = ($res->{'id'}, $res->{'name'});
 
     my @skills = $self->show_user_skills($message, $nick_id);
 
@@ -216,7 +221,7 @@ sub skill_whoknows {
     my ($self, $message, $command, $skill_name) = @_;
 
     my $res = $self->bot->config->db->do(q{
-        select l.name, array_agg(n.nick) as nicks
+        select l.name, array_agg(n.name) as nicks
         from skills_nicks sn
             join skills_levels l on (l.level_id = sn.skill_level_id)
             join skills_skills s on (s.skill_id = sn.skill_id)
@@ -234,6 +239,41 @@ sub skill_whoknows {
     $message->response->push(sprintf('The following people have expressed some level of proficiency with "%s":', $skill_name));
     while ($res->next) {
         $message->response->push(sprintf('*%s:* %s', $res->{'name'}, join(', ', sort { $a cmp $b } @{$res->{'nicks'}})));
+    }
+
+    return;
+}
+
+sub skill_add {
+    my ($self, $message, $command, @skills) = @_;
+
+    my @existing;
+    my @new;
+
+    foreach my $skill (@skills) {
+        my $res = $self->bot->config->db->do(q{
+            select skill_id, name
+            from skills_skills
+            where lower(name) = lower(?)
+        }, $skill);
+
+        if ($res && $res->next) {
+            push(@existing, $skill);
+        } else {
+            $res = $self->bot->config->db->do(q{
+                insert into skills_skills ???
+            }, { name => $skill, created_by => $message->sender->id });
+
+            push(@new, $skill);
+        }
+    }
+
+    if (@existing > 0) {
+        $message->response->push(sprintf('The following skills were already known: %s', join(', ', sort { $a cmp $b } @existing)));
+    }
+
+    if (@new > 0) {
+        $message->response->push(sprintf('The following skills were added to the collection: %s', join(', ', sort { $a cmp $b } @new)));
     }
 
     return;
@@ -273,6 +313,26 @@ sub skill_list {
     $message->response->push($_) for @skills;
 
     $message->response->collapsible(1);
+
+    return;
+}
+
+sub skill_levels {
+    my ($self, $message, $command) = @_;
+
+    my $res = $self->bot->config->db->do(q{
+        select name
+        from skills_levels
+        order by sort_order
+    });
+
+    $message->response->push('The following levels are available for use when registering your proficiency with a skill:');
+
+    if ($res) {
+        while ($res->next) {
+            $message->response->push(sprintf('%d: %s', $res->{'level_id'}, $res->{'name'}));
+        }
+    }
 
     return;
 }
