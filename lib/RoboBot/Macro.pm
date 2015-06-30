@@ -1,11 +1,11 @@
 package RoboBot::Macro;
 
-use strict;
-use warnings FATAL => 'all';
+use v5.20;
+
+use namespace::autoclean;
 
 use Moose;
 use MooseX::SetOnce;
-use namespace::autoclean;
 
 use RoboBot::Nick;
 
@@ -128,8 +128,8 @@ sub load_all {
     my ($class, $config) = @_;
 
     my $res = $config->db->do(q{
-        select m.macro_id, m.name, m.arguments, m.definition, n.nick, m.defined_at
-        from macro_defs m
+        select m.macro_id, m.name, m.arguments, m.definition, n.name as nick, m.defined_at
+        from macros m
             join nicks n on (n.id = m.defined_by)
     });
 
@@ -144,7 +144,7 @@ sub load_all {
             name       => $res->{'name'},
             arguments  => $res->{'arguments'},
             definition => $res->{'definition'},
-            definer    => RoboBot::Nick->new( config => $config, nick => $res->{'nick'} ),
+            definer    => RoboBot::Nick->new( config => $config, name => $res->{'nick'} ),
             timestamp  => DateTime::Format::Pg->parse_datetime($res->{'defined_at'}),
         );
     }
@@ -159,7 +159,7 @@ sub save {
 
     if ($self->has_id) {
         $res = $self->config->db->do(q{
-            update macro_defs set ??? where macro_id = ?
+            update macros set ??? where macro_id = ?
         }, {
             name       => $self->name,
             arguments  => $self->arguments,
@@ -174,7 +174,7 @@ sub save {
         }
 
         $res = $self->config->db->do(q{
-            insert into macro_defs ??? returning macro_id
+            insert into macros ??? returning macro_id
         }, {
             name       => $self->name,
             arguments  => $self->arguments,
@@ -198,7 +198,7 @@ sub delete {
     return 0 unless $self->has_id;
 
     my $res = $self->config->db->do(q{
-        delete from macro_defs where macro_id = ?
+        delete from macros where macro_id = ?
     }, $self->id);
 
     return 0 unless $res;

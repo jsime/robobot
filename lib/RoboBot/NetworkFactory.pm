@@ -39,7 +39,7 @@ sub create {
     if (exists $net_cfg->{'nick'}) {
         $net_cfg->{'nick'} = RoboBot::Nick->new(
             config => $self->config,
-            nick   => $net_cfg->{'nick'},
+            name   => $net_cfg->{'nick'},
         );
     } else {
         $net_cfg->{'nick'} = $self->nick;

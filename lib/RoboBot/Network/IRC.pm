@@ -50,6 +50,12 @@ has 'client' => (
     default => sub { AnyEvent::IRC::Client->new },
 );
 
+has 'nick_cache' => (
+    is      => 'rw',
+    isa     => 'HashRef',
+    default => sub { {} },
+);
+
 sub BUILD {
     my ($self) = @_;
 
@@ -75,7 +81,7 @@ sub connect {
         $self->handle_message($msg_h);
     });
 
-    $self->client->connect($self->host, $self->port, { nick => $self->nick->nick });
+    $self->client->connect($self->host, $self->port, { nick => $self->nick->name });
     $_->join for @{$self->channels};
 }
 
@@ -103,7 +109,7 @@ sub send {
         @output = @{$response->content};
     }
 
-    my $recipient = $response->has_channel ? '#' . $response->channel->channel : $response->nick->nick;
+    my $recipient = $response->has_channel ? '#' . $response->channel->name : $response->nick->name;
 
     my $d = 0;
     for (my $i = 0; $i <= $#output; $i++) {
@@ -141,21 +147,16 @@ sub handle_message {
 
         my $channel = undef;
         if (substr($msg->{'params'}->[0], 0, 1) eq '#') {
-            $channel = (grep { '#' . $_->channel eq $msg->{'params'}->[0] } @{$self->channels})[0];
+            $channel = (grep { '#' . $_->name eq $msg->{'params'}->[0] } @{$self->channels})[0];
             # TODO log messages that came from channels we don't know we're on?
             return unless defined $channel;
         }
-
-        my $sender = RoboBot::Nick->new(
-            config => $self->config,
-            nick   => (split(/!/, $msg->{'prefix'}))[0]
-        );
 
         my $message = RoboBot::Message->new(
             bot     => $self->bot,
             raw     => $msg->{'params'}->[1],
             network => $self,
-            sender  => $sender,
+            sender  => $self->resolve_nick($msg->{'prefix'}),
             channel => $channel,
         );
 
@@ -163,22 +164,46 @@ sub handle_message {
     }
 }
 
-sub notice_join {
-
-}
-
-sub notice_part {
-
-}
-
-sub notice_kick {
-
-}
-
 sub join_channel {
     my ($self, $channel) = @_;
 
-    $self->client->send_srv( JOIN => '#' . $channel->channel );
+    $self->client->send_srv( JOIN => '#' . $channel->name );
+}
+
+sub resolve_nick {
+    my ($self, $prefix) = @_;
+
+    my $username = (split(/!/, $prefix))[0];
+
+    return $self->nick_cache->{$username} if exists $self->nick_cache->{$username};
+
+    my $res = $self->config->db->do(q{ select id, name from nicks where lower(name) = lower(?) }, $username);
+
+    if ($res && $res->next) {
+        $self->nick_cache->{$username} = RoboBot::Nick->new(
+            id     => $res->{'id'},
+            name   => $res->{'name'},
+            config => $self->config,
+        );
+
+        return $self->nick_cache->{$username};
+    }
+
+    $res = $self->config->db->do(q{
+        insert into nicks ??? returning id, name
+    }, { name => $username });
+
+    if ($res && $res->next) {
+        $self->nick_cache->{$username} = RoboBot::Nick->new(
+            id     => $res->{'id'},
+            name   => $res->{'name'},
+            config => $self->config,
+        );
+
+        return $self->nick_cache->{$username};
+    }
+
+    return;
 }
 
 __PACKAGE__->meta->make_immutable;

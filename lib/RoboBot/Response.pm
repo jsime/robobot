@@ -86,10 +86,14 @@ sub push {
     my ($self, @args) = @_;
 
     if (@args && @args > 0) {
+        # Need to force all arguments into a stringy scalar to pass the
+        # ArrayRef[Str] constraint on content, as some function may include
+        # one or more of their own arguments in the push(), still blessed as a
+        # Data::SExpression object.
         if ($self->has_content) {
-            push(@{$self->content}, @args);
+            push(@{$self->content}, map { "$_" } @args);
         } else {
-            $self->content(\@args);
+            $self->content([map { "$_" } @args]);
         }
     }
 }

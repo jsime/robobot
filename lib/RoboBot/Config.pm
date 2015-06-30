@@ -107,7 +107,10 @@ sub validate_globals {
         $self->config->{'global'}{$k} = $global{$k} unless exists $self->config->{'global'}{$k};
     }
 
-    $self->config->{'global'}{'nick'} = RoboBot::Nick->new( config => $self, nick => $self->config->{'global'}{'nick'} );
+    $self->config->{'global'}{'nick'} = RoboBot::Nick->new(
+        config => $self,
+        name   => $self->config->{'global'}{'nick'}
+    );
 }
 
 sub validate_database {
@@ -151,7 +154,7 @@ sub validate_networks {
         $net_cfg->{'channel'} = [$net_cfg->{'channel'}] if ref($net_cfg->{'channel'}) ne 'ARRAY';
 
         foreach my $chan_name (@{$net_cfg->{'channel'}}) {
-            push(@network_channels, RoboBot::Channel->new( config => $self, network => $networks[-1], channel => $chan_name));
+            push(@network_channels, RoboBot::Channel->new( config => $self, network => $networks[-1], name => $chan_name));
             push(@channels, $network_channels[-1]);
         }
 
