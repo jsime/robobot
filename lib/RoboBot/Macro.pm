@@ -9,6 +9,8 @@ use MooseX::SetOnce;
 
 use RoboBot::Nick;
 
+use Clone qw( clone );
+use Data::Dumper;
 use Data::SExpression;
 use DateTime;
 use DateTime::Format::Pg;
@@ -77,8 +79,31 @@ has 'expression' => (
     writer => '_set_expression',
 );
 
-before 'definition' => sub {
+sub BUILD {
+    my ($self) = @_;
+
+    $self->_generate_expression($self->definition) if defined $self->definition;
+}
+
+around 'definition' => sub {
+    my $orig = shift;
+    my $self = shift;
+
+    return $self->$orig() unless @_;
+
+    my $def = shift;
+
+    $self->_generate_expression($def);
+    return $self->$orig($def);
+};
+
+sub _generate_expression {
     my ($self, $def) = @_;
+
+    unless (defined $def) {
+        $self->_set_expression([]);
+        return;
+    }
 
     my $ds = Data::SExpression->new({
         fold_lists       => 1,
@@ -97,30 +122,13 @@ before 'definition' => sub {
         return;
     }
 
-    unless (ref($expr) eq 'ARRAY' && scalar(@{$expr}) == 4) {
+    unless (ref($expr) eq 'ARRAY') {
         $self->_set_valid(0);
-        $self->_set_error("Macro definitions must consist of a macro name, an argument list, and a definition body.");
+        $self->_set_error("Macro definition body must be provided as a list of expressions.");
         return;
     }
 
-    if (ref($expr->[1]) eq 'ARRAY') {
-        $self->_set_valid(0);
-        $self->_set_error("Macro name must be a string or symbol. It cannot be a list.");
-        return;
-    }
-
-    unless (ref($expr->[2]) eq 'ARRAY') {
-        $self->_set_valid(0);
-        $self->_set_error("Macro arguments must be provided as a list of expressions.");
-        return;
-    }
-
-    unless (ref($expr->[3]) eq 'ARRAY') {
-        $self->_set_valid(0);
-        $self->_set_error("Macro definition body must be provided as a list of expressions, quoted or otherwise.");
-        return;
-    }
-
+    $self->_set_valid(1);
     $self->_set_expression($expr);
 };
 
@@ -208,7 +216,33 @@ sub delete {
 sub expand {
     my ($self, $message, @args) = @_;
 
-    
+    my $expr = clone($self->expression);
+
+    if (@args != @{$self->arguments}) {
+        $message->response->raise('Mismatched arguments. Macro %s expects %d, you provided %d.', $self->signature, scalar(@{$self->arguments}), scalar(@args));
+        return 0;
+    }
+
+    my %rpl = ();
+    $rpl{$_} = [$message->process_list(shift(@args))] for @{$self->arguments};
+
+    $self->expand_list($expr, \%rpl);
+
+    return $expr;
+}
+
+sub expand_list {
+    my ($self, $list, $args) = @_;
+
+    return unless ref($list) eq 'ARRAY';
+
+    foreach my $el (@{$list}) {
+        if (ref($el) eq 'ARRAY') {
+            $self->expand_list($el, $args);
+        } elsif (exists $args->{"$el"}) {
+            $el = $args->{"$el"};
+        }
+    }
 }
 
 sub collapse {
@@ -231,6 +265,13 @@ sub quoted_string {
 
     $string =~ s{\"}{\\"}og;
     return sprintf('"%s"', $string);
+}
+
+sub signature {
+    my ($self) = @_;
+
+    return sprintf('(%s)', $self->name) if @{$self->arguments} < 1;
+    return sprintf('(%s %s)', $self->name, join(' ', @{$self->arguments}));
 }
 
 __PACKAGE__->meta->make_immutable;

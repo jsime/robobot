@@ -130,7 +130,7 @@ sub add_macro {
 
         return unless $macro->save;
 
-        $self->macros->{$macro_name} = $macro;
+        $self->macros->{$macro->name} = $macro;
     }
 
     return 1;

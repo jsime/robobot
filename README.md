@@ -66,7 +66,9 @@ added fairly easily, providing there is already a CPAN module (compatible with
 AnyEvent) or you are willing to write one. Network plugins need only implement
 a handful of methods (connect, disconnect, join\_channel, and send) as well as
 register any callbacks required to deal with messages coming in over the wire.
-Any functionality beyond that is purely optional.
+Any functionality beyond that is generally optional, though some protocols may
+require some additional support (e.g. Slack support requires ID<->name mappings
+via Slack API calls for both channels and participants).
 
 ### Plugins
 
@@ -86,7 +88,12 @@ Refer to the section *Developing Plugins* below for more details.
 
 RoboBot provides a basic evaluation-phase macro system, which permits any
 authorized users to extend the functionality of RoboBot directly from channels
-without having to author a plugin.
+without having to author a plugin. Macros can invoke functions or other macros.
+Macros can even define other macros.
+
+> `(defmacro add-one (n) '(+ n 1))`
+> `(add-one 5)`
+> `6`
 
 ### Message Variables
 
@@ -123,6 +130,25 @@ trusted users.
 Access is granted/revoked by chat nickname, which means the controls are only as
 good as your chat server's ability to authenticate/identify nicks. This should by
 no means be considered a very strong access control mechanism.
+
+### Legacy Bang Syntax
+
+Admittedly, the S-Expression syntax can be a bit of a hurdle for new users. To
+ease the introduction of RoboBot's functionality, a simplified alternate syntax
+is supported. Functions and macros may be invoked without the parenthetical
+expressions by simply prefacing the function or macro name with an exclamation
+mark. Arguments follow as they normally would in the list context, separated by
+whitespace (single multi-word arguments can still be double-quoted).
+
+> `!roll 20 2`
+
+Is equivalent to:
+
+> `(roll 20 2)`
+
+This simplified syntax does not currently support passing return values to other
+functions or macros, however. For that, and more complicated usage, the full
+S-Expression syntax is required.
 
 ## Developing Plugins
 

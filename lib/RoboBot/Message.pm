@@ -134,7 +134,7 @@ sub BUILD {
             # only bareword strings.
             # TODO ensure macros work as the first member of the top-level list
             #      once that feature is implemented
-            if (@exps > 1 || exists $self->bot->commands->{lc("$exps[0][0]")}) {
+            if (@exps > 1 || exists $self->bot->commands->{lc("$exps[0][0]")} || exists $self->bot->macros->{lc("$exps[0][0]")}) {
                 $self->expression(\@exps);
             }
         }
