@@ -40,6 +40,12 @@ has 'ping_payload' => (
     default => sub { { pong => 1 } },
 );
 
+has 'start_ts' => (
+    is      => 'ro',
+    isa     => 'Int',
+    default => sub { time() },
+);
+
 has 'profile_cache' => (
     is      => 'rw',
     isa     => 'HashRef',
@@ -92,6 +98,13 @@ sub send {
 
     unless ($response->has_channel) {
         printf STDERR "!!!! Cannot send direct messages via SlackRTM network. (At least not yet.) Response dropped.\n";
+        $response->clear_content;
+        return;
+    }
+
+    unless (exists $response->channel->extradata->{'slack_id'}) {
+        printf STDERR "!!!! Channel target for response does not have a Slack ID. Cannot send message.\n";
+        $response->clear_content;
         return;
     }
 
@@ -106,7 +119,7 @@ sub send {
     }
 
     $self->client->send({
-        channel => $response->channel->slack_id,
+        channel => $response->channel->extradata->{'slack_id'},
         type    => 'message',
         text    => $output,
     });
@@ -119,9 +132,10 @@ sub send {
 sub handle_message {
     my ($self, $msg) = @_;
 
-    # TODO: Ignore messages that are delivered immediately upon connection
+    # TODO: Ignore messages that are delivered very shortly after connection
     #       (since this can lead to repetition of processing and output when
     #       the bot disconnects and reconnects).
+    return if exists $msg->{'ts'} && int($msg->{'ts'}) <= $self->start_ts + 5;
 
     # Short circuit if this isn't a 'message' type message.
     return unless defined $msg && ref($msg) eq 'HASH'
