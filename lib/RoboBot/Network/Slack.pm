@@ -66,11 +66,9 @@ sub BUILD {
     ));
 
     $self->client->on( 'hello' => sub {
-        # TODO: EV is complaining about this I think, because the SlackRTM ping()
-        #       method is pitting back undefined value errors on the message hash.
         $self->keepalive(AnyEvent->timer(
             interval => 60,
-            cb       => sub { $self->client->ping($self->ping_payload); }
+            cb       => sub { $self->reconnect if $self->client->finished }
         ));
     });
 
@@ -89,8 +87,15 @@ sub connect {
 }
 
 sub disconnect {
-    # TODO: remove callbacks
-    #       call client->disconnect
+    my ($self) = @_;
+
+    $self->client->close;
+}
+
+sub reconnect {
+    my ($self) = @_;
+
+    $self->client->disconnect && $self->client->connect;
 }
 
 sub send {
