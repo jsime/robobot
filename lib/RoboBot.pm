@@ -73,7 +73,7 @@ sub BUILD {
     foreach my $plugin ($finder->plugins) {
         push(@{$self->plugins}, $plugin);
         $plugin->bot($self);
-        $plugin->init();
+        $plugin->init($self);
 
         foreach my $command (keys %{$plugin->commands}) {
             warn sprintf("Command name collision: %s::%s superseded by %s::%s",

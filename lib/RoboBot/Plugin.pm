@@ -43,7 +43,7 @@ has 'bot' => (
 );
 
 sub init {
-    my ($self) = @_;
+    my ($self, $bot) = @_;
 }
 
 sub process {
