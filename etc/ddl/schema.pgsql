@@ -218,4 +218,24 @@ create index urltitle_urls_original_url_idx on urltitle_urls (original_url);
 create index urltitle_urls_final_url_idx on urltitle_urls (final_url);
 create index urltitle_urls_title_idx on urltitle_urls (title);
 
+--
+-- GITHUB API
+--
+create table github_repos (
+    repo_id     serial not null primary key,
+    owner_name  text not null,
+    repo_name   text not null,
+    created_at  timestamp with time zone not null default now(),
+    polled_at   timestamp with time zone,
+    last_pr     integer,
+    last_issue  integer
+);
+create unique index github_repos_owner_repo_idx on github_repos (owner_name, repo_name);
+
+create table github_repo_channels (
+    repo_id     integer not null references github_repos (repo_id) on update cascade on delete cascade,
+    channel_id  integer not null references channels (id) on update cascade on delete cascade
+);
+alter table github_repo_channels add primary key (repo_id, channel_id);
+
 commit;
