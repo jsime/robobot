@@ -41,6 +41,12 @@ has 'channels' => (
     isa => 'ArrayRef[RoboBot::Channel]',
 );
 
+has 'plugins' => (
+    is      => 'rw',
+    isa     => 'HashRef',
+    default => sub { {} },
+);
+
 has 'db' => (
     is => 'rw',
     isa => 'DBIx::DataStore',
@@ -58,6 +64,7 @@ sub load_config {
         $self->validate_database;
         $self->validate_globals;
         $self->validate_networks;
+        $self->validate_plugins;
 
         $self->bot->networks([ values %{$self->networks} ]);
     } else {
@@ -163,6 +170,14 @@ sub validate_networks {
 
     $self->networks({ map { $_->name => $_ } @networks });
     $self->channels(\@channels);
+}
+
+sub validate_plugins {
+    my ($self) = @_;
+
+    foreach my $plugin_name (keys %{$self->config->{'plugin'}}) {
+        $self->plugins->{lc($plugin_name)} = $self->config->{'plugins'}{$plugin_name};
+    }
 }
 
 __PACKAGE__->meta->make_immutable;
