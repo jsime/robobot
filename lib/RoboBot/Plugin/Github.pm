@@ -228,6 +228,12 @@ sub get_repo_parts {
 sub get_repo_notices {
     my ($self, $repo) = @_;
 
+    # Update repo with polled_at = now() so we do a normal check on the
+    # next event timer.
+    $self->bot->config->db->do(q{
+        update github_repos set polled_at = now() where repo_id = ?
+    }, $repo->{'repo_id'});
+
     my ($json, @notices);
 
     my $api_path = ['repos',$repo->{'owner_name'},$repo->{'repo_name'},'commits'];
@@ -278,13 +284,9 @@ sub get_repo_notices {
                     substr($commits[0]{'sha'}, 0, 16)));
             }
         }
-
-        # Update repo with polled_at = now() so we do a normal check on the
-        # next event timer.
-        $self->bot->config->db->do(q{
-            update github_repos set polled_at = now() where repo_id = ?
-        }, $repo->{'repo_id'});
     } else {
+        # If we didn't get a valid response back, set the polled_at out several
+        # minutes so we don't recheck too soon in the case of API usage limits.
         $self->bot->config->db->do(q{
             update github_repos set polled_at = now() + interval '5 min'  where repo_id = ?
         }, $repo->{'repo_id'});
