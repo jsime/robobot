@@ -117,11 +117,11 @@ sub send {
 
     my $output = join(($response->collapsible ? ' ' : "\n"), @{$response->content});
 
-    # For now, set an arbitrary limit on responses of 2K (SlackRTM says 16K,
+    # For now, set an arbitrary limit on responses of 4K (SlackRTM says 16K,
     # which assuming absolute worst-case with wide characters would be 4K
     # glyphs, but even that seems really excesive for a chatbot).
-    if (length($output) > 2048) {
-        $output = substr($output, 0, 2048) .
+    if (length($output) > 4096) {
+        $output = substr($output, 0, 4096) .
             "\n\n... Output truncated ...";
     }
 
