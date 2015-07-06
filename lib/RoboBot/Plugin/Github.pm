@@ -8,6 +8,8 @@ use Moose;
 use MooseX::SetOnce;
 
 use AnyEvent;
+use Data::Dumper;
+use HTTP::Request;
 use JSON;
 use LWP::UserAgent;
 use URI;
@@ -58,19 +60,6 @@ has 'ua' => (
 
 sub init {
     my ($self, $bot) = @_;
-
-    # Add API authorization info to our user agent if it was present in the
-    # configuration file.
-    if (exists $bot->config->plugins->{'github'}) {
-        if (exists $bot->config->plugins->{'github'}{'user'} && exists $bot->config->plugins->{'github'}{'token'}) {
-            $self->ua->credentials(
-                'api.github.com:443',
-                '',
-                $bot->config->plugins->{'github'}{'user'},
-                $bot->config->plugins->{'github'}{'token'}
-            );
-        }
-    }
 
     # Kick off the watcher with a short delay for the first check, to give the
     # bot a little time to settle into things before firing off notifications
@@ -246,6 +235,7 @@ sub get_repo_notices {
 
     if ($json = $self->make_gh_api_call($api_path,$api_args)) {
         if (ref($json) eq 'ARRAY' && @{$json} > 0) {
+            my $oldest_commit;
             my %commiters;
             my @commits;
 
@@ -255,23 +245,49 @@ sub get_repo_notices {
                       // $commit->{'commit'}{'author'}{'email'}
                     if exists $commit->{'commit'}{'author'}{'email'};
 
+                $oldest_commit = $commit->{'parents'}[0]{'sha'} if exists $commit->{'parents'}[0]{'sha'};
+
                 push(@commits, {
                     # TODO: proper commit hash shortening (problem: requires git
                     #       repo access to ensure uniqueness of short hash)
                     id      => substr($commit->{'sha'}, 0, 10),
+                    sha     => $commit->{'sha'},
                     comment => $self->short_commit_comment($commit->{'commit'}{'message'}),
                     url     => $commit->{'commit'}{'html_url'},
                     author  => $commit->{'commit'}{'author'}{'name'} // $commit->{'commit'}{'author'}{'email'},
                 });
             }
 
-            push(@notices, sprintf('[%s/%s] %d new commit%s by %s.',
+            # TODO: The links are really useful in Slack channel notices, but
+            #       they're going to be painful in IRC channels. Make sure this
+            #       gets cleaned up whenever per-network output templating is
+            #       implemented. Also, Slack seems to currently have an issue
+            #       server-side with parsing incoming <link|label> strings and
+            #       displays them literally instead of parsing.
+            push(@notices, sprintf('[https://github.com/%s/%s] %d new commit%s by %s.',
                 $repo->{'owner_name'}, $repo->{'repo_name'},
                 scalar(@commits), (scalar(@commits) == 1 ? '' : 's'),
                 join(', ', sort { $a cmp $b } values %commiters)));
-            push(@notices, sprintf('> %s: %s - %s',
+            push(@notices, sprintf('> *%s*: %s - _%s_',
                 $_->{'id'}, $_->{'comment'}, $_->{'author'})) foreach @commits;
+
+            if (defined $oldest_commit) {
+                push(@notices, sprintf('View diff on Github: https://github.com/%s/%s/compare/%s...%s',
+                    $repo->{'owner_name'}, $repo->{'repo_name'},
+                    substr($oldest_commit, 0, 16),
+                    substr($commits[0]{'sha'}, 0, 16)));
+            }
         }
+
+        # Update repo with polled_at = now() so we do a normal check on the
+        # next event timer.
+        $self->bot->config->db->do(q{
+            update github_repos set polled_at = now() where repo_id = ?
+        }, $repo->{'repo_id'});
+    } else {
+        $self->bot->config->db->do(q{
+            update github_repos set polled_at = now() + interval '5 min'  where repo_id = ?
+        }, $repo->{'repo_id'});
     }
 
     return @notices;
@@ -310,13 +326,22 @@ sub make_gh_api_call {
         $uri->query_form($args);
     }
 
-    my $response = $self->ua->get($uri->as_string);
+    my $req = HTTP::Request->new( GET => $uri->as_string );
+
+    if (exists $self->bot->config->plugins->{'github'}{'user'} && exists $self->bot->config->plugins->{'github'}{'token'}) {
+        $req->authorization_basic(
+            $self->bot->config->plugins->{'github'}{'user'},
+            $self->bot->config->plugins->{'github'}{'token'}
+        );
+    }
+
+    my $response = $self->ua->request($req);
 
     return unless $response->is_success;
 
     my $json;
     eval {
-        $json = json_decode($response->decoded_content);
+        $json = decode_json($response->decoded_content);
     };
 
     return if $@;
@@ -326,13 +351,20 @@ sub make_gh_api_call {
 sub _run_watcher {
     my ($self, $bot) = @_;
 
+    # Ensure that we only get repositories that are currently associated with
+    # channels, to suppress pointless API calls. Also, limit the results to
+    # those repos which have either a NULL polled_at (newly-watched repos that
+    # we've not yet checked) or those with a polled_at in the past (allows API
+    # calling method to set a polled_at in the future to delay our next check
+    # in the event of errors or API usage limits).
     my $repos = $bot->config->db->do(q{
         select r.repo_id, r.owner_name, r.repo_name, r.last_pr, r.last_issue,
-            to_char(coalesce(r.polled_at, now() - interval '55 min') at time zone 'UTC','YYYY-MM-DD"T"HH:MI:SS"Z"') as polled_at,
+            to_char(coalesce(r.polled_at, now() - interval '5 min') at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS"Z"') as polled_at,
             count(distinct(c.id)) as num_channels, array_agg(c.id) as channels
         from github_repos r
             join github_repo_channels rc on (rc.repo_id = r.repo_id)
             join channels c on (c.id = rc.channel_id)
+        where r.polled_at is null or r.polled_at < now()
         group by r.repo_id, r.owner_name, r.repo_name, r.polled_at, r.last_pr, r.last_issue
     });
 
@@ -360,7 +392,7 @@ sub _run_watcher {
 
     $self->watcher(
         AnyEvent->timer(
-            after => 30,
+            after => 90,
             cb    => sub { $self->_run_watcher($bot) },
         )
     );
