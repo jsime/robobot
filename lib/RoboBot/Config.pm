@@ -8,6 +8,7 @@ use Moose;
 use MooseX::SetOnce;
 
 use Config::Any::Merge;
+use Data::Dumper;
 use DBIx::DataStore ( config => 'yaml' );
 use File::HomeDir;
 
@@ -178,7 +179,7 @@ sub validate_plugins {
     my ($self) = @_;
 
     foreach my $plugin_name (keys %{$self->config->{'plugin'}}) {
-        $self->plugins->{lc($plugin_name)} = $self->config->{'plugins'}{$plugin_name};
+        $self->plugins->{lc($plugin_name)} = $self->config->{'plugin'}{$plugin_name};
     }
 }
 
