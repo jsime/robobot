@@ -1,6 +1,9 @@
 package RoboBot::NetworkFactory;
 
+use v5.20;
+
 use namespace::autoclean;
+
 use Moose;
 
 use Module::Loaded;

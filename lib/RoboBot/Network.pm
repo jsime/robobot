@@ -1,5 +1,7 @@
 package RoboBot::Network;
 
+use v5.20;
+
 use namespace::autoclean;
 
 use Moose;

@@ -1,5 +1,7 @@
 package RoboBot::Config;
 
+use v5.20;
+
 use namespace::autoclean;
 
 use Moose;

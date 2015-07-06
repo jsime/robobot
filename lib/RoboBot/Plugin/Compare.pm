@@ -1,11 +1,11 @@
 package RoboBot::Plugin::Compare;
 
-use strict;
-use warnings FATAL => 'all';
+use v5.20;
+
+use namespace::autoclean;
 
 use Moose;
 use MooseX::SetOnce;
-use namespace::autoclean;
 
 extends 'RoboBot::Plugin';
 

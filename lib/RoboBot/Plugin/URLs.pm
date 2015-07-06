@@ -1,12 +1,11 @@
 package RoboBot::Plugin::URLs;
 
-use strict;
-#use warnings FATAL => 'all';
-use warnings;
+use v5.20;
+
+use namespace::autoclean;
 
 use Moose;
 use MooseX::SetOnce;
-use namespace::autoclean;
 
 use HTML::TreeBuilder::LibXML;
 use LWP::UserAgent;
