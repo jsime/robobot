@@ -97,7 +97,7 @@ sub disconnect {
 sub reconnect {
     my ($self) = @_;
 
-    $self->client->disconnect && $self->client->connect;
+    $self->disconnect && $self->connect;
 }
 
 sub send {
