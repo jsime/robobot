@@ -7,6 +7,8 @@ use namespace::autoclean;
 use Moose;
 use MooseX::SetOnce;
 
+use JSON;
+
 has 'id' => (
     is        => 'rw',
     isa       => 'Int',
@@ -39,6 +41,27 @@ has 'config' => (
     isa      => 'RoboBot::Config',
     required => 1,
 );
+
+sub find_by_id {
+    my ($class, $bot, $id) = @_;
+
+    my $res = $bot->config->db->do(q{
+        select c.id, c.name, c.extradata, n.name as network
+        from channels c
+            join networks n on (n.id = c.network_id)
+        where c.id = ?
+    }, $id);
+
+    return unless $res && $res->next;
+
+    return $class->new(
+        id        => $res->{'id'},
+        name      => $res->{'name'},
+        extradata => decode_json($res->{'extradata'}),
+        network   => (grep { $_->name eq $res->{'network'} } @{$bot->networks})[0],
+        config    => $bot->config,
+    );
+}
 
 sub BUILD {
     my ($self) = @_;
