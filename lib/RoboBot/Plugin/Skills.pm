@@ -38,7 +38,8 @@ has '+commands' => (
                         usage       => '<skill name>' },
 
         'skills' => { method      => 'skill_list',
-                      description => 'Returns a list of all skills.', },
+                      description => 'Returns a list of all skills. You may optionally provide a regular expression so that only matching skills are returned.',
+                      usage       => '[<pattern>]', },
 
         'skill-add' => { method      => 'skill_add',
                          description => 'Adds a new skill to the collection.',
@@ -280,15 +281,28 @@ sub skill_add {
 }
 
 sub skill_list {
-    my ($self, $message, $command) = @_;
+    my ($self, $message, $command, $pattern) = @_;
 
-    my $res = $self->bot->config->db->do(q{
-        select s.name, count(n.nick_id) as knowers
-        from skills_skills s
-            left join skills_nicks n using (skill_id)
-        group by s.name
-        order by s.name asc
-    });
+    my ($res);
+
+    if (defined $pattern && $pattern =~ m{\w+}) {
+        $res = $self->bot->config->db->do(q{
+            select s.name, count(n.nick_id) as knowers
+            from skills_skills s
+                left join skills_nicks n using (skill_id)
+            where s.name ~* ?
+            group by s.name
+            order by s.name asc
+        }, $pattern);
+    } else {
+        $res = $self->bot->config->db->do(q{
+            select s.name, count(n.nick_id) as knowers
+            from skills_skills s
+                left join skills_nicks n using (skill_id)
+            group by s.name
+            order by s.name asc
+        });
+    }
 
     unless ($res) {
         $message->response->raise('Could not retrieve list of skills. Please try again.');
