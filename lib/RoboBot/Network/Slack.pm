@@ -164,6 +164,11 @@ sub handle_message {
 
     my $raw_msg = exists $msg->{'text'} && defined $msg->{'text'} ? $msg->{'text'} : '';
 
+    # Unescape a couple things from Slack.
+    $raw_msg =~ s{\&amp;}{&}g;
+    $raw_msg =~ s{\&lt;}{<}g;
+    $raw_msg =~ s{\&gt;}{>}g;
+
     my $message = RoboBot::Message->new(
         bot     => $self->bot,
         raw     => $raw_msg,
