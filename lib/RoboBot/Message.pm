@@ -103,6 +103,10 @@ sub BUILD {
                 if exists $self->bot->commands->{lc($maybe_cmd)}
                 || exists $self->bot->macros->{lc($maybe_cmd)};
         }
+    } elsif ($self->raw =~ m{ ^ $self->bot->nick->name : \s* (.+) }ixs) {
+        # It looks like someone said something to us directly, so strip off our
+        # nick from the front, and treat the reast as if it were a command.
+        $self->raw('('.$1.')');
     }
 
     if ($self->raw =~ m{^\s*\(\S+}o) {
