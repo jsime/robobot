@@ -45,10 +45,10 @@ has '+commands' => (
 sub control_if {
     my ($self, $message, $command, $condition, $expr_if) = @_;
 
-    my $res = $self->bot->process_list($message, $condition);
+    my $res = $message->process_list($condition);
 
     if ($res) {
-        return $self->bot->process_list($message, $expr_if);
+        return $message->process_list($expr_if);
     }
 
     return;
@@ -57,12 +57,12 @@ sub control_if {
 sub control_ifelse {
     my ($self, $message, $command, $condition, $expr_if, $expr_else) = @_;
 
-    my $res = $self->bot->process_list($message, $condition);
+    my $res = $message->process_list($condition);
 
     if ($res) {
-        return $self->bot->process_list($message, $expr_if);
+        return $message->process_list($expr_if);
     } else {
-        return $self->bot->process_list($message, $expr_else);
+        return $message->process_list($expr_else);
     }
 
     return;
@@ -75,11 +75,11 @@ sub control_while {
 
     # TODO make the loop-limit configurable
     my $i = 0;
-    my $ret = $self->bot->process_list($message, $condition);
+    my $ret = $message->process_list($condition);
 
     while ($i < 100 && $ret) {
-        @res = $self->bot->process_list($message, $expr_loop);
-        $ret = $self->bot->process_list($message, $condition);
+        @res = $message->process_list($expr_loop);
+        $ret = $message->process_list($condition);
         $i++;
     }
 
