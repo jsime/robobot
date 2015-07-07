@@ -157,12 +157,19 @@ sub handle_message {
     return if exists $msg->{'subtype'} && $msg->{'subtype'} =~ m{\w+};
     return if exists $msg->{'hidden'} && $msg->{'hidden'} == 1;
 
+    my $nick    = $self->resolve_nick($msg->{'user'});
+    my $channel = $self->resolve_channel($msg->{'channel'});
+
+    return unless defined $nick && defined $channel;
+
+    my $raw_msg = exists $msg->{'text'} && defined $msg->{'text'} ? $msg->{'text'} : '';
+
     my $message = RoboBot::Message->new(
         bot     => $self->bot,
-        raw     => ($msg->{'text'} || ''),
+        raw     => $raw_msg,
         network => $self,
-        sender  => $self->resolve_nick($msg->{'user'}),
-        channel => $self->resolve_channel($msg->{'channel'}),
+        sender  => $nick,
+        channel => $channel,
     );
 
     $message->process;
