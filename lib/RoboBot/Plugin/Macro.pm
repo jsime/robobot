@@ -81,7 +81,7 @@ sub define_macro {
     # We aren't really doing actual Lisp macros, just a shoddy simulacrum, so if someone has passed
     # a quoted list as the macro definition, pop out the list itself and remove the quoting before
     # we process everything and save the macro.
-    if (@{$def} == 2 && "$def->[0]" eq 'quote' && ref($def->[1]) eq 'ARRAY') {
+    if (@{$def} == 2 && "$def->[0]" eq 'backquote' && ref($def->[1]) eq 'ARRAY') {
         $def = $def->[1];
     }
 

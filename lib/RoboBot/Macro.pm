@@ -265,16 +265,25 @@ sub collapse {
         return __PACKAGE__->quoted_string($definition);
     }
 
-    my @r;
-    push(@r, __PACKAGE__->collapse($_)) foreach @{$definition};
+    my $backquoted = $definition->[0] eq 'backquote'
+                  && ref($definition->[1]) eq 'ARRAY'
+                  && scalar(@{$definition}) == 2
+        ? 1 : 0;
 
-    return sprintf('(%s)', join(' ', @r));
+    my @r;
+    if ($backquoted) {
+        push(@r, __PACKAGE__->collapse($_)) foreach @{$definition->[1]};
+    } else {
+        push(@r, __PACKAGE__->collapse($_)) foreach @{$definition};
+    }
+
+    return sprintf('%s(%s)', ($backquoted ? "'" : ''), join(' ', @r));
 }
 
 sub quoted_string {
     my ($class, $string) = @_;
 
-    return $string unless $string =~ m{\s+}o;
+    return $string unless $string =~ m{[\s"]+}o;
 
     $string =~ s{\"}{\\"}og;
     return sprintf('"%s"', $string);
