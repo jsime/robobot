@@ -14,6 +14,7 @@ use Data::Dumper;
 use Data::SExpression;
 use DateTime;
 use DateTime::Format::Pg;
+use JSON;
 
 has 'config' => (
     is       => 'ro',
@@ -36,8 +37,8 @@ has 'name' => (
 
 has 'arguments' => (
     is       => 'rw',
-    isa      => 'ArrayRef',
-    default  => sub { [] },
+    isa      => 'HashRef',
+    default  => sub { { has_optional => 0, positional => [], keyed => {} } },
     required => 1,
 );
 
@@ -150,7 +151,7 @@ sub load_all {
             config     => $config,
             id         => $res->{'macro_id'},
             name       => $res->{'name'},
-            arguments  => $res->{'arguments'},
+            arguments  => decode_json($res->{'arguments'}),
             definition => $res->{'definition'},
             definer    => RoboBot::Nick->new( config => $config, name => $res->{'nick'} ),
             timestamp  => DateTime::Format::Pg->parse_datetime($res->{'defined_at'}),
@@ -170,7 +171,7 @@ sub save {
             update macros set ??? where macro_id = ?
         }, {
             name       => $self->name,
-            arguments  => $self->arguments,
+            arguments  => encode_json($self->arguments),
             definition => $self->definition,
         }, $self->id);
 
@@ -185,7 +186,7 @@ sub save {
             insert into macros ??? returning macro_id
         }, {
             name       => $self->name,
-            arguments  => $self->arguments,
+            arguments  => encode_json($self->arguments),
             definition => $self->definition,
             defined_by => $self->definer->id,
             defined_at => $self->timestamp,
@@ -218,13 +219,25 @@ sub expand {
 
     my $expr = clone($self->expression);
 
-    if (@args != @{$self->arguments}) {
-        $message->response->raise('Mismatched arguments. Macro %s expects %d, you provided %d.', $self->signature, scalar(@{$self->arguments}), scalar(@args));
-        return 0;
+    my $req_count = scalar( grep { $_->{'optional'} != 1 } @{$self->arguments->{'positional'}} ) // 0;
+    if ($req_count > 0 && scalar(@args) < $req_count) {
+        $message->response->raise('Macro %s expects at least %d arguments, but you provided %d.', $self->name, $req_count, scalar(@args));
+        return;
     }
 
+    # TODO: Add a first pass to collect any &key'ed arguments first, before
+    #       processing the simple positional ones. Possibly needs to be done
+    #       even before the argument count check above is performed.
     my %rpl = ();
-    $rpl{$_} = [$message->process_list(shift(@args))] for @{$self->arguments};
+    foreach my $arg (@{$self->arguments->{'positional'}}) {
+        # No need to care whether argument is required or not at this point.
+        # We would have already errored out above if there was a mismatch. Just
+        # set the optional ones without values to undefined.
+        $rpl{$arg->{'name'}} = @args ? shift(@args) : undef;
+    }
+    # If anything is left in the arguments list passed to the macro invocation,
+    # then it belongs in &rest, should the macro care to make use of them.
+    $rpl{'&rest'} = [@args];
 
     $self->expand_list($expr, \%rpl);
 
@@ -270,8 +283,29 @@ sub quoted_string {
 sub signature {
     my ($self) = @_;
 
-    return sprintf('(%s)', $self->name) if @{$self->arguments} < 1;
-    return sprintf('(%s %s)', $self->name, join(' ', @{$self->arguments}));
+    if (scalar(@{$self->arguments->{'positional'}}) > 0) {
+        my $opt_shown = 0;
+        my @arg_list = ();
+
+        foreach my $arg (@{$self->arguments->{'positional'}}) {
+            if (!$opt_shown && $arg->{'optional'}) {
+                # TODO: Before listing optional positional arguments, list out
+                # any required &key'ed arguments. (And then follow up with the
+                # optional &key'ed arguments after listing the optional
+                # positionals.)
+                push(@arg_list, '&optional');
+                $opt_shown = 1;
+            }
+
+            push(@arg_list, $arg->{'name'});
+        }
+
+#        return sprintf('(%s %s)', $self->name, join(' ', @arg_list));
+        return join(' ', @arg_list);
+    } else {
+#        return sprintf('(%s)', $self->name);
+        return '';
+    }
 }
 
 __PACKAGE__->meta->make_immutable;
