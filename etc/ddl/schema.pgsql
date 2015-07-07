@@ -92,14 +92,15 @@ create unique index thinge_types_lower_name_idx on thinge_types (lower(name));
 create table thinge_thinges (
     id          serial not null primary key,
     type_id     integer not null references thinge_types (id) on update cascade on delete cascade,
+    network_id  integer not null references networks (id) on update cascade on delete restrict,
     thinge_num  integer not null,
     thinge_url  text not null,
     added_by    integer not null references nicks (id) on update cascade on delete cascade,
     added_at    timestamp with time zone not null default now(),
     deleted     boolean not null default false
 );
-create unique index thinge_thinges_type_num_idx on thinge_thinges (type_id, thinge_num);
-create unique index thinge_thinges_type_url_idx on thinge_thinges (type_id, thinge_url);
+create unique index thinge_thinges_type_network_num_idx on thinge_thinges (type_id, network_id, thinge_num);
+create unique index thinge_thinges_type_network_url_idx on thinge_thinges (type_id, network_id, thinge_url);
 
 create table thinge_tags (
     id       serial not null primary key,

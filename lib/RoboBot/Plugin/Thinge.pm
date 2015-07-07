@@ -76,8 +76,8 @@ sub thinge {
                     to_char(t.added_at, 'FMHH12:MIpm') as added_time
                 from thinge_thinges t
                     join nicks n on (n.id = t.added_by)
-                where t.type_id = ? and t.thinge_num = ?
-            }, $type_id, $id_or_tag);
+                where t.type_id = ? and t.network_id = ? and t.thinge_num = ?
+            }, $type_id, $message->network->id, $id_or_tag);
         } else {
             $id_or_tag =~ s{^\#+}{}ogs;
 
@@ -89,11 +89,11 @@ sub thinge {
                     join nicks n on (n.id = t.added_by)
                     join thinge_thinge_tags ttg on (ttg.thinge_id = t.id)
                     join thinge_tags tg on (tg.id = ttg.tag_id)
-                where t.type_id = ?
+                where t.type_id = ? and t.network_id = ?
                     and lower(tg.tag_name) = lower(?)
                 order by random()
                 limit 1
-            }, $type_id, $id_or_tag);
+            }, $type_id, $message->network->id, $id_or_tag);
         }
     } else {
         $res = $self->bot->config->db->do(q{
@@ -102,10 +102,10 @@ sub thinge {
                 to_char(t.added_at, 'FMHH12:MIpm') as added_time
             from thinge_thinges t
                 join nicks n on (n.id = t.added_by)
-            where t.type_id = ?
+            where t.type_id = ? and t.network_id = ?
             order by random()
             limit 1
-        }, $type_id);
+        }, $type_id, $message->network->id);
     }
 
     unless ($res && $res->next) {
@@ -114,7 +114,7 @@ sub thinge {
     }
 
     $message->response->push(sprintf('[%d] %s', $res->{'thinge_num'}, $res->{'thinge_url'}));
-    $message->response->push(sprintf('Added by <%s> on %s at %s.', $res->{'nick'}, $res->{'added_date'}, $res->{'added_time'}));
+#    $message->response->push(sprintf('Added by <%s> on %s at %s.', $res->{'nick'}, $res->{'added_date'}, $res->{'added_time'}));
 
     $res = $self->bot->config->db->do(q{
         select tg.tag_name
@@ -150,8 +150,8 @@ sub save_thinge {
     my $res = $self->bot->config->db->do(q{
         select id, thinge_num
         from thinge_thinges
-        where type_id = ? and lower(thinge_url) = lower(?)
-    }, $type_id, $text);
+        where type_id = ? and network_id = ? and lower(thinge_url) = lower(?)
+    }, $type_id, $message->network->id, $text);
 
     if ($res && $res->next) {
         $message->response->push(sprintf('That %s has already been saved as ID %d.', $type, $res->{'thinge_num'}));
@@ -159,10 +159,10 @@ sub save_thinge {
     }
 
     $res = $self->bot->config->db->do(q{
-        insert into thinge_thinges (type_id, thinge_url, added_by, added_at, thinge_num)
-        values (?, ?, ?, now(), (select max(thinge_num) + 1 from thinge_thinges where type_id = ?))
+        insert into thinge_thinges (type_id, network_id, thinge_url, added_by, added_at, thinge_num)
+        values (?, ?, ?, ?, now(), (select max(thinge_num) + 1 from thinge_thinges where type_id = ?))
         returning thinge_num
-    }, $type_id, $text, $message->sender->id, $type_id);
+    }, $type_id, $message->network->id, $text, $message->sender->id, $type_id);
 
     if ($res && $res->next) {
         $message->response->push(sprintf('Your %s has been saved to the collection as ID %d.', $type, $res->{'thinge_num'}));
@@ -182,9 +182,9 @@ sub delete_thinge {
 
     my $res = $self->bot->config->db->do(q{
         delete from thinge_thinges
-        where type_id = ? and thinge_num = ?
+        where type_id = ? and network_id = ? and thinge_num = ?
         returning id
-    }, $type_id, $thinge_id);
+    }, $type_id, $message->network->id, $thinge_id);
 
     if ($res && $res->next) {
         $message->response->push(sprintf('%s%s %d deleted.', uc(substr($type, 0, 1)), substr($type, 1), $thinge_id));
@@ -203,8 +203,8 @@ sub tag_thinge {
     my $res = $self->bot->config->db->do(q{
         select id
         from thinge_thinges
-        where type_id = ? and thinge_num = ?
-    }, $type_id, $id);
+        where type_id = ? and network_id = ? and thinge_num = ?
+    }, $type_id, $message->network->id, $id);
 
     unless ($res && $res->next) {
         $message->response->raise('There is no such %s with an ID %d.', $type, $id);
