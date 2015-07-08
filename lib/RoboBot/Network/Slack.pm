@@ -19,6 +19,10 @@ use RoboBot::Nick;
 
 extends 'RoboBot::Network';
 
+has '+type' => (
+    default => 'slack',
+);
+
 has 'token' => (
     is       => 'ro',
     isa      => 'Str',
@@ -163,6 +167,10 @@ sub handle_message {
     return unless defined $nick && defined $channel;
 
     my $raw_msg = exists $msg->{'text'} && defined $msg->{'text'} ? $msg->{'text'} : '';
+
+    # Remove brackets around URLs. Do alt-named ones first, then URL-only links.
+    $raw_msg =~ s{<(http[^|>]+)\|[^>]+>}{$1}g;
+    $raw_msg =~ s{<(http[^>]+)>}{$1}g;
 
     # Unescape a couple things from Slack.
     $raw_msg =~ s{\&amp;}{&}g;
