@@ -18,6 +18,10 @@ use RoboBot::Nick;
 
 extends 'RoboBot::Network';
 
+has '+type' => (
+    default => 'irc',
+);
+
 has 'host' => (
     is       => 'ro',
     isa      => 'Str',

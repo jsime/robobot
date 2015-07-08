@@ -7,6 +7,12 @@ use namespace::autoclean;
 use Moose;
 use MooseX::SetOnce;
 
+has 'type' => (
+    is      => 'ro',
+    isa     => 'Str',
+    default => '',
+);
+
 has 'id' => (
     is     => 'rw',
     isa    => 'Num',
