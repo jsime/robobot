@@ -344,7 +344,7 @@ sub skill_levels {
 
     if ($res) {
         while ($res->next) {
-            $message->response->push(sprintf('%d: %s', $res->{'level_id'}, $res->{'name'}));
+            $message->response->push($res->{'name'});
         }
     }
 
