@@ -136,10 +136,8 @@ sub BUILD {
             # function name. This prevents the bot from parsing a simple aside
             # comment made in parentheses as if it were an expression containing
             # only bareword strings.
-            # TODO ensure macros work as the first member of the top-level list
-            #      once that feature is implemented
             if (@exps > 1 || exists $self->bot->commands->{lc("$exps[0][0]")} || exists $self->bot->macros->{lc("$exps[0][0]")}) {
-                $self->expression(\@exps);
+                $self->expression($self->flatten_symbols(\@exps));
             }
         }
     }
@@ -248,6 +246,23 @@ sub expressions_balanced {
     my @rp = ($self->raw =~ m{\)}g);
 
     return scalar(@lp) == scalar(@rp);
+}
+
+sub flatten_symbols {
+    my ($self, $expr) = @_;
+
+    return unless defined $expr;
+    return "$expr" if ref($expr) eq 'Data::SExpression::Symbol';
+
+    if (ref($expr) eq 'ARRAY') {
+        my $flattened = [];
+        foreach my $el (@{$expr}) {
+            push(@{$flattened}, $self->flatten_symbols($el));
+        }
+        $expr = $flattened;
+    }
+
+    return $expr;
 }
 
 __PACKAGE__->meta->make_immutable;
