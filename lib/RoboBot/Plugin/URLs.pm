@@ -57,6 +57,11 @@ sub check_urls {
 
     return if $message->has_expression;
 
+    # TODO: Replace this with a generic disable-plugins directive at the network
+    #       level when that feature is implemented. For now, just return right
+    #       away if the message came in on a Slack network.
+    return if $message->network->type && $message->network->type eq 'slack';
+
     my @urls = $self->find_urls($message);
 
     foreach my $url (@urls) {
