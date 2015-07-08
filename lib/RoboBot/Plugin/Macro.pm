@@ -60,13 +60,25 @@ sub define_macro {
         has_optional => 0,
         positional   => [],
         keyed        => {},
+        rest         => undef,
     };
+    my $next_rest = 0;
+
     foreach my $arg (@{$args}) {
+        if ($next_rest) {
+            $args_def->{'rest'} = "$arg";
+            $next_rest = 0;
+            next;
+        }
+
         # We hit an '&optional', so all following arguments are optional. And if
         # more than the stated number are passed, they can be accessed through
         # the autovivified &rest list in the macro.
         if ("$arg" eq '&optional') {
             $args_def->{'has_optional'} = 1;
+            next;
+        } elsif ("$arg" eq '&rest') {
+            $next_rest = 1;
             next;
         }
 
@@ -76,6 +88,14 @@ sub define_macro {
             name     => "$arg",
             optional => $args_def->{'has_optional'},
         });
+    }
+
+    # Having &rest in the argument list without naming the variable into which
+    # the remaining values will be placed is invalid. If the flag is still set
+    # when we're done processing the arglist, then that has happened.
+    if ($next_rest) {
+        $message->response->raise('The &rest collection must be named.');
+        return;
     }
 
     # We aren't really doing actual Lisp macros, just a shoddy simulacrum, so if someone has passed

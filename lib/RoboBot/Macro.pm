@@ -38,7 +38,7 @@ has 'name' => (
 has 'arguments' => (
     is       => 'rw',
     isa      => 'HashRef',
-    default  => sub { { has_optional => 0, positional => [], keyed => {} } },
+    default  => sub { { has_optional => 0, positional => [], keyed => {}, rest => undef } },
     required => 1,
 );
 
@@ -217,7 +217,7 @@ sub delete {
 sub expand {
     my ($self, $message, @args) = @_;
 
-    my $expr = clone($self->expression);
+    my $expr = $message->flatten_symbols(clone($self->expression));
 
     my $req_count = scalar( grep { $_->{'optional'} != 1 } @{$self->arguments->{'positional'}} ) // 0;
     if ($req_count > 0 && scalar(@args) < $req_count) {
@@ -237,25 +237,34 @@ sub expand {
     }
     # If anything is left in the arguments list passed to the macro invocation,
     # then it belongs in &rest, should the macro care to make use of them.
-    $rpl{'&rest'} = [@args];
+    if ($self->arguments->{'rest'} && @args) {
+        $rpl{ $self->arguments->{'rest'} } = [@args];
+    }
 
-    $self->expand_list($expr, \%rpl);
-
-    return $expr;
+    return $self->expand_list($message, $expr, \%rpl);
 }
 
 sub expand_list {
-    my ($self, $list, $args) = @_;
+    my ($self, $message, $list, $args) = @_;
 
-    return unless ref($list) eq 'ARRAY';
+    return $list unless ref($list) eq 'ARRAY';
 
+    my $new_list = [];
     foreach my $el (@{$list}) {
         if (ref($el) eq 'ARRAY') {
-            $self->expand_list($el, $args);
+            if (exists $message->bot->commands->{$el->[0]} && exists $message->bot->commands->{$el->[0]}{'preprocess_args'} && $message->bot->commands->{$el->[0]}{'preprocess_args'} == 0) {
+                push(@{$new_list}, clone($el));
+            } else {
+                push(@{$new_list}, $self->expand_list($message, $el, $args));
+            }
         } elsif (exists $args->{"$el"}) {
-            $el = $args->{"$el"};
+            push(@{$new_list}, $args->{"$el"});
+        } else {
+            push(@{$new_list}, "$el");
         }
     }
+
+    return $new_list;
 }
 
 sub collapse {
@@ -292,9 +301,10 @@ sub quoted_string {
 sub signature {
     my ($self) = @_;
 
+    my @arg_list = ();
+
     if (scalar(@{$self->arguments->{'positional'}}) > 0) {
         my $opt_shown = 0;
-        my @arg_list = ();
 
         foreach my $arg (@{$self->arguments->{'positional'}}) {
             if (!$opt_shown && $arg->{'optional'}) {
@@ -308,13 +318,13 @@ sub signature {
 
             push(@arg_list, $arg->{'name'});
         }
-
-#        return sprintf('(%s %s)', $self->name, join(' ', @arg_list));
-        return join(' ', @arg_list);
-    } else {
-#        return sprintf('(%s)', $self->name);
-        return '';
     }
+
+    if ($self->arguments->{'rest'}) {
+        push(@arg_list, '&rest', $self->arguments->{'rest'});
+    }
+
+    return join(' ', @arg_list);
 }
 
 __PACKAGE__->meta->make_immutable;
