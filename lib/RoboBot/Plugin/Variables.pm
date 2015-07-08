@@ -7,6 +7,8 @@ use namespace::autoclean;
 use Moose;
 use MooseX::SetOnce;
 
+use Data::Dumper;
+
 extends 'RoboBot::Plugin';
 
 has '+name' => (
@@ -19,6 +21,11 @@ has '+description' => (
 
 has '+commands' => (
     default => sub {{
+        'defined' => { method          => 'is_defined',
+                       preprocess_args => 0,
+                       description     => 'Returns true if all of the named variables are defined, otherwise false. Must pass variable names as a list.',
+                       usage           => '(<varname1> [... <varnameN>])', },
+
         'setvar' => { method          => 'set_var',
                       preprocess_args => 0,
                       description     => 'Sets the value of a variable.',
@@ -40,11 +47,37 @@ has '+commands' => (
     }},
 );
 
+sub is_defined {
+    my ($self, $message, $command, @var_list) = @_;
+
+    return 0 unless @var_list > 0;
+
+    my $defined = 1;
+
+    foreach my $var (@var_list) {
+        unless (defined $var) {
+            $defined = 0;
+            last;
+        }
+
+        if (ref($var) eq 'ARRAY') {
+            $var = $message->process_list($var);
+        }
+
+        unless (defined $var) {
+            $defined = 0;
+            last;
+        }
+    }
+
+    return $defined;
+}
+
 sub set_var {
     my ($self, $message, $command, @args) = @_;
 
     if (@args && @args == 2 && $args[0] =~ m{^[\$\@\*\:\+0-9a-zA-Z_-]+$}) {
-        return $message->vars->{$args[0]} = $self->bot->process_list($message, $args[1]);
+        return $message->vars->{$args[0]} = $message->process_list($args[1]);
     }
 }
 
