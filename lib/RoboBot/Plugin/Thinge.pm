@@ -160,9 +160,9 @@ sub save_thinge {
 
     $res = $self->bot->config->db->do(q{
         insert into thinge_thinges (type_id, network_id, thinge_url, added_by, added_at, thinge_num)
-        values (?, ?, ?, ?, now(), (select max(thinge_num) + 1 from thinge_thinges where type_id = ?))
+        values (?, ?, ?, ?, now(), (select coalesce(max(thinge_num) + 1, 1) from thinge_thinges where type_id = ? and network_id = ?))
         returning thinge_num
-    }, $type_id, $message->network->id, $text, $message->sender->id, $type_id);
+    }, $type_id, $message->network->id, $text, $message->sender->id, $type_id, $message->network->id);
 
     if ($res && $res->next) {
         $message->response->push(sprintf('Your %s has been saved to the collection as ID %d.', $type, $res->{'thinge_num'}));
@@ -269,7 +269,7 @@ sub get_tag_id {
     } else {
         $res = $self->bot->config->db->do(q{
             insert into thinge_tags ??? returning id
-        }, { tag => $tag });
+        }, { tag_name => $tag });
 
         if ($res && $res->next) {
             return ($res->{'id'}, $tag);
