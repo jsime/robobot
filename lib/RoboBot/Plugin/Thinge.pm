@@ -154,9 +154,10 @@ sub find_thinge {
             join thinge_types tt on (tt.id = t.type_id)
         where lower(tt.name) = lower(?)
             and t.thinge_url ~* ?
+            and t.network_id = ?
         order by random()
         limit 1
-    }, $type, $pattern);
+    }, $type, $pattern, $message->network->id);
 
     if ($res && $res->next) {
         # We found a thinge. Delegate displaying it to the normal thinge() method.
