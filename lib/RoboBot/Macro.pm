@@ -238,7 +238,9 @@ sub expand {
     # If anything is left in the arguments list passed to the macro invocation,
     # then it belongs in &rest, should the macro care to make use of them.
     if ($self->arguments->{'rest'} && @args) {
-        $rpl{ $self->arguments->{'rest'} } = [@args];
+        # TODO: Array support in variables still needs work. For now, join all
+        #       remaining values from &rest into a single space-delim string.
+        $rpl{ $self->arguments->{'rest'} } = join(' ', @args);
     }
 
     return $self->expand_list($message, $expr, \%rpl);
