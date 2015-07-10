@@ -22,6 +22,10 @@ has '+commands' => (
                       description => 'Returns a specific thinge (when the <id> is given), a random thinge with a particular tag (when <tag> is given), or a random thinge of <type> from the collection (when only <type> is provided).',
                       usage       => '<type> [<id> | <tag>]' },
 
+        'thinge-find' => { method      => 'find_thinge',
+                           description => 'Searches through the thinges of a given type for any containing the pattern <pattern>. Patterns may be simple strings or regular expressions.',
+                           usage       => '<type> <pattern>', },
+
         'thinge-add' => { method      => 'save_thinge',
                           description => 'Saves a thinge to the collection and reports its ID.',
                           usage       => '<type> "<text>"' },
@@ -134,6 +138,32 @@ sub thinge {
 
     if (@tags && @tags > 0) {
         $message->response->push(sprintf('Tags: %s', join(' ', map { "\#$_" } @tags)));
+    }
+
+    return;
+}
+
+sub find_thinge {
+    my ($self, $message, $command, $type, $pattern) = @_;
+
+    return unless defined $type && defined $pattern;
+
+    my $res = $self->bot->config->db->do(q{
+        select t.thinge_num
+        from thinge_thinges t
+            join thinge_types tt on (tt.id = t.type_id)
+        where lower(tt.name) = lower(?)
+            and t.thinge_url ~* ?
+        order by random()
+        limit 1
+    }, $type, $pattern);
+
+    if ($res && $res->next) {
+        # We found a thinge. Delegate displaying it to the normal thinge() method.
+        return $self->thinge($message, $command, $type, $res->{'thinge_num'});
+    } else {
+        # We could not find a matching thinge.
+        $message->response->raise('Could not locate a %s that matched the pattern "%s".', $type, $pattern);
     }
 
     return;
