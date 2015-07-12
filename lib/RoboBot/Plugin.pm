@@ -113,6 +113,27 @@ sub hook_after {
     return $self->$hook($message);
 }
 
+sub extract_keyed_args {
+    my ($self, @args) = @_;
+
+    my %keyed = ();
+    my @remaining;
+
+    while (@args) {
+        my $k = shift(@args);
+        if (substr($k, 0, 1) eq ':') {
+            $keyed{substr($k, 1)}
+                = @args && substr($args[0], 0, 1) ne ':'
+                ? shift(@args)
+                : 1;
+        } else {
+            push(@remaining, $k);
+        }
+    }
+
+    return (\%keyed, @remaining);
+}
+
 __PACKAGE__->meta->make_immutable;
 
 1;
