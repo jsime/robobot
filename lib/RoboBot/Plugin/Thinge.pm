@@ -117,8 +117,10 @@ sub thinge {
         return;
     }
 
-    $message->response->push(sprintf('[%d] %s', $res->{'thinge_num'}, $res->{'thinge_url'}));
-#    $message->response->push(sprintf('Added by <%s> on %s at %s.', $res->{'nick'}, $res->{'added_date'}, $res->{'added_time'}));
+    my @r = (
+        sprintf('[%d]', $res->{'thinge_num'}),
+        $res->{'thinge_url'},
+    );
 
     $res = $self->bot->config->db->do(q{
         select tg.tag_name
@@ -137,10 +139,10 @@ sub thinge {
     }
 
     if (@tags && @tags > 0) {
-        $message->response->push(sprintf('Tags: %s', join(' ', map { "\#$_" } @tags)));
+        push(@r, join(' ', map { "\#$_" } @tags));
     }
 
-    return;
+    return join(' ', @r);
 }
 
 sub find_thinge {
