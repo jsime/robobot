@@ -239,4 +239,20 @@ create table github_repo_channels (
 );
 alter table github_repo_channels add primary key (repo_id, channel_id);
 
+--
+-- ALARMS
+--
+create table alarms_alarms (
+    id              serial not null primary key,
+    channel_id      integer not null references channels (id) on update cascade on delete cascade,
+    name            text not null,
+    next_emit       timestamp with time zone not null,
+    recurrence      interval,
+    exclusions      jsonb not null default '[]',
+    is_suspended    boolean not null default false,
+    message         text,
+    created_by      integer not null references nicks (id) on update cascade on delete cascade,
+    created_at      timestamp with time zone not null default now()
+);
+
 commit;
