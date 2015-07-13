@@ -213,7 +213,7 @@ sub process_list {
             if (ref($el) eq 'ARRAY') {
                 push(@r, $self->process_list($el));
             } else {
-                if (exists $self->vars->{$el}) {
+                if (defined $el && exists $self->vars->{$el}) {
                     if (ref($self->vars->{$el}) eq 'ARRAY') {
                         push(@r, $self->process_list($self->vars->{$el}));
                     } else {

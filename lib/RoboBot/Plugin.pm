@@ -77,7 +77,7 @@ sub process {
             if (ref($arg) eq 'ARRAY') {
                 push(@processed_args, $message->process_list($arg));
             } else {
-                if (exists $message->vars->{$arg}) {
+                if (defined $arg && exists $message->vars->{$arg}) {
                     if (ref($message->vars->{$arg}) eq 'ARRAY') {
                         push(@processed_args, $message->process_list($arg));
                     } else {
