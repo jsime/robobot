@@ -36,8 +36,37 @@ has '+commands' => (
         'show-macro' => { method      => 'show_macro',
                           description => 'Displays the definition of a macro.',
                           usage       => '<name>' },
+
+        'list-macros' => { method      => 'list_macros',
+                           description => 'Displays a list of all registered macros. Optional pattern will limit list to only those macros whose names match.',
+                           usage       => '[<pattern>]', },
     }},
 );
+
+sub list_macros {
+    my ($self, $message, $command, $pattern) = @_;
+
+    my $res = $self->bot->config->db->do(q{
+        select name
+        from macros
+        where name ~* ?
+        order by name asc
+    }, ($pattern // '.*'));
+
+    unless ($res) {
+        $message->response->raise('Could not obtain list of macros. If you supplied a pattern, please ensure that it is a valid regular expression.');
+        return;
+    }
+
+    my @macros;
+
+    while ($res->next) {
+        push(@macros, $res->{'name'});
+    }
+
+    $message->response->push(join(', ', @macros));
+    return;
+}
 
 sub define_macro {
     my ($self, $message, $command, $macro_name, $args, $def) = @_;
