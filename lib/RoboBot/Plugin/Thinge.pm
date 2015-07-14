@@ -187,7 +187,7 @@ sub save_thinge {
     }, $type_id, $message->network->id, $text);
 
     if ($res && $res->next) {
-        $message->response->push(sprintf('That %s has already been saved as ID %d.', $type, $res->{'thinge_num'}));
+        $message->response->push(sprintf('That %s has already been saved as #%d.', $type, $res->{'thinge_num'}));
         return;
     }
 
@@ -198,7 +198,7 @@ sub save_thinge {
     }, $type_id, $message->network->id, $text, $message->sender->id, $type_id, $message->network->id);
 
     if ($res && $res->next) {
-        $message->response->push(sprintf('Your %s has been saved to the collection as ID %d.', $type, $res->{'thinge_num'}));
+        $message->response->push(sprintf('Your %s has been saved to the collection as #%d.', $type, $res->{'thinge_num'}));
     } else {
         $message->response->raise('Could not save your %s. Please try again.', $type);
     }
