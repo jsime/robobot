@@ -361,9 +361,15 @@ sub suspend_alarm {
 sub _get_alarm {
     my ($self, $bot, $alarm_id) = @_;
 
+    # We buffer the comparison of the current next_emit to now() by 5 minutes
+    # into the future to account for the possibility of timer drift, and any
+    # other delays that may occur between when the timer is schedule to fire and
+    # when our bot's single execution thread finally reaches this point. One
+    # minute is a major buffer, but alarms cannot be scheduled to trigger more
+    # than a few times each hour anyway.
     my $res = $bot->config->db->do(q{
         select a.*,
-            case when a.next_emit <= (now() + interval '1 second') then 't'::boolean else 'f'::boolean end as do_recalc
+            case when a.next_emit <= (now() + interval '1 minute') then 1 else 0 end as do_recalc
         from alarms_alarms a
         where a.id = ?
     }, $alarm_id);
@@ -443,7 +449,6 @@ sub _emit_alarm {
     return unless defined $alarm_id && $alarm_id =~ m{^\d+$};
 
     my $alarm = $self->_get_alarm($self->bot, $alarm_id);
-
     return unless defined $alarm;
 
     my $channel = RoboBot::Channel->find_by_id($self->bot, $alarm->{'channel_id'});
