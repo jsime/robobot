@@ -1,5 +1,7 @@
 package RoboBot;
 
+# ABSTRACT: Extensible multi-protocol S-Expression chatbot.
+
 use v5.18;
 
 use namespace::autoclean;
@@ -15,7 +17,7 @@ use RoboBot::Config;
 use RoboBot::Message;
 use RoboBot::Plugin;
 
-our $VERSION = '2.001001';
+our $VERSION = '2.003001';
 
 has 'config' => (
     is     => 'rw',
