@@ -233,6 +233,11 @@ sub tag_thinge {
 
     my $type_id = $self->get_type_id($message, $type) || return;
 
+    # TODO: This is an ugly hack to get around the way &rest arguments in macros
+    #       are joined (which is, itself, a hack to get around another problem).
+    #       Whenever that macro problem is fixed, this should be undone.
+    ($id, @tags) = grep { defined $_ } (split(/\s+/, $id), @tags);
+
     my $res = $self->bot->config->db->do(q{
         select id
         from thinge_thinges
