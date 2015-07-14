@@ -61,16 +61,13 @@ sub find_filter {
 
     return undef unless $filter =~ m{^[A-Za-z0-9]+$}o;
 
-    my $path = `which $filter`;
-    chomp($path);
-
-    unless (-x $path) {
+    unless (-x "/usr/games/$filter") {
         $message->response->raise(sprintf('The filter %s appears to not be installed on this machine.', $filter));
         return undef;
     }
 
-    $self->filter_paths->{$filter} = $path;
-    return $path;
+    $self->filter_paths->{$filter} = "/usr/games/$filter";
+    return "/usr/games/$filter";
 }
 
 __PACKAGE__->meta->make_immutable;
