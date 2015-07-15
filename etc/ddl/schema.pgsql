@@ -255,4 +255,27 @@ create table alarms_alarms (
     created_at      timestamp with time zone not null default now()
 );
 
+--
+-- FAKE QUOTES
+--
+create table fakequotes_people (
+    id   serial not null primary key,
+    name text not null
+);
+create unique index fakequotes_people_lower_name_idx on fakequotes_people (lower(name));
+
+create table fakequotes_phrases (
+    id          serial not null primary key,
+    person_id   integer not null references fakequotes_people (id) on update cascade on delete cascade,
+    phrase      text not null
+);
+
+create table fakequotes_terms (
+    id          serial not null primary key,
+    person_id   integer not null references fakequotes_people (id) on update cascade on delete cascade,
+    term_type   text not null,
+    term        text not null
+);
+create index fakequotes_terms_term_type_idx on fakequotes_terms (lower(term_type));
+
 commit;
