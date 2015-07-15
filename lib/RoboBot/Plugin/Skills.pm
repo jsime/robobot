@@ -212,7 +212,7 @@ sub show_user_skills {
     my @l;
 
     while ($res->next) {
-        push(@l, sprintf('*%s:* %s', $res->{'name'}, join(', ', sort { $a cmp $b } @{$res->{'skills'}})));
+        push(@l, sprintf('*%s:* %s', $res->{'name'}, join(', ', sort { lc($a) cmp lc($b) } @{$res->{'skills'}})));
     }
 
     return @l;
