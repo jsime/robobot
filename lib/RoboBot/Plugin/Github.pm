@@ -228,16 +228,23 @@ sub get_repo_parts {
 sub get_repo_notices {
     my ($self, $repo) = @_;
 
-    # Update repo with polled_at = now() so we do a normal check on the
-    # next event timer.
-    $self->bot->config->db->do(q{
-        update github_repos set polled_at = now() where repo_id = ?
+    # Update repo with polled_at = now() - 10 seconds, so that every time we
+    # poll GH, we're actually looking at a window of length(watcher_interval)
+    # offset 10 seconds in the past. This gives events on the GH side of things
+    # time to propogate to their API endpoints, so we don't miss out.
+    my $poll_t = $self->bot->config->db->do(q{
+        update github_repos
+        set polled_at = now() - interval '10 seconds'
+        where repo_id = ?
+        returning to_char(polled_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS"Z"') as polled_at
     }, $repo->{'repo_id'});
+
+    return unless $poll_t && $poll_t->next;
 
     my ($json, @notices);
 
     my $api_path = ['repos',$repo->{'owner_name'},$repo->{'repo_name'},'commits'];
-    my $api_args = { since => $repo->{'polled_at'} };
+    my $api_args = { since => $repo->{'polled_at'}, until => $poll_t->{'polled_at'} };
 
     if ($json = $self->make_gh_api_call($api_path,$api_args)) {
         if (ref($json) eq 'ARRAY' && @{$json} > 0) {
@@ -366,7 +373,7 @@ sub _run_watcher {
         from github_repos r
             join github_repo_channels rc on (rc.repo_id = r.repo_id)
             join channels c on (c.id = rc.channel_id)
-        where r.polled_at is null or r.polled_at < now()
+        where r.polled_at is null or r.polled_at < now() - interval '10 seconds'
         group by r.repo_id, r.owner_name, r.repo_name, r.polled_at, r.last_pr, r.last_issue
     });
 
