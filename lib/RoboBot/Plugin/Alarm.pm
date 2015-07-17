@@ -163,7 +163,7 @@ sub set_alarm {
         }
     }
 
-    $alarm{'exclusions'} = encode_json($alarm{'exclusions'});
+    $alarm{'exclusions'} = encode_json($alarm{'exclusions'} // []);
 
     $res = $self->bot->config->db->do(q{
         update alarms_alarms
