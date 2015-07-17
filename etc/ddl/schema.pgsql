@@ -278,4 +278,26 @@ create table fakequotes_terms (
 );
 create index fakequotes_terms_term_type_idx on fakequotes_terms (lower(term_type));
 
+--
+-- MADLIBS
+--
+create table madlibs_madlibs (
+    id              serial not null primary key,
+    madlib          text not null,
+    placeholders    text[] not null,
+    created_by      integer not null references nicks (id) on update cascade on delete restrict,
+    created_at      timestamp with time zone not null default now()
+);
+
+create table madlibs_results (
+    id              serial not null primary key,
+    madlib_id       integer not null references madlibs_madlibs (id) on update cascade on delete cascade,
+    network_id      integer not null references networks (id) on update cascade on delete cascade,
+    nick_id         integer not null references nicks (id) on update cascade on delete cascade,
+    words           text[],
+    filled_in       text,
+    started_at      timestamp with time zone not null default now(),
+    completed_at    timestamp with time zone
+);
+
 commit;
