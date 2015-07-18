@@ -98,7 +98,7 @@ sub set_alarm {
     my $res = $self->bot->config->db->do(q{ select 1 where ?::timestamptz > now() }, $keyed->{'first'});
 
     unless ($res && $res->next) {
-        $message->response->raise('The value of :first must be a valid future ISO8601 timestamp in the future.');
+        $message->response->raise('The value of :first must be a valid ISO8601 timestamp in the future.');
         return;
     }
 
