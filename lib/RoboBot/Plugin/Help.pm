@@ -16,13 +16,13 @@ has '+name' => (
 );
 
 has '+description' => (
-    default => 'Provides help and usage information for commands and plugins.',
+    default => 'Provides help and usage information for commands, macros, and plugins.',
 );
 
 has '+commands' => (
     default => sub {{
         'help' => { method  => 'help',
-                    usage   => '[<plugin> | <command>]' },
+                    usage   => '[<plugin> | <command> | <macro>]' },
     }},
 );
 
@@ -38,6 +38,8 @@ sub help {
             }
         } elsif (exists $self->bot->commands->{$section}) {
             $self->command_help($message, $section);
+        } elsif (exists $self->bot->macros->{$section}) {
+            $self->macro_help($message, $section);
         } else {
             $message->response->push(sprintf('Unknown help section: %s', $section));
         }
@@ -102,6 +104,26 @@ sub command_help {
         }
     } else {
         $message->response->push(sprintf('Unknown function: %s', $command_name));
+    }
+
+    return;
+}
+
+sub macro_help {
+    my ($self, $message, $macro_name) = @_;
+
+    if (exists $self->bot->macros->{$macro_name}) {
+        # TODO: Extend macros to support more useful/informative documentation,
+        #       possibly through a docstring like syntax, and then make use of
+        #       that here. For now about all we can do is show the signature.
+        my $macro = $self->bot->macros->{$macro_name};
+
+        $message->response->push(sprintf('(%s%s)',
+            $macro->name,
+            (length($macro->signature) > 0 ? ' ' . $macro->signature : '')
+        ));
+    } else {
+        $message->response->push(sprintf('Unknown macro: %s', $macro_name));
     }
 
     return;
