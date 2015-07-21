@@ -237,7 +237,7 @@ sub resolve_channel {
         select id, name, extradata
         from channels
         where network_id = ? and lower(name) = lower(?)
-    }, $self->id, ($chandata->{'group'}{'name'} || $chandata->{'channel'}{'name'}));
+    }, $self->id, ($chandata->{'group'}{'name'} // $chandata->{'channel'}{'name'}));
 
     if ($res && $res->next) {
         $res->{'extradata'} = decode_json($res->{'extradata'});
@@ -263,7 +263,7 @@ sub resolve_channel {
 
     $res = $self->bot->config->db->do(q{
         insert into channels ??? returning id, name, extradata
-    }, { name       => ($chandata->{'group'}{'name'} || $chandata->{'channel'}{'name'}),
+    }, { name       => ($chandata->{'group'}{'name'} // $chandata->{'channel'}{'name'}),
          network_id => $self->id,
          extradata  => encode_json({ slack_id => $slack_id }),
     });
