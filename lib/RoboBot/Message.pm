@@ -94,12 +94,25 @@ sub BUILD {
     # to interact with the bot using the older "!command arg arg arg" syntax.
     if (substr($self->raw, 0, 1) eq '!') {
         if ($self->raw =~ m{^\!+((\S+).*)}) {
-            # TODO: Consider feasbility of also converting old-style piped command
-            #       sequences into properly nested expressions.
-
             my ($no_excl, $maybe_cmd) = ($1, $2);
 
-            $self->raw('('.$no_excl.')')
+            # If there is at least one pipe character followed by what looks to
+            # be possibly another command, treat the incoming message as if it
+            # is the old-style piped command chain, and convert to nested
+            # expressions.
+            if ($no_excl =~ m{\|\s+\!\S+}) {
+                my @chained = split(/\|/, $no_excl);
+
+                $no_excl = '';
+                foreach my $command (@chained) {
+                    $command =~ s{(^\s*\!?|\s*$)}{}gs;
+                    $no_excl = sprintf('(%s%s)', $command, (length($no_excl) > 0 ? ' ' . $no_excl : ''));
+                }
+            } else {
+                $no_excl = '(' . $no_excl . ')';
+            }
+
+            $self->raw($no_excl)
                 if exists $self->bot->commands->{lc($maybe_cmd)}
                 || exists $self->bot->macros->{lc($maybe_cmd)};
         }
