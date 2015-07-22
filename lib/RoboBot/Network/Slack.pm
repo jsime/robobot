@@ -108,13 +108,11 @@ sub send {
     my ($self, $response) = @_;
 
     unless ($response->has_channel) {
-        printf STDERR "!!!! Cannot send direct messages via SlackRTM network. (At least not yet.) Response dropped.\n";
         $response->clear_content;
         return;
     }
 
     unless (exists $response->channel->extradata->{'slack_id'}) {
-        printf STDERR "!!!! Channel target for response does not have a Slack ID. Cannot send message.\n";
         $response->clear_content;
         return;
     }
@@ -143,10 +141,8 @@ sub send {
 sub handle_message {
     my ($self, $msg) = @_;
 
-    # TODO: Ignore messages that are delivered very shortly after connection
-    #       (since this can lead to repetition of processing and output when
-    #       the bot disconnects and reconnects).
-    return if exists $msg->{'ts'} && int($msg->{'ts'}) <= $self->start_ts + 5;
+    return unless exists $msg->{'ts'};
+    return if int($msg->{'ts'}) <= $self->start_ts + 5;
 
     # Short circuit if this isn't a 'message' type message.
     return unless defined $msg && ref($msg) eq 'HASH'
@@ -214,30 +210,58 @@ sub resolve_channel {
         return $channel;
     }
 
-    my $json;
+    my ($json, $chandata);
 
     # Slack has different API endpooints for channels and private groups, so
     # make sure we're using the right one based on the first character of the
-    # identifier.
+    # identifier. And some, like direct messages, return fairly different data
+    # structures, so each type should handle decoding and massaging their own.
     if (substr($slack_id, 0, 1) eq 'C') {
         $json = get('https://slack.com/api/channels.info?token=' . $self->token . '&channel=' . $slack_id);
+        eval { $json = decode_json($json) };
+        return if $@;
+
+        return unless exists $json->{'ok'} && $json->{'ok'};
+        return unless exists $json->{'channel'};
+        $chandata = $json->{'channel'};
     } elsif (substr($slack_id, 0, 1) eq 'G') {
         $json = get('https://slack.com/api/groups.info?token=' . $self->token . '&channel=' . $slack_id);
+        eval { $json = decode_json($json) };
+        return if $@;
+
+        return unless exists $json->{'ok'} && $json->{'ok'};
+        return unless exists $json->{'group'};
+        $chandata = $json->{'group'};
+    } elsif (substr($slack_id, 0, 1) eq 'D') {
+        # This was a direct message, which requires some additional handling.
+        $json = get('https://slack.com/api/im.list?token=' . $self->token);
+        eval { $json = decode_json($json) };
+        return if $@;
+
+        return unless exists $json->{'ok'} && $json->{'ok'};
+        return unless exists $json->{'ims'} && ref($json->{'ims'}) eq 'ARRAY';
+
+        $chandata = (grep { $_->{'id'} eq $slack_id } @{$json->{'ims'}})[0];
+        return unless defined $chandata && ref($chandata) eq 'HASH';
+        return unless exists $chandata->{'user'};
+        return if $chandata->{'user'} eq 'USLACKBOT';
+
+        my $nick = $self->resolve_nick($chandata->{'user'});
+
+        # Mock up a channel name for the DM history with this user.
+        $chandata->{'name'} = sprintf('dm:%s', $nick->name);
     } else {
-        # Not a group or a channel, bail out.
+        # Not a group or a channel or a direct message, bail out.
         return;
     }
 
-    return unless defined $json;
-
-    my $chandata = decode_json($json);
-    return unless defined $chandata && ref($chandata) eq 'HASH' && exists $chandata->{'ok'} && $chandata->{'ok'};
+    return unless defined $chandata && ref($chandata) eq 'HASH';
 
     $res = $self->bot->config->db->do(q{
         select id, name, extradata
         from channels
         where network_id = ? and lower(name) = lower(?)
-    }, $self->id, ($chandata->{'group'}{'name'} // $chandata->{'channel'}{'name'}));
+    }, $self->id, $chandata->{'name'});
 
     if ($res && $res->next) {
         $res->{'extradata'} = decode_json($res->{'extradata'});
@@ -263,7 +287,7 @@ sub resolve_channel {
 
     $res = $self->bot->config->db->do(q{
         insert into channels ??? returning id, name, extradata
-    }, { name       => ($chandata->{'group'}{'name'} // $chandata->{'channel'}{'name'}),
+    }, { name       => $chandata->{'name'},
          network_id => $self->id,
          extradata  => encode_json({ slack_id => $slack_id }),
     });
