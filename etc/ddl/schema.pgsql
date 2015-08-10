@@ -300,4 +300,19 @@ create table madlibs_results (
     completed_at    timestamp with time zone
 );
 
+--
+-- FACTOIDS
+--
+create table factoids (
+    id          serial not null primary key,
+    network_id  integer not null references networks (id) on update cascade on delete cascade,
+    name        text not null,
+    factoid     text not null,
+    terms       tsvector not null,
+    created_by  integer not null references nicks (id) on update cascade on delete restrict,
+    created_at  timestamp with time zone not null default now(),
+    updated_by  integer references nicks (id) on update cascade on delete set null,
+    updated_at  timestamp with time zone
+);
+
 commit;
