@@ -282,8 +282,7 @@ sub show_types {
             push(@types, $res->{'name'});
         }
 
-        $message->response->push('The following thinge types are currently known:');
-        $message->response->push(join(', ', @types));
+        return @types;
     }
 
     return;
