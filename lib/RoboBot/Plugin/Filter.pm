@@ -45,11 +45,12 @@ sub filter_text {
     return unless defined $prog;
 
     my $pid = open2(my $rfh, my $wfh, $prog) || return;
-    print $wfh join("\n", @args);
+    print $wfh join("\n", @args) . "\n";
     close($wfh);
 
     my $filtered = join("\n", <$rfh>);
     $filtered =~ s{[\n\r]+}{\n}ogs;
+    $filtered =~ s{(^\s+|\s+$)}{}ogs;
 
     return split(/\n/o, $filtered);
 }
