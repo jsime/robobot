@@ -50,6 +50,36 @@ has '+commands' => (
     }},
 );
 
+sub skill_dontknow {
+    my ($self, $message, $command, @skills) = @_;
+
+    unless (@skills) {
+        $message->response->push('Must supply skill name(s) to remove.');
+        return;
+    }
+
+    foreach my $skill (@skills) {
+        next unless defined $skill && $skill =~ m{\w+};
+
+        my $res = $self->bot->config->db->do(q{
+            delete from skills_nicks
+            where nick_id = ?
+                and skill_id = ( select skill_id
+                                 from skills_skills
+                                 where lower(?) = lower(name) )
+        }, $message->sender->id, $skill);
+
+        unless ($res && $res->count > 0) {
+            $message->response->push(sprintf("You didn't know %s before.", $skill));
+            next;
+        }
+
+        $message->response->push(sprintf("You have now forgotten %s.", $skill));
+    }
+
+    return;
+}
+
 sub skill_know {
     my ($self, $message, $command, $skill_name, $skill_level) = @_;
 
