@@ -178,6 +178,7 @@ create index memo_memos_delivered_at_idx on memo_memos (delivered_at);
 create table skills_skills (
     skill_id    serial not null primary key,
     name        text not null,
+    description text,
     created_by  integer references nicks (id) on update cascade on delete set null,
     created_at  timestamp with time zone not null default now()
 );

@@ -47,8 +47,44 @@ has '+commands' => (
 
         'skill-levels' => { method      => 'skill_levels',
                             description => 'Displays and manages the enumeration of skill proficiencies.' },
+
+        'describe-skill' => { method      => 'describe_skill',
+                              description => 'Allows for the addition of descriptive text to a skill, to be shown whenever the skill is queried via (whoknows).',
+                              usage       => '<skill name> "<description>"',
+                              example     => 'SQL "Structured Query Language; the most common interface language used for interacting with relational databases."' },
     }},
 );
+
+sub describe_skill {
+    my ($self, $message, $command, $skill, @args) = @_;
+
+    unless (defined $skill && $skill =~ m{\w}) {
+        $message->response->raise('You must provide a skill name.');
+        return;
+    }
+
+    my $desc = join(' ', grep { defined $_ && $_ =~ m{\w+} } @args);
+
+    unless (defined $desc && length($desc) > 0) {
+        $message->response->raise('You must provide a description of the skill.');
+        return;
+    }
+
+    my $res = $self->bot->config->db->do(q{
+        update skills_skills
+        set description = ?
+        where lower(?) = lower(name)
+        returning *
+    }, $desc, $skill);
+
+    unless ($res && $res->next) {
+        $message->response->raise('Could not add a description to the skill "%s". Please make sure the skill exists and try again.', $skill);
+        return;
+    }
+
+    $message->response->push(sprintf('Description for %s has been updated.', $skill));
+    return;
+}
 
 sub skill_dontknow {
     my ($self, $message, $command, @skills) = @_;
@@ -251,6 +287,20 @@ sub show_user_skills {
 sub skill_whoknows {
     my ($self, $message, $command, $skill_name) = @_;
 
+    my $skill = $self->bot->config->db->do(q{
+        select name, description
+        from skills_skills
+        where lower(name) = lower(?)
+    }, $skill_name);
+
+    unless ($skill && $skill->next) {
+        $message->response->push(sprintf('Nobody has yet claimed to know about %s.', $skill_name));
+        return;
+    }
+
+    $message->response->push(sprintf('*%s*', $skill->{'name'}));
+    $message->response->push(sprintf('%s', $skill->{'description'})) if $skill->{'description'};
+
     my $res = $self->bot->config->db->do(q{
         select l.name, array_agg(n.name) as nicks
         from skills_nicks sn
@@ -263,11 +313,11 @@ sub skill_whoknows {
     }, $skill_name);
 
     if ($res->count < 1) {
-        $message->response->push(sprintf('Nobody has yet claimed to know about "%s".', $skill_name));
+        $message->response->push(sprintf('Nobody has yet claimed to know about %s.', $skill));
         return;
     }
 
-    $message->response->push(sprintf('The following people have expressed some level of proficiency with "%s":', $skill_name));
+#    $message->response->push(sprintf('The following people have expressed some level of proficiency with "%s":', $skill_name));
     while ($res->next) {
         $message->response->push(sprintf('*%s:* %s', $res->{'name'}, join(', ', sort { $a cmp $b } @{$res->{'nicks'}})));
     }
@@ -319,7 +369,7 @@ sub skill_list {
         $res = $self->bot->config->db->do(q{
             select s.name, count(n.nick_id) as knowers
             from skills_skills s
-                left join skills_nicks n using (skill_id)
+                join skills_nicks n using (skill_id)
             where s.name ~* ?
             group by s.name
             order by s.name asc
@@ -328,7 +378,7 @@ sub skill_list {
         $res = $self->bot->config->db->do(q{
             select s.name, count(n.nick_id) as knowers
             from skills_skills s
-                left join skills_nicks n using (skill_id)
+                join skills_nicks n using (skill_id)
             group by s.name
             order by s.name asc
         });
@@ -346,11 +396,11 @@ sub skill_list {
     }
 
     if (@skills < 1) {
-        $message->response->push('Apparently nobody knows anything. There are no skills registered yet.');
+        $message->response->push('No matching skills could be located.');
         return;
     }
 
-    $message->response->push(sprintf('%d skills have been registered:', scalar(@skills)));
+    $message->response->push(sprintf('%d%s skills have been registered:', scalar(@skills), (defined $pattern ? ' matching' : '')));
 
     local $Text::Wrap::columns = 120;
     @skills = split(/\n/o, wrap('','',join(', ', @skills)));
