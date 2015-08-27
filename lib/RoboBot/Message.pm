@@ -124,6 +124,7 @@ sub BUILD {
 
     if ($self->raw =~ m{^\s*\(\S+}o) {
         unless ($self->expressions_balanced) {
+            return; # stop emitting the unbalanced expression error in channels
             return $self->response->raise('Unbalanced S-Expression provided.');
         }
 
