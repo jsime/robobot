@@ -52,8 +52,69 @@ has '+commands' => (
                               description => 'Allows for the addition of descriptive text to a skill, to be shown whenever the skill is queried via (whoknows).',
                               usage       => '<skill name> "<description>"',
                               example     => 'SQL "Structured Query Language; the most common interface language used for interacting with relational databases."' },
+
+        'relate-skills' => { method      => 'relate_skills',
+                             description => 'Creates a relationship between multiple skills. Related skills will show up in the output of (whoknows). Note that this function creates one-way relationships, since they are more often relevant than assuming a two-way relationship. In other words, (relate-skills Oracle SQL) to indicate SQL is related to Oracle is more relevant than (relate-skills SQL Oracle) implying that the product Oracle is relevant to general questions about SQL.',
+                             usage       => '<parent skill name> <related skill name>',
+                             example     => 'NodeJS Javascript' },
     }},
 );
+
+sub relate_skills {
+    my ($self, $message, $command, $skill, @skills) = @_;
+
+    unless (defined $skill && $skill =~ m{\w+}) {
+        $message->response->raise('You must provide a parent skill name.');
+        return;
+    }
+
+    unless (@skills && scalar(@skills) > 0) {
+        $message->response->raise('You must provide at least one related skill name.');
+        return;
+    }
+
+    $skill = $self->bot->config->db->do(q{
+        select *
+        from skills_skills
+        where lower(name) = lower(?)
+    }, $skill);
+
+    unless ($skill && $skill->next) {
+        $message->response->raise('No matching skill. Please try again.');
+        return;
+    }
+
+    my @related;
+
+    foreach my $name (@skills) {
+        # Lookup the related skill first to get the properly-capitalized version
+        # of the name, and to ensure it's a real skill.
+        my $rel = $self->bot->config->db->do(q{
+            select skill_id, name
+            from skills_skills
+            where lower(name) = lower(?)
+        }, $name);
+
+        unless ($rel && $rel->next) {
+            $message->response->raise('There is currently no skill for %s. Please check the name and try again.', $name);
+            next;
+        }
+
+        # Blindly ignore any duplicate errors.
+        my $res = $self->bot->config->db->do(q{
+            insert into skills_related (skill_id, related_id) values
+            ( ?, ? )
+        }, $skill->{'skill_id'}, $rel->{'skill_id'});
+
+        push(@related, $rel->{'name'});
+    }
+
+    if (@related > 0) {
+        $message->response->push(sprintf('%s has been given the related skill(s): %s', $skill->{'name'}, join(', ', @related)));
+    }
+
+    return;
+}
 
 sub describe_skill {
     my ($self, $message, $command, $skill, @args) = @_;
@@ -288,7 +349,7 @@ sub skill_whoknows {
     my ($self, $message, $command, $skill_name) = @_;
 
     my $skill = $self->bot->config->db->do(q{
-        select name, description
+        select skill_id, name, description
         from skills_skills
         where lower(name) = lower(?)
     }, $skill_name);
@@ -302,6 +363,26 @@ sub skill_whoknows {
     $message->response->push(sprintf('%s', $skill->{'description'})) if $skill->{'description'};
 
     my $res = $self->bot->config->db->do(q{
+        select s.name
+        from skills_skills s
+            join skills_related r on (s.skill_id = r.related_id)
+        where r.skill_id = ?
+        order by lower(s.name) asc
+    }, $skill->{'skill_id'});
+
+    if ($res) {
+        my @related;
+
+        while ($res->next) {
+            push(@related, $res->{'name'});
+        }
+
+        if (@related > 0) {
+            $message->response->push(sprintf('_Related skills:_ %s', join(', ', @related)));
+        }
+    }
+
+    $res = $self->bot->config->db->do(q{
         select l.name, array_agg(n.name) as nicks
         from skills_nicks sn
             join skills_levels l on (l.level_id = sn.skill_level_id)
@@ -317,7 +398,6 @@ sub skill_whoknows {
         return;
     }
 
-#    $message->response->push(sprintf('The following people have expressed some level of proficiency with "%s":', $skill_name));
     while ($res->next) {
         $message->response->push(sprintf('*%s:* %s', $res->{'name'}, join(', ', sort { $a cmp $b } @{$res->{'nicks'}})));
     }
@@ -415,7 +495,7 @@ sub skill_levels {
     my ($self, $message, $command) = @_;
 
     my $res = $self->bot->config->db->do(q{
-        select name
+        select name, description
         from skills_levels
         order by sort_order
     });
@@ -424,7 +504,11 @@ sub skill_levels {
 
     if ($res) {
         while ($res->next) {
-            $message->response->push($res->{'name'});
+            if ($res->{'description'}) {
+                $message->response->push(sprintf('*%s*: %s', $res->{'name'}, $res->{'description'}));
+            } else {
+                $message->response->push($res->{'name'});
+            }
         }
     }
 

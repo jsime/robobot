@@ -187,15 +187,18 @@ create unique index skills_lower_name_idx on skills_skills (lower(name));
 create table skills_levels (
     level_id    serial not null primary key,
     name        text not null,
+    description text,
     sort_order  integer not null default 0
 );
 create unique index skills_levels_lower_name_idx on skills_levels (lower(name));
-insert into skills_levels (name, sort_order) values
-    ('Novice',0),
-    ('Intermediate',1),
-    ('Advanced',2),
-    ('Expert',3),
-    ('Creator',4);
+insert into skills_levels (name, sort_order, description) values
+    ('Plebe',        -1, 'Heard of the topic, but know next to nothing about it.'),
+    ('Novice',        0, 'Tinkered a bit with something, but still very green.'),
+    ('Intermediate',  1, 'Basic knowledge of a topic.'),
+    ('Advanced',      2, 'Solid knowledge and significant experience with the topic.'),
+    ('Expert',        3, 'You know a lot of the tricks, have probably contributed libraries/patches/features, and may even be active on mailing lists and IRC channels.'),
+    ('Creator',       4, 'Actually the honest-to-goodness (co-)creator of the project, language, tool, etc. If you don''t know the answer, hope is probably lost.'),
+    ('Thoughtlord',  10, 'You are Jon Hendren. http://www.jonhendren.com/');
 
 create table skills_nicks (
     skill_id        integer not null references skills_skills (skill_id) on update cascade on delete cascade,
@@ -203,6 +206,13 @@ create table skills_nicks (
     skill_level_id  integer not null references skills_levels (level_id) on update cascade on delete cascade
 );
 alter table skills_nicks add primary key (skill_id, nick_id);
+
+create table skills_related (
+    skill_id    integer not null references skills_skills (skill_id) on update cascade on delete cascade,
+    related_id  integer not null references skills_skills (skill_id) on update cascade on delete cascade
+);
+alter table skills_related add primary key (skill_id, related_id);
+create index skills_related_related_id_idx on skills_related (related_id);
 
 --
 -- URL TITLES
