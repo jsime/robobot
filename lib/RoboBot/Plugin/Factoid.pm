@@ -42,7 +42,7 @@ sub check_factoids {
 
     return if $message->has_expression;
 
-    return unless $message->raw =~ m{^\s*(?:what|who|where|when|why|how)\s+(.+)\?\s*$}i;
+    return unless $message->raw =~ m{^\s*(?:what|who|where|when|why|how|is|are)\s+(.+)\?\s*$}i;
 
     my $query = lc($1);
 
