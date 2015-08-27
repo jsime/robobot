@@ -114,7 +114,10 @@ sub oncall {
         ));
     }
 
-    if (@extras && @extras > 0) {
+    # TODO: Ugly hack for now to suppress defaulted string of "message" in the
+    #       various !oncall<X> macros we use in Slack. Should be fixed long-term
+    #       by revamping the macro variables code.
+    if (@extras && @extras > 0 && lc($extras[0]) ne 'message') {
         $message->response->push(sprintf('<%s> %s', $message->sender->name, join(' ', @extras)));
     }
 
