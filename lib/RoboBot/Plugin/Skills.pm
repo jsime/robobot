@@ -394,7 +394,7 @@ sub skill_whoknows {
     }, $skill_name);
 
     if ($res->count < 1) {
-        $message->response->push(sprintf('Nobody has yet claimed to know about %s.', $skill));
+        $message->response->push(sprintf('Nobody has yet claimed to know about %s.', $skill_name));
         return;
     }
 
