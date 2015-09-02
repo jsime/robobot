@@ -46,6 +46,13 @@ has '+commands' => (
                     usage           => '(<condition>) (<expression>) [(<condition>) (<expression>) [...]] [(<fallback>)]',
                     example         => '(> 1 5) (format "%d is somehow greater than %d" 1 5) (eq "foo" "bar") (format "%s somehow matches %s" "foo" "bar") "Nothing is true."',
                     result          => '"Nothing is true."' },
+
+        'apply' => { method          => 'control_apply',
+                     preprocess_args => 0,
+                     description     => 'Accepts a function name as its first argument and passes all remaining list elements one-by-one as arguments to the supplied expression.',
+                     usage           => '<function to apply> <list(s) of elements>',
+                     example         => '+ (seq 1 5)',
+                     result          => '2 3 4 5 6' },
     }},
 );
 
@@ -109,6 +116,32 @@ sub control_cond {
     }
 
     return $message->process_list($fallback);
+}
+
+sub control_apply {
+    my ($self, $message, $command, $func_name, @args) = @_;
+
+    unless (defined $func_name && (exists $self->bot->commands->{lc($func_name)} || exists $self->bot->macros->{lc($func_name)})) {
+        $message->response->raise('You must provide a function name to apply to your arguments.');
+        return;
+    }
+
+    unless (@args) {
+        $message->response->raise('You cannot apply a function to a non-existent list of arguments.');
+        return;
+    }
+
+    # it's not an error to have no arguments, but we can at least short-circuit.
+    return unless @args > 0;
+
+    my @collect;
+
+    foreach my $arg (@args) {
+        my @res = $message->process_list($arg);
+        push(@collect, $message->process_list([$func_name, $_])) foreach @res;
+    }
+
+    return @collect;
 }
 
 __PACKAGE__->meta->make_immutable;
