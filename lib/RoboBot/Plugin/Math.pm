@@ -71,6 +71,7 @@ sub abs {
 sub add {
     my ($self, $message, $command, @args) = @_;
 
+    push(@args, 1) unless @args && @args > 1;
     return unless $self->has_n_numbers($message, 2, @args);
     return $args[0] + $args[1];
 }
