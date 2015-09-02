@@ -39,6 +39,13 @@ has '+commands' => (
                      usage           => '(<boolean condition>) (<expression>)',
                      example         => '(== (roll 6 2) 2) ("Snake-eyes!")',
                      result          => 'Snake-eyes!' },
+
+        'cond' => { method          => 'control_cond',
+                    preprocess_args => 0,
+                    description     => 'Accepts pairs of expressions, where the first of each pair is a condition that if true in its evaluation leads to the second expression being evaluated and its value returned. The first condition-expression pair to evaluate will terminate the (cond) function\'s evaluation. If the argument list ends with a single, un-paired fallback expression, then that will be evaluated in the event none of the preceding conditions were true. If no fallback is provided, and none of the conditions are true, then an empty list is returned.',
+                    usage           => '(<condition>) (<expression>) [(<condition>) (<expression>) [...]] [(<fallback>)]',
+                    example         => '(> 1 5) (format "%d is somehow greater than %d" 1 5) (eq "foo" "bar") (format "%s somehow matches %s" "foo" "bar") "Nothing is true."',
+                    result          => '"Nothing is true."' },
     }},
 );
 
@@ -84,6 +91,24 @@ sub control_while {
     }
 
     return @res;
+}
+
+sub control_cond {
+    my ($self, $message, $command, @pairs) = @_;
+
+    return unless @pairs && @pairs >= 2;
+
+    my $fallback = scalar(@pairs) % 2 == 1 ? pop @pairs : [];
+
+    while (my $cond = shift @pairs) {
+        my $list = shift @pairs;
+        if ($message->process_list($cond)) {
+            my @r = $message->process_list($list);
+            return @r;
+        }
+    }
+
+    return $message->process_list($fallback);
 }
 
 __PACKAGE__->meta->make_immutable;
