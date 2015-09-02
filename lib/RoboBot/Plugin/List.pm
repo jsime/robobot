@@ -16,7 +16,7 @@ has '+name' => (
 );
 
 has '+description' => (
-    default => 'Provides functions which operates on lists.',
+    default => 'Provides functions which generate and operate on lists.',
 );
 
 has '+commands' => (
@@ -44,6 +44,12 @@ has '+commands' => (
                        usage       => '<... list ...>',
                        example     => '"James" "Alice" "Frank" "Janet"',
                        result      => '"Alice" "Janet" "James" "Frank"' },
+
+        'seq' => { method      => 'list_seq',
+                   description => 'Returns a sequence of numbers.',
+                   usage       => '<first> <last> [<step>]',
+                   example     => '1 10 3',
+                   result      => '1 4 7 10' },
     }},
 );
 
@@ -85,6 +91,31 @@ sub list_shuffle {
     my ($self, $message, $command, @args) = @_;
 
     return shuffle @args;
+}
+
+sub list_seq {
+    my ($self, $message, $command, $first, $last, $step) = @_;
+
+    $step //= 1;
+
+    unless (defined $first && defined $last && $first =~ m{^\d+$} && $last =~ m{^\d+$}) {
+        $message->response->raise('You must supply a starting number and ending number for the sequence.');
+        return;
+    }
+
+    unless ($first <= $last) {
+        $message->response->raise('Sequence starting number cannot be greater than the ending number.');
+        return;
+    }
+
+    my @seq;
+
+    do {
+        push(@seq, $first);
+        $first += $step;
+    } while ($first <= $last);
+
+    return @seq;
 }
 
 __PACKAGE__->meta->make_immutable;
