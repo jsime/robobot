@@ -201,6 +201,7 @@ sub process_list {
     my ($self, $list) = @_;
 
     return $list unless ref($list) eq 'ARRAY';
+    return unless defined $list->[0];
 
     my $command = lc(scalar($list->[0]));
 
