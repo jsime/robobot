@@ -181,10 +181,52 @@ sub show_macro {
 
     my $macro = $self->bot->macros->{$macro_name};
 
-    $message->response->push(sprintf('(defmacro %s (%s) \'%s)', $macro->name, $macro->signature, $macro->definition));
+    my $pp = sprintf("(defmacro %s\n  (%s)\n  '%s)", $macro->name, $macro->signature, _pprint($macro->expression, 2));
+    $pp =~ s{\n\s+([^\(]+)\n}{ $1\n}gs;
+    $message->response->push($pp);
     $message->response->push(sprintf('Defined by <%s> on %s', $macro->definer->name, $macro->timestamp->ymd));
 
     return;
+}
+
+sub _pprint {
+    my ($list, $nlv) = @_;
+
+    $list //= [];
+    $nlv  //= 1;
+
+    if ($nlv <= 1 && ref($list) eq 'ARRAY' && scalar(@{$list}) == 1) {
+        # Special-case looking for unnecessary nesting and remove the extra layers.
+        return _pprint($list->[0], $nlv);
+    } elsif (ref($list) eq 'ARRAY') {
+        if (scalar(@{$list}) == 2 && $list->[0] eq 'backquote' && ref($list->[1]) eq 'ARRAY') {
+            # Special case the '(...) forms so they don't show up as (backquote (...))
+            return sprintf("'%s", _pprint($list->[1], $nlv));
+        } elsif (scalar(grep { ref($_) eq 'ARRAY' } @{$list}) == 0) {
+            # Simplest case: we are at a terminus list with no children.
+            return sprintf('(%s)', join(' ', map { _fmtstr($_) } @{$list}));
+        } else {
+            # Harder case: there are child lists which must be formatted.
+            my @subs;
+            push(@subs, _pprint($_, $nlv + 1)) for @{$list};
+            return sprintf('(%s)', join(sprintf("\n%s", "  " x $nlv), @subs));
+        }
+    } else {
+        return _fmtstr($list);
+    }
+}
+
+sub _fmtstr {
+    my ($str) = @_;
+
+    $str = "$str";
+
+    if ($str =~ m{[\s"']}s) {
+        $str =~ s{"}{\\"}g;
+        $str =~ s{\n}{\\n}gs;
+        return '"' . $str . '"';
+    }
+    return $str;
 }
 
 __PACKAGE__->meta->make_immutable;
