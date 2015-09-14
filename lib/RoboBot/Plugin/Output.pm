@@ -40,6 +40,12 @@ has '+commands' => (
                      example     => '"[,\s]+" "1, 2, 3,4,    5"',
                      result      => '(1 2 3 4 5)' },
 
+        'lower' => { method      => 'str_lower',
+                     description => 'Converts the given string to lower-case.', },
+
+        'upper' => { method      => 'str_upper',
+                     description => 'Converts the given string to upper-case.', },
+
         'print' => { method      => 'print_str',
                      description => 'Prints input arguments. If one argument is given, it is simply echoed unaltered. If multiple arguments are given they are printed in array notation.',
                      usage       => '<value> [<value 2> ... <value N>]',
@@ -96,6 +102,18 @@ sub split_str {
     }
 
     return @list;
+}
+
+sub str_lower {
+    my ($self, $message, $command, $str) = @_;
+
+    return lc($str);
+}
+
+sub str_upper {
+    my ($self, $message, $command, $str) = @_;
+
+    return uc($str);
 }
 
 sub print_str {
