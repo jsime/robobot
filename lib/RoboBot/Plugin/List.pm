@@ -50,8 +50,25 @@ has '+commands' => (
                    usage       => '<first> <last> [<step>]',
                    example     => '1 10 3',
                    result      => '1 4 7 10' },
+
+        'any' => { method      => 'list_any',
+                   description => 'Returns true if any list element is matched by the first function parameter.',
+                   usage       => '<string> < ... list to search ... >',
+                   example     => 'foo bar baz foo xyzzy',
+                   result      => '1', },
     }},
 );
+
+sub list_any {
+    my ($self, $message, $command, $str, @list) = @_;
+
+    return unless defined $str && @list && scalar(@list) > 0;
+
+    foreach my $el (@list) {
+        return 1 if $str eq $el;
+    }
+    return;
+}
 
 sub list_nth {
     my ($self, $message, $command, $nth, @args) = @_;
