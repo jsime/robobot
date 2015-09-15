@@ -87,6 +87,26 @@ sub BUILD {
 sub connect {
     my ($self) = @_;
 
+    # Build our channel list so that things like channel linking will work.
+    my $res = $self->bot->config->db->do(q{
+        select id, name
+        from channels
+        where network_id = ?
+        order by name asc
+    }, $self->id);
+
+    return unless $res;
+
+    my @channels;
+
+    while ($res->next) {
+        # Do not include Slack DMs in the channel list.
+        next if $res->{'name'} =~ m{^dm:};
+        push(@channels, RoboBot::Channel->find_by_id($self->bot, $res->{'id'}));
+    }
+
+    $self->channels(\@channels);
+
     # Callbacks should be registered already in the BUILD method, so we just
     # need to start the client and have it connect to the Slack WebSocket API.
     $self->client->start;

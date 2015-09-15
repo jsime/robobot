@@ -44,8 +44,15 @@ has 'nick' => (
 );
 
 has 'channels' => (
-    is  => 'rw',
-    isa => 'ArrayRef[RoboBot::Channel]',
+    is      => 'rw',
+    isa     => 'ArrayRef[RoboBot::Channel]',
+    default => sub { [] },
+);
+
+has 'passive' => (
+    is      => 'ro',
+    isa     => 'Bool',
+    default => 0,
 );
 
 sub BUILD {

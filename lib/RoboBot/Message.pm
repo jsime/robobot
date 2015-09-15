@@ -167,8 +167,9 @@ sub process {
         }
     }
 
-    # Process the message itself
-    if ($self->has_expression) {
+    # Process the message itself (unless the network on which it was received is
+    # marked as "passive" - only hooks will run, not functions or macros).
+    if ($self->has_expression && ! $self->network->passive) {
         my (@r);
 
         foreach my $expr (@{$self->expression}) {

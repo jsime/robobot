@@ -24,8 +24,8 @@ has '+commands' => (
                        usage       => '' },
 
         'channel-list' => { method      => 'channels',
-                            description => 'Returns a list of the channels on this network which the bot has joined.',
-                            usage       => '' },
+                            description => 'By default, returns a list of the channels on this network which the bot has joined. If provided a network name, will return the list of channels joined by the bot on that network. Refer to (network-list) for the list of network names.',
+                            usage       => '[<network>]' },
 
         'network-list' => { method      => 'networks',
                             description => 'Returns a list of the networks to which the bot is currently connected.',
@@ -34,17 +34,19 @@ has '+commands' => (
 );
 
 sub channels {
-    my ($self, $message) = @_;
+    my ($self, $message, $command, $pattern) = @_;
 
-    # TODO: Fix this to work with the new multi-protocol network library.
-    my $network = $self->bot->irc->{'alias'};
+    my $network = $message->network;
 
-    unless (exists $self->bot->config->networks->{$network}) {
-        $message->response->raise('I somehow cannot determine what network I am connected to right now.');
-        return;
+    if (defined $pattern) {
+        $network = (grep { $_->name =~ m{$pattern}i } @{$self->bot->networks})[0];
+        unless (defined $network) {
+            $message->response->raise('Could not find a network which matches the pattern %s. Please check (network-list).', $pattern);
+            return;
+        }
     }
 
-    return join(', ', sort { lc($a) cmp lc($b) } map { '#' . $_->name } @{$self->bot->config->networks->{$network}->channels});
+    return join(', ', sort { lc($a) cmp lc($b) } map { '#' . $_->name } @{$network->channels});
 }
 
 sub networks {
