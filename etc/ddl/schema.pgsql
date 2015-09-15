@@ -326,4 +326,25 @@ create table factoids (
     updated_at  timestamp with time zone
 );
 
+--
+-- TWITTER
+--
+create table twitter_subscriptions (
+    channel_id  integer not null primary key references channels (id) on update cascade on delete cascade,
+    filters     text[],
+    following   integer[],
+    created_at  timestamp with time zone not null default now(),
+    updated_at  timestamp with time zone
+);
+
+--
+-- CHANNEL LINKING
+--
+create table channel_links (
+    parent_channel_id   integer not null references channels (id) on update cascade on delete cascade,
+    child_channel_id    integer not null references channels (id) on update cascade on delete cascade,
+    created_by          integer not null references nicks (id) on update cascade on delete restrict,
+    created_at          timestamp with time zone not null default now()
+);
+
 commit;
