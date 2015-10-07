@@ -45,6 +45,12 @@ has '+commands' => (
                        example     => '"James" "Alice" "Frank" "Janet"',
                        result      => '"Alice" "Janet" "James" "Frank"' },
 
+        'sort' => { method      => 'list_sort',
+                    description => 'Returns the list elements in sorted order.',
+                    usage       => '<... list ...>',
+                    example     => '"James" "Alice" "Frank" "Janet"',
+                    result      => '"Alice" "Frank" "James" "Janet"' },
+
         'seq' => { method      => 'list_seq',
                    description => 'Returns a sequence of numbers.',
                    usage       => '<first> <last> [<step>]',
@@ -108,6 +114,12 @@ sub list_shuffle {
     my ($self, $message, $command, @args) = @_;
 
     return shuffle @args;
+}
+
+sub list_sort {
+    my ($self, $message, $command, @args) = @_;
+
+    return sort @args;
 }
 
 sub list_seq {
