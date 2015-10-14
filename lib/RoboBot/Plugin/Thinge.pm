@@ -41,6 +41,10 @@ has '+commands' => (
         'thinge-types' => { method      => "show_types",
                             description => 'Lists the current types of thinges which have collections.',
                             usage       => '' },
+
+        'thinge-search' => { method      => 'search_thinges',
+                             description => 'Like (thinge-find), will search through the type of thinges specified, but unlike -find this function returns a summary of multiple matches. The <limit> argument may be used to change the number of matches shown (10 by default). Search patterns are unanchored, case-insensitive regular expressions.',
+                             usage       => '<type> <pattern> [<limit>]' },
     }},
 );
 
@@ -167,6 +171,45 @@ sub find_thinge {
     } else {
         # We could not find a matching thinge.
         $message->response->raise('Could not locate a %s that matched the pattern "%s".', $type, $pattern);
+    }
+
+    return;
+}
+
+sub search_thinges {
+    my ($self, $message, $command, $type, $pattern, $limit) = @_;
+
+    $limit //= 10;
+
+    unless (defined $type && defined $pattern) {
+        $message->response->raise('Must supply a thinge type and a pattern for searching.');
+        return;
+    }
+
+    my $res = $self->bot->config->db->do(q{
+        select t.thinge_num, t.thinge_url
+        from thinge_thinges t
+            join thinge_types tt on (tt.id = t.type_id)
+        where lower(tt.name) = lower(?)
+            and t.thinge_url ~* ?
+            and t.network_id = ?
+        order by t.added_at desc
+    }, $type, $pattern, $message->network->id);
+
+    if ($res) {
+        my $i;
+        my $total = $res->count;
+
+        for ($i = 0; $i < $limit && $res->next; $i++) {
+            my $text = length($res->{'thinge_url'}) > 64
+                ? substr($res->{'thinge_url'}, 0, 56) . '...'
+                : $res->{'thinge_url'};
+
+            $message->response->push(sprintf('[%d] %s', $res->{'thinge_num'}, $text));
+        }
+
+        $message->response->push(sprintf('Displayed %d match%s from a total of %d.',
+            $i, ($i == 1 ? '' : 'es'), $total));
     }
 
     return;
