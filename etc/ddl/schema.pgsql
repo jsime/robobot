@@ -347,4 +347,23 @@ create table channel_links (
     created_at          timestamp with time zone not null default now()
 );
 
+--
+-- ACHIEVEMENTS
+--
+create table achievements (
+    id          serial not null primary key,
+    name        text not null,
+    description text not null,
+    query       text not null,
+    created_by  integer not null references nicks (id) on update cascade on delete restrict,
+    created_at  timestamp with time zone not null default now()
+);
+
+create table achievement_nicks (
+    achievement_id  integer not null references achievements (id) on update cascade on delete restrict,
+    nick_id         integer not null references nicks (id) on update cascade on delete cascade,
+    created_at      timestamp with time zone not null default now()
+);
+alter table achievement_nicks add primary key (achievement_id, nick_id);
+
 commit;
