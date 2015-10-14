@@ -38,6 +38,9 @@ has '+commands' => (
         '--karma' => { method      => 'subtract_karma',
                        description => "Explicitly subtracts from the given nick's karma rating.",
                        usage       => '<nick>' },
+
+        'karma-leaders' => { method      => 'karma_leaders',
+                             description => 'Displays the nicks on your current network with the highest current karma.', },
     }},
 );
 
@@ -52,7 +55,8 @@ sub add_karma {
 
     $nick = RoboBot::Nick->new( config => $self->bot->config, name => "$nick" );
 
-    if (defined $nick) {
+    # Users can self-karma--, but they can't add karma to their own nick.
+    if (defined $nick && $nick->id != $message->sender->id) {
         my $res = $self->bot->config->db->do(q{
             insert into karma_karma ???
         }, {
@@ -100,6 +104,8 @@ sub update_karma {
         }, $nick);
 
         if ($res && $res->next) {
+            next if $karma_amount > 0 && $res->{'id'} == $message->sender->id;
+
             my $nick_id = $res->{'id'};
 
             $self->bot->config->db->do(q{
@@ -132,26 +138,51 @@ sub display_karma {
         my $nick_id = $res->{'id'};
 
         $res = $self->bot->config->db->do(q{
-            select sum(d.karma) as karma
-            from (
-                select from_nick_id, log(sum(karma))
-                from karma_karma
-                where nick_id = ? and karma = 1
-                group by from_nick_id
-
-                union all
-
-                select from_nick_id, log(sum(abs(karma))) * -1
-                from karma_karma
-                where nick_id = ? and karma = -1
-                group by from_nick_id
-            ) d(from_nick_id, karma)
-        }, $nick_id, $nick_id);
+            with t as (select count(*) as nicks from nicks)
+            select n.name,
+                coalesce(sum(k.karma)::real * (count(distinct(k.from_nick_id))::real / t.nicks), 0) * 100 as karma
+            from karma_karma k
+                join nicks n on (n.id = k.nick_id),
+                t
+            where n.id = ?
+            group by n.name, t.nicks
+        }, $nick_id);
 
         next unless $res && $res->next;
 
-        $message->response->push(sprintf('%s currently has %s karma.', $nick, $self->nf->format_number($res->[0] || 0, 3, 1)));
+        $message->response->push(sprintf('%s currently has %s karma.', $res->{'name'}, $self->nf->format_number($res->{'karma'} || 0, 4, 1)));
     }
+}
+
+sub karma_leaders {
+    my ($self, $message, $command) = @_;
+
+    my $res = $self->bot->config->db->do(q{
+        with t as (select count(*) as nicks from nicks)
+        select n.name as nick,
+            coalesce(sum(k.karma)::real * (count(distinct(k.from_nick_id))::real / t.nicks), 0) * 100 as karma
+        from karma_karma k
+            join nicks n on (n.id = k.nick_id),
+            t
+        where length(n.name) > 0
+            and n.id in ( select n.id
+                          from nicks n
+                              join logger_log l on (l.nick_id = n.id)
+                              join channels c on (c.id = l.channel_id)
+                          where c.network_id = ?
+                          group by n.id)
+        group by t.nicks, n.name
+        order by 2 desc, n.name asc
+        limit 5
+    }, $message->network->id);
+
+    if ($res) {
+        while ($res->next) {
+            $message->response->push(sprintf('*%s*: %s', $res->nick, $self->nf->format_number($res->{'karma'} || 0, 4, 1)));
+        }
+    }
+
+    return;
 }
 
 __PACKAGE__->meta->make_immutable;
