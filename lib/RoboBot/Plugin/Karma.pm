@@ -128,7 +128,7 @@ sub display_karma {
 
     foreach my $nick (@nicks) {
         my $res = $self->bot->config->db->do(q{
-            select id
+            select id, name
             from nicks
             where lower(name) = lower(?)
         }, $nick);
@@ -136,6 +136,7 @@ sub display_karma {
         next unless $res && $res->next;
 
         my $nick_id = $res->{'id'};
+        my $nick_name = $res->{'name'};
 
         $res = $self->bot->config->db->do(q{
             with t as (select count(*) as nicks from nicks)
@@ -148,10 +149,15 @@ sub display_karma {
             group by n.name, t.nicks
         }, $nick_id);
 
-        next unless $res && $res->next;
+        my $karma = 0;
+        if ($res && $res->next) {
+            $karma = $res->{'karma'};
+        }
 
-        $message->response->push(sprintf('%s currently has %s karma.', $res->{'name'}, $self->nf->format_number($res->{'karma'} || 0, 4, 1)));
+        $message->response->push(sprintf('%s currently has %s karma.', $nick_name, $self->nf->format_number($karma || 0, 4, 1)));
     }
+
+    return;
 }
 
 sub karma_leaders {
