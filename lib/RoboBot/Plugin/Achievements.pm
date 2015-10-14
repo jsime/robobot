@@ -74,11 +74,9 @@ sub show_achievement {
     my $name = join(' ', @args);
 
     my $res = $self->bot->config->db->do(q{
-        select a.id, a.name, a.description, count(an.*) as earned
+        select a.id, a.name, a.description
         from achievements a
-            left join achievement_nicks an on (an.achievement_id = a.id)
         where lower(name) = lower(?)
-        group by a.id, a.name, a.description
     }, $name);
 
     unless ($res && $res->next) {
@@ -88,22 +86,28 @@ sub show_achievement {
 
     $message->response->push(sprintf('Achievement: %s', $res->{'name'}));
     $message->response->push($res->{'description'});
-    $message->response->push(sprintf('Earned %d time%s.', $res->{'earned'}, $res->{'earned'} == 1 ? '' : 's'));
 
-    if ($res->{'earned'} > 0) {
-        $res = $self->bot->config->db->do(q{
-            select n.name
-            from nicks n
-                join achievement_nicks an on (an.nick_id = n.id)
-            where an.achievement_id = ?
-            order by n.name asc
-        }, $res->{'id'});
+    $res = $self->bot->config->db->do(q{
+        select n.name
+        from nicks n
+            join logger_log l on (l.nick_id = n.id)
+            join channels c on (c.id = l.channel_id)
+            join achievement_nicks an on (an.nick_id = n.id)
+        where an.achievement_id = ?
+            and c.network_id = ?
+        group by n.name
+        order by n.name asc
+    }, $res->{'id'}, $message->network->id);
 
-        my @names;
-        while ($res->next) {
-            push(@names, $res->{'name'});
-        }
+    my @names;
+    while ($res->next) {
+        push(@names, $res->{'name'});
+    }
 
+    my $num_names = scalar @names;
+    $message->response->push(sprintf('Earned %d time%s.', $num_names, $num_names == 1 ? '' : 's'));
+
+    if ($num_names > 0) {
         $message->response->push(sprintf('Recipients: %s', join(', ', @names)));
     }
 
