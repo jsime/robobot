@@ -18,7 +18,7 @@ has '+description' => (
     default => 'Exports functions for creating and viewing chat achievements.',
 );
 
-has '+before_hook' => (
+has '+after_hook' => (
     default => 'check_achievements',
 );
 
