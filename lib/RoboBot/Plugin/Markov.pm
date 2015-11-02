@@ -7,6 +7,7 @@ use namespace::autoclean;
 use Moose;
 use MooseX::SetOnce;
 
+use JSON;
 use Lingua::EN::Tagger;
 use List::Util qw( shuffle );
 
@@ -69,20 +70,17 @@ sub generate_markov {
 
     my @nick_ids;
 
-    # limit source nicks to just those who've spoken in the current channel if
-    # the wildcard was provided
+    # Limit source nicks to just those who've spoken in a channel on the current
+    # network, even when the target nick is specified by the sender.
     if (defined $target) {
-        unless ($message->has_channel) {
-            $message->response->raise('Could not determine source channel for nick selection.');
-            return;
-        }
-
         if ($target eq '*') {
             $res = $self->bot->config->db->do(q{
-                select distinct(nick_id)
-                from logger_log
-                where channel_id = ?
-            }, $message->channel->id);
+                select distinct(l.nick_id)
+                from logger_log l
+                    join channels c on (c.id = l.channel_id)
+                    join networks n on (n.id = c.network_id)
+                where n.id = ?
+            }, $message->channel->network->id);
 
             if ($res) {
                 while ($res->next) {
@@ -95,14 +93,21 @@ sub generate_markov {
                 return;
             }
         } else {
-            $res = $self->bot->config->db->do(q{
-                select id
-                from nicks
-                where lower(name) = lower(?)
-            }, $target);
+            my @nicks = map { lc($_) } grep { defined $_ } split(/[,\s]+/, $target);
 
-            if ($res && $res->next) {
-                @nick_ids = ($res->{'id'});
+            $res = $self->bot->config->db->do(q{
+                select distinct(n.id)
+                from nicks n
+                    join logger_log l on (l.nick_id = n.id)
+                    join channels c on (c.id = l.channel_id)
+                    join networks nt on (nt.id = c.network_id)
+                where lower(n.name) in ??? and nt.id = ?
+            }, \@nicks, $message->channel->network->id);
+
+            if ($res) {
+                while ($res->next) {
+                    push(@nick_ids, $res->{'id'});
+                }
             } else {
                 $message->response->raise('Target nick "%s" could not be located.', $target);
                 return;
@@ -157,16 +162,20 @@ sub generate_markov {
     }
 
     $res = $self->bot->config->db->do(q{
-        select *
-        from markov_sentence_forms
+        with usemax as (select max(used_count) as m from markov_sentence_forms)
+        select id, nick_id, structure, structure_jsonb,
+            used_count, used_count::float / usemax.m * 100 * random()
+        from markov_sentence_forms,
+            usemax
         where nick_id in ???
-            and ( structure like ? or structure like ? or structure like ? )
-        order by random()
+            and jsonb_array_length(structure_jsonb) between 5 and 20
+            and structure_jsonb \?& regexp_split_to_array(?, '[[:space:]]')
+            and structure like ?
+        order by 6 desc
         limit 1
     }, \@nick_ids,
-       ($seed->{'structure'} . ' %'),
-       ('% ' . $seed->{'structure'} . ' %'),
-       ('% ' . $seed->{'structure'})
+       $seed->{'structure'},
+       ('%' . $seed->{'structure'} . '%'),
     );
 
     unless ($res && $res->next) {
@@ -278,10 +287,10 @@ sub save_phrases {
 
         $res = $self->bot->config->db->do(q{
             insert into markov_phrases ??? returning id
-        }, { nick_id    => $message->sender->id,
-             structure  => $phrase->{'structure'},
-             phrase     => $phrase->{'phrase'},
-             used_count => 1,
+        }, { nick_id         => $message->sender->id,
+             structure       => $phrase->{'structure'},
+             phrase          => $phrase->{'phrase'},
+             used_count      => 1,
         });
     }
 
@@ -378,9 +387,10 @@ sub save_sentence_form {
 
     $res = $self->bot->config->db->do(q{
         insert into markov_sentence_forms ??? returning id
-    }, { nick_id    => $message->sender->id,
-         structure  => $form,
-         used_count => 1,
+    }, { nick_id         => $message->sender->id,
+         structure       => $form,
+         structure_jsonb => encode_json([split(/\s+/, $form)]),
+         used_count      => 1,
     });
 
     return 1;
