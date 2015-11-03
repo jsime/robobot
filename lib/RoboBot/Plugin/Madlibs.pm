@@ -78,6 +78,7 @@ sub complete_madlib {
         return;
     }
 
+    my @orig_words = @words;
     my $result = $madlib->{'madlib'};
     foreach my $pl (@{$madlib->{'placeholders'}}) {
         my $word = shift(@words);
@@ -87,7 +88,7 @@ sub complete_madlib {
     my $res = $self->bot->config->db->do(q{
         update madlibs_results set ??? where id = ?
     }, {
-        words        => \@words,
+        words        => \@orig_words,
         filled_in    => $result,
         completed_at => 'now',
     }, $madlib->{'result_id'});
