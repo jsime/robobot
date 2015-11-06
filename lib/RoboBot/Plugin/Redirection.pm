@@ -55,7 +55,7 @@ sub to_channel {
 
     $to_channel =~ s{^\#*}{}ogs;
 
-    if (my $channel = (grep { lc($_->name) eq lc($to_channel) } @{$self->bot->config->channels})[0]) {
+    if (my $channel = (grep { lc($_->name) eq lc($to_channel) } @{$message->network->channels})[0]) {
         $message->response->channel($channel);
         $message->response->clear_nick;
     } else {
