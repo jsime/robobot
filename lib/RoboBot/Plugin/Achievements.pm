@@ -107,6 +107,11 @@ sub show_achievement {
     my $num_names = scalar @names;
     $message->response->push(sprintf('Earned %d time%s.', $num_names, $num_names == 1 ? '' : 's'));
 
+    # Cut out here for now, instead of printing recipient names. Listing everyone
+    # probably leads to annoying pings, especially if someone decides to start
+    # checking out the details of a bunch of different achievements.
+    return;
+
     if ($num_names > 0) {
         $message->response->push(sprintf('Recipients: %s', join(', ', @names)));
     }
