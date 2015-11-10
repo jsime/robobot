@@ -44,8 +44,103 @@ has '+commands' => (
                     preprocess_args => 0,
                     description     => 'Increments a numeric variable by the given amount. If no increment amount is provided, 1 is assumed. Negative amounts are permissible.',
                     usage           => '<variable name> [<amount>]' },
+
+        'set-global' => { method      => 'set_global',
+                          description => 'Sets a global variable (accessible from any channel on the current network).',
+                          usage       => '<name> <value>' },
+
+        'unset-global' => { method      => 'unset_global',
+                            description => 'Unsets a global variable on the current network.',
+                            usage       => '<name>' },
+
+        'var' => { method      => 'get_global',
+                   description => 'Retrieves the value(s) of a global variable, if it exists on the current network. If the variable does not exist, an empty list is returned.',
+                   usage       => '<name>' },
     }},
 );
+
+sub set_global {
+    my ($self, $message, $command, $var_name, @values) = @_;
+
+    unless (defined $var_name && $var_name =~ m{\w+}) {
+        $message->response->raise('Must provide a variable name and at least one value.');
+        return;
+    }
+
+    unless (@values) {
+        return $self->unset_global($message, $command, $var_name);
+    }
+
+    my $res = $self->bot->config->db->do(q{
+        update global_vars
+        set ???
+        where network_id = ?
+            and lower(var_name) = lower(?)
+    }, {
+        var_values => \@values,
+        updated_at => 'now',
+    }, $message->network->id, $var_name);
+
+    if ($res && $res->count > 0) {
+        $message->response->push(sprintf('Global variable %s has been updated.', $var_name));
+        return;
+    }
+
+    $res = $self->bot->config->db->do(q{
+        insert into global_vars ??? returning *
+    }, {
+        network_id => $message->network->id,
+        var_name   => $var_name,
+        var_values => \@values,
+        created_by => $message->sender->id,
+    });
+
+    if ($res && $res->next && $res->{'id'} =~ m{\d+}) {
+        $message->response->push(sprintf('Global variable %s has been set.', $var_name));
+        return;
+    }
+
+    $message->response->raise('Could not set global variable %s. Please check your input and try again.', $var_name);
+    return;
+}
+
+sub unset_global {
+    my ($self, $message, $command, $var_name) = @_;
+
+    unless (defined $var_name && $var_name =~ m{\w+}) {
+        $message->response->raise('Must provide a variable name to unset it.');
+        return;
+    }
+
+    my $res = $self->bot->config->db->do(q{
+        delete from global_vars where network_id = ? and lower(var_name) = lower(?)
+    }, $message->network->id, $var_name);
+
+    $message->response->push(sprintf('Global variable %s has been unset.', $var_name))
+        if $res && $res->count > 0;
+    return;
+}
+
+sub get_global {
+    my ($self, $message, $command, $var_name) = @_;
+
+    unless (defined $var_name && $var_name =~ m{\w+}) {
+        $message->response->raise('Must provide a variable name to retrieve a value.');
+        return;
+    }
+
+    my $res = $self->bot->config->db->do(q{
+        select var_values
+        from global_vars
+        where network_id = ? and lower(var_name) = lower(?)
+    }, $message->network->id, $var_name);
+
+    if ($res && $res->next && defined $res->{'var_values'}) {
+        return @{$res->{'var_values'}};
+    } else {
+        return;
+    }
+}
 
 sub is_defined {
     my ($self, $message, $command, @var_list) = @_;

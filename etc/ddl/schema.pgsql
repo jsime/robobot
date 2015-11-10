@@ -49,6 +49,20 @@ create table macros (
 create unique index macros_name_idx on macros (lower(name));
 
 --
+-- GLOBAL VARIABLES
+--
+create table global_vars (
+    id          serial not null primary key,
+    network_id  integer not null references networks (id) on update cascade on delete cascade,
+    var_name    text not null,
+    var_values  text[] not null,
+    created_by  integer not null references nicks (id) on update cascade on delete cascade,
+    created_at  timestamp with time zone not null default now(),
+    updated_at  timestamp with time zone
+);
+create unique index global_vars_network_id_var_name_idx on global_vars (network_id, var_name);
+
+--
 -- AUTHORIZATIONS
 --
 create table auth_permissions (
