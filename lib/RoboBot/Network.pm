@@ -55,8 +55,14 @@ has 'passive' => (
     default => 0,
 );
 
+has 'disabled_plugins' => (
+    is      => 'rw',
+    isa     => 'HashRef',
+    default => sub { {} },
+);
+
 sub BUILD {
-    my ($self) = @_;
+    my ($self, $args) = @_;
 
     my $res = $self->config->db->do(q{
         select id, name
@@ -78,6 +84,14 @@ sub BUILD {
         }
     }
 
+    # downcase all disabled plugin names for easier matching during message processing
+    if (scalar(keys(%{$self->disabled_plugins})) > 0) {
+        $self->disabled_plugins({
+            map { lc($_) => 1 }
+            grep { $self->disabled_plugins->{$_} =~ m{(yes|on|true|1|disabled)}i }
+            keys %{$self->disabled_plugins}
+        });
+    }
 }
 
 __PACKAGE__->meta->make_immutable;

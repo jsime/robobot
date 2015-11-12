@@ -163,6 +163,9 @@ sub process {
     # Process any before-hooks first
     if ($self->bot->run_before_hooks) {
         foreach my $plugin (@{$self->bot->before_hooks}) {
+            # Skip hook if plugin is disabled for the current network.
+            next if exists $self->network->disabled_plugins->{lc($plugin->name)};
+
             $plugin->hook_before($self);
         }
     }
@@ -190,6 +193,9 @@ sub process {
     # Process any after-hooks before sending response
     if ($self->bot->run_after_hooks) {
         foreach my $plugin (@{$self->bot->after_hooks}) {
+            # Skip hook if plugin is disabled for the current network.
+            next if exists $self->network->disabled_plugins->{lc($plugin->name)};
+
             $plugin->hook_after($self);
         }
     }
