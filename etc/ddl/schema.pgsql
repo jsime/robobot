@@ -380,4 +380,16 @@ create table achievement_nicks (
 );
 alter table achievement_nicks add primary key (achievement_id, nick_id);
 
+--
+-- LOCATION
+--
+create table locations (
+    location_id serial not null primary key,
+    network_id  integer not null references networks (id) on update cascade on delete cascade,
+    nick_id     integer not null references nicks (id) on update cascade on delete cascade,
+    loc_name    text not null,
+    loc_message text,
+    created_at  timestamp with time zone not null default now()
+);
+
 commit;
