@@ -62,8 +62,19 @@ has '+commands' => (
                    usage       => '<string> < ... list to search ... >',
                    example     => 'foo bar baz foo xyzzy',
                    result      => '1', },
+
+        'count' => { method      => 'list_count',
+                     description => 'Returns the number of items in the provided list. If no arguments are provided, the return value will be 0, same as for an empty list.',
+                     usage       => '[<list>]' },
     }},
 );
+
+sub list_count {
+    my ($self, $message, $command, @list) = @_;
+
+    return 0 unless @list;
+    return scalar(@list) || 0;
+}
 
 sub list_any {
     my ($self, $message, $command, $str, @list) = @_;
