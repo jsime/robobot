@@ -66,7 +66,8 @@ sub location_nick {
     }
 
     my $res = $self->bot->config->db->do(q{
-        select n.name, l.loc_name, l.loc_message, l.created_at
+        select n.name, l.loc_name, l.loc_message,
+            to_char(l.created_at at time zone 'US/Eastern', 'FMDay, DDth FMMonth YYYY at FMHH:MIpm') as created_at
         from locations l
             join nicks n on (n.id = l.nick_id)
         where l.network_id = ?
@@ -81,7 +82,8 @@ sub location_nick {
     }
 
     $message->response->push(sprintf('*%s*: %s', $res->{'name'}, $res->{'loc_name'}));
-    $message->response->push(sprintf('Details: %s', $res->{'loc_message'})) if $res->{'loc_message'};
+    $message->response->push(sprintf('%s', $res->{'loc_message'}))
+        if $res->{'loc_message'} && $res->{'loc_message'} ne 'no-message';
     $message->response->push(sprintf('Last updated: %s', $res->{'created_at'}));
 
     return;
