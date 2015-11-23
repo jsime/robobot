@@ -26,8 +26,21 @@ has '+commands' => (
                     usage           => '<die size> [<die count>]',
                     example         => '2 10',
                     result          => '17' },
+
+        'random' => { method      => 'random_int',
+                      description => 'Returns a random integer between 0 and <max> (defaults to 1).',
+                      usage       => '[<max>]', },
     }},
 );
+
+sub random_int {
+    my ($self, $message, $command, $max) = @_;
+
+    $max //= 1;
+    return unless $max =~ m{^\d+$};
+
+    return int(rand($max+1));
+}
 
 sub roll {
     my ($self, $message, $command, @args) = @_;
