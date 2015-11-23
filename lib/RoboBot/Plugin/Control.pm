@@ -53,8 +53,40 @@ has '+commands' => (
                      usage           => '<function to apply> <list(s) of elements>',
                      example         => '+ (seq 1 5)',
                      result          => '2 3 4 5 6' },
+
+        'repeat' => { method          => 'control_repeat',
+                      preprocess_args => 0,
+                      description     => 'Repeats <n> times the evaluation of <list>. Returns a list containing the return values of every evaluation.',
+                      usage           => '<n> <list>',
+                      example         => '3 (upper "foo")',
+                      result          => 'FOO FOO FOO', },
     }},
 );
+
+sub control_repeat {
+    my ($self, $message, $command, $num, $list) = @_;
+
+    unless (defined $num && $num =~ m{^\d+$}) {
+        $message->response->raise('First argument must be the number of times to repeat list evaluation.');
+        return;
+    }
+
+    unless (defined $list && ref($list) eq 'ARRAY') {
+        $message->response->raise('Must provide a list to repeatedly evaluate.');
+        return;
+    }
+
+    # Even this is probably ripe for abuse, but at least it's not unlimited.
+    $num = 100 if $num > 100;
+
+    my @ret;
+
+    while ($num--) {
+        push(@ret, $message->process_list($list));
+    }
+
+    return @ret;
+}
 
 sub control_if {
     my ($self, $message, $command, $condition, $expr_if) = @_;
