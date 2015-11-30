@@ -35,7 +35,7 @@ has '+commands' => (
                          usage       => '<skill name>' },
 
         'whoknows' => { method      => 'skill_whoknows',
-                        description => 'Shows a list of all the people who claim any proficiency in the named skill.',
+                        description => 'Shows a list of all the people who claim any proficiency in the named skill. Listing multiple skills will perform an intersection and display only those people who have registered knowledge in all of the named skills (along with their average proficiency).',
                         usage       => '<skill name>' },
 
         'skills' => { method      => 'skill_list',
