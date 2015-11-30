@@ -8,6 +8,7 @@ use Moose;
 use MooseX::SetOnce;
 
 use Text::Wrap qw( wrap );
+use Try::Tiny;
 
 extends 'RoboBot::Plugin';
 
@@ -346,7 +347,18 @@ sub show_user_skills {
 }
 
 sub skill_whoknows {
-    my ($self, $message, $command, $skill_name) = @_;
+    my ($self, $message, $command, @skill_names) = @_;
+
+    unless (@skill_names && @skill_names > 0) {
+        $message->response->raise('You must supply at least one skill name.');
+        return;
+    }
+
+    if (@skill_names > 1) {
+        return $self->skill_whoknows_intersect($message, $command, @skill_names);
+    }
+
+    my $skill_name = shift @skill_names;
 
     my $skill = $self->bot->config->db->do(q{
         select skill_id, name, description
@@ -400,6 +412,139 @@ sub skill_whoknows {
 
     while ($res->next) {
         $message->response->push(sprintf('*%s:* %s', $res->{'name'}, join(', ', sort { $a cmp $b } @{$res->{'nicks'}})));
+    }
+
+    return;
+}
+
+sub skill_whoknows_intersect {
+    my ($self, $message, $command, @skill_names) = @_;
+
+    unless (@skill_names && @skill_names > 1) {
+        $message->response->raise('Skill intersections require at least two skill names.');
+        return;
+    }
+
+    my $num_skills = scalar @skill_names;
+
+    my $res = $self->bot->config->db->do(q{
+        select skill_id, name
+        from skills_skills
+        where lower(name) in ???
+    }, [map { lc($_) } @skill_names]);
+
+    unless ($res) {
+        $message->response->raise('Could not retrieve skill data. Please try again.');
+        return;
+    }
+
+    my %skills;
+    while ($res->next) {
+        $skills{$res->{'skill_id'}} = $res->{'name'};
+    }
+
+    unless (scalar(keys(%skills)) > 0) {
+        $message->response->raise('No matching skills could be located.');
+        return;
+    }
+
+    unless (scalar(keys(%skills)) == $num_skills) {
+        $message->response->raise('Some of the skills you listed could not be found. Only the following were valid: %s',
+            join(', ', sort { lc($a) cmp lc($b) } values %skills));
+        return;
+    }
+
+    $res = $self->bot->config->db->do(q{
+        with sk as (select array_agg(skill_id) as skillset from skills_skills where skill_id in ??? and true)
+        select n.id, n.name, sk.skillset
+        from skills_skills s
+            join skills_nicks sn on (sn.skill_id = s.skill_id)
+            join nicks n on (n.id = sn.nick_id),
+            sk
+        where s.skill_id in ???
+        group by n.id, n.name, sk.skillset
+        having sk.skillset <@ array_agg(s.skill_id)
+    }, [keys %skills], [keys %skills]);
+
+    unless ($res) {
+        $message->response->raise('Could not locate skill intersection. Please try again.');
+        return;
+    }
+
+    my @knowers;
+
+    KNOWER:
+    while ($res->next) {
+        my $detail = $self->bot->config->db->do(q{
+            select s.skill_id, s.name, sl.name as level, sl.sort_order
+            from skills_nicks sn
+                join skills_skills s on (s.skill_id = sn.skill_id)
+                join skills_levels sl on (sl.level_id = sn.skill_level_id)
+            where sn.nick_id = ? and s.skill_id in ???
+            order by lower(s.name) asc
+        }, $res->{'id'}, [keys %skills]);
+
+        next unless $detail;
+
+        push(@knowers, {
+            nick_id => $res->{'id'},
+            name    => $res->{'name'},
+            average => 0,
+            skills  => [],
+        });
+
+        while ($detail->next) {
+            push(@{$knowers[-1]{'skills'}}, {
+                name  => $detail->{'name'},
+                level => $detail->{'level'},
+            });
+            $knowers[-1]{'average'} += $detail->{'sort_order'};
+        }
+
+        try {
+            $knowers[-1]{'average'} = $knowers[-1]{'average'} / $num_skills;
+        } catch {
+            pop @knowers;
+            next KNOWER;
+        };
+
+        $detail = $self->bot->config->db->do(q{
+            select *
+            from (  select name, sort_order
+                    from skills_levels
+                    where sort_order <= ?
+                    order by sort_order desc
+                    limit 1
+                ) d1
+            union
+            select *
+            from (  select name, sort_order
+                    from skills_levels
+                    order by sort_order asc
+                    limit 1
+                ) d2
+            order by sort_order desc
+            limit 1
+        }, int($knowers[-1]{'average'}));
+
+        if ($detail && $detail->next) {
+            $knowers[-1]{'average_name'} = $detail->{'name'};
+        } else {
+            $knowers[-1]{'average_name'} = 'unknown';
+        }
+    }
+
+    if (@knowers < 1) {
+        $message->response->push('There is nobody who has registered knowing that set of skills. You might try again with fewer skills.');
+        return;
+    }
+
+    $message->response->push(sprintf('The following people have registered knowledge in all of the following skills: %s',
+        join(', ', sort { lc($a) cmp lc($b) } values %skills)));
+
+    foreach my $user (sort { $b->{'average'} <=> $a->{'average'} || lc($a->{'name'}) cmp lc($b->{'name'}) } @knowers) {
+        $message->response->push(sprintf('%s: *%s* (%s)', $user->{'name'}, $user->{'average_name'},
+            join(', ', map { sprintf('%s _%s_', $_->{'name'}, lc($_->{'level'})) } @{$user->{'skills'}})));
     }
 
     return;
