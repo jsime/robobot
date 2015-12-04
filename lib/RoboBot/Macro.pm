@@ -8,10 +8,10 @@ use Moose;
 use MooseX::SetOnce;
 
 use RoboBot::Nick;
+use RoboBot::Parser;
 
 use Clone qw( clone );
 use Data::Dumper;
-use Data::SExpression;
 use DateTime;
 use DateTime::Format::Pg;
 use JSON;
@@ -106,24 +106,10 @@ sub _generate_expression {
         return;
     }
 
-    my $ds = Data::SExpression->new({
-        fold_lists       => 1,
-        use_symbol_class => 1,
-    });
+    my $parser = RoboBot::Parser->new;
+    my $expr = $parser->parse($def);
 
-    my $expr;
-
-    eval {
-        $expr = $ds->read($def);
-    };
-
-    if ($@) {
-        $self->_set_valid(0);
-        $self->_set_error("Macro definition is not a valid expression.");
-        return;
-    }
-
-    unless (ref($expr) eq 'ARRAY') {
+    unless (defined $expr && ref($expr) eq 'ARRAY') {
         $self->_set_valid(0);
         $self->_set_error("Macro definition body must be provided as a list of expressions.");
         return;
@@ -217,7 +203,7 @@ sub delete {
 sub expand {
     my ($self, $message, @args) = @_;
 
-    my $expr = $message->flatten_symbols(clone($self->expression));
+    my $expr = clone($self->expression);
 
     my $req_count = scalar( grep { $_->{'optional'} != 1 } @{$self->arguments->{'positional'}} ) // 0;
     if ($req_count > 0 && scalar(@args) < $req_count) {

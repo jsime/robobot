@@ -8,9 +8,9 @@ use Moose;
 use MooseX::SetOnce;
 
 use Data::Dumper;
-use Data::SExpression;
 use DateTime;
 
+use RoboBot::Parser;
 use RoboBot::Response;
 
 has 'raw' => (
@@ -123,35 +123,26 @@ sub BUILD {
     }
 
     if ($self->raw =~ m{^\s*\(\S+}o) {
-        unless ($self->expressions_balanced) {
-            return; # stop emitting the unbalanced expression error in channels
-            return $self->response->raise('Unbalanced S-Expression provided.');
-        }
+        return unless $self->expressions_balanced;
 
-        my $ds = Data::SExpression->new({
-            fold_lists       => 1,
-            use_symbol_class => 1,
-        });
+        my $parser = RoboBot::Parser->new;
+        my $expr;
 
-        my ($exp, $rtext, @exps);
-        $rtext = $self->raw;
+        eval {
+            $expr = $parser->parse($self->raw);
+        };
 
-        while (1) {
-            eval {
-                ($exp, $rtext) = $ds->read($rtext);
-            };
-            last if $@;
-            push(@exps, $exp);
-        }
+        return if $@;
 
-        if (@exps > 0) {
+        if (defined $expr && ref($expr) eq 'ARRAY' && @{$expr} > 0) {
+            my @exps = @{$expr};
             # Special-case a check to see if there was only one parenthetical
             # expression and if the first member of the list is not a known
             # function name. This prevents the bot from parsing a simple aside
             # comment made in parentheses as if it were an expression containing
             # only bareword strings.
             if (@exps > 1 || exists $self->bot->commands->{lc("$exps[0][0]")} || exists $self->bot->macros->{lc("$exps[0][0]")}) {
-                $self->expression($self->flatten_symbols(\@exps));
+                $self->expression($expr);
             }
         }
     }
@@ -268,23 +259,6 @@ sub expressions_balanced {
     my @rp = ($self->raw =~ m{\)}g);
 
     return scalar(@lp) == scalar(@rp);
-}
-
-sub flatten_symbols {
-    my ($self, $expr) = @_;
-
-    return unless defined $expr;
-    return "$expr" if ref($expr) eq 'Data::SExpression::Symbol';
-
-    if (ref($expr) eq 'ARRAY') {
-        my $flattened = [];
-        foreach my $el (@{$expr}) {
-            push(@{$flattened}, $self->flatten_symbols($el));
-        }
-        $expr = $flattened;
-    }
-
-    return $expr;
 }
 
 __PACKAGE__->meta->make_immutable;
