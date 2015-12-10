@@ -115,6 +115,15 @@ sub send {
         @output = @{$response->content};
     }
 
+    # Make sure that linebreaks are treated as separators for "line" output in IRC,
+    # since that isn't always the case for every protocol.
+    # TODO: possibly re-wrap lines that exceed an irc-acceptable length
+    my @f_output = ();
+    foreach my $l (@output) {
+        push(@f_output, grep { defined $_ && $_ =~ m{.+} } split(/\n/, $l));
+    }
+    @output = @f_output;
+
     my $recipient = $response->has_channel ? '#' . $response->channel->name : $response->nick->name;
 
     my $d = 0;
