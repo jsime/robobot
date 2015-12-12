@@ -40,6 +40,14 @@ has '+commands' => (
         'list-macros' => { method      => 'list_macros',
                            description => 'Displays a list of all registered macros. Optional pattern will limit list to only those macros whose names match.',
                            usage       => '[<pattern>]', },
+
+        'lock-macro' => { method      => 'lock_macro',
+                          description => 'Locks a macro from further modification or deletion. This function is only available to the author of the macro.',
+                          usage       => '<macro name>' },
+
+        'unlock-macro' => { method      => 'unlock_macro',
+                            description => 'Unlocks a previously locked macro, allowing it to once again be modified or deleted. This function is only available to the author of the macro.',
+                            usage       => '<macro name>' },
     }},
 );
 
@@ -74,6 +82,16 @@ sub define_macro {
     unless (defined $macro_name && defined $args && defined $def) {
         $message->response->raise('Macro definitions must consist of a name, a list of arguments, and a definition body list.');
         return;
+    }
+
+    if (exists $self->bot->macros->{lc($macro_name)} && $self->bot->macros->{lc($macro_name)}->is_locked) {
+        if ($self->bot->macros->{lc($macro_name)}->definer->id != $message->sender->id) {
+            $message->response->raise(
+                'The %s macro has been locked by its creator (who happens to not be you) and cannot be redefined by anyone else.',
+                $self->bot->macros->{lc($macro_name)}->name
+            );
+            return;
+        }
     }
 
     unless (ref($args) eq 'ARRAY' && ref($def) eq 'ARRAY') {
@@ -162,10 +180,17 @@ sub undefine_macro {
         return;
     }
 
-    if ($self->bot->remove_macro($macro_name)) {
-        $message->response->push(sprintf('Macro %s undefined.', $macro_name));
+    if ($self->bot->macros->{$macro_name}->is_locked && $self->bot->macros->{$macro_name}->definer != $message->sender->id) {
+        $message->response->raise(
+            'The %s macro has been locked by its creator (who happens to not be you). You may not undefine it.',
+            $self->bot->macros->{$macro_name}->name
+        );
     } else {
-        $message->response->push(sprintf('Could not undefine macro %s.', $macro_name));
+        if ($self->bot->remove_macro($macro_name)) {
+            $message->response->push(sprintf('Macro %s undefined.', $macro_name));
+        } else {
+            $message->response->push(sprintf('Could not undefine macro %s.', $macro_name));
+        }
     }
 
     return;
@@ -186,6 +211,74 @@ sub show_macro {
     $message->response->push($pp);
     $message->response->push(sprintf('Defined by <%s> on %s', $macro->definer->name, $macro->timestamp->ymd));
 
+    return;
+}
+
+sub lock_macro {
+    my ($self, $message, $command, $macro) = @_;
+
+    unless (defined $macro && $macro =~ m{\S+}) {
+        $message->response->raise('Must provide the name of the macro you wish to lock.');
+        return;
+    }
+
+    unless (exists $self->bot->macros->{lc($macro)}) {
+        $message->response->raise('No such macro defined.');
+        return;
+    }
+
+    $macro = $self->bot->macros->{lc($macro)};
+
+    if ($macro->is_locked) {
+        $message->response->raise('The macro %s is already locked.', $macro->name);
+        return;
+    }
+
+    unless ($macro->definer->id == $message->sender->id) {
+        $message->response->raise('You did not define the %s macro and cannot lock it. You may only lock your own macros.', $macro->name);
+        return;
+    }
+
+    unless ($macro->lock(1) && $macro->save) {
+        $message->response->raise('Could not lock the %s macro. Please try again.', $macro->name);
+        return;
+    }
+
+    $message->response->push(sprintf('Your %s macro is now locked. Nobody but you may modify or delete it.', $macro->name));
+    return;
+}
+
+sub unlock_macro {
+    my ($self, $message, $command, $macro) = @_;
+
+    unless (defined $macro && $macro =~ m{\S+}) {
+        $message->response->raise('Must provide the name of the macro you wish to unlock.');
+        return;
+    }
+
+    unless (exists $self->bot->macros->{lc($macro)}) {
+        $message->response->raise('No such macro defined.');
+        return;
+    }
+
+    $macro = $self->bot->macros->{lc($macro)};
+
+    if ( ! $macro->is_locked) {
+        $message->response->raise('The macro %s is not locked.', $macro->name);
+        return;
+    }
+
+    unless ($macro->definer->id == $message->sender->id) {
+        $message->response->raise('You did not define the %s macro and cannot unlock it. You may only unlock your own macros.', $macro->name);
+        return;
+    }
+
+    unless ($macro->lock(0) && $macro->save) {
+        $message->response->raise('Could not unlock the %s macro. Please try again.', $macro->name);
+        return;
+    }
+
+    $message->response->push(sprintf('Your %s macro is now unlocked. Anybody else may modify or delete it.', $macro->name));
     return;
 }
 

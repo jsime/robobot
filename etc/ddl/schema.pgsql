@@ -44,7 +44,8 @@ create table macros (
     arguments   jsonb not null default '{}',
     definition  text not null,
     defined_by  integer not null references nicks (id) on update cascade on delete cascade,
-    defined_at  timestamp with time zone not null default now()
+    defined_at  timestamp with time zone not null default now(),
+    is_locked   boolean not null default false
 );
 create unique index macros_name_idx on macros (lower(name));
 

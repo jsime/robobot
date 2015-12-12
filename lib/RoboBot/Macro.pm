@@ -62,6 +62,12 @@ has 'timestamp' => (
     required => 1,
 );
 
+has 'is_locked' => (
+    is      => 'rw',
+    isa     => 'Bool',
+    default => 0,
+);
+
 has 'valid' => (
     is     => 'ro',
     isa    => 'Bool',
@@ -123,7 +129,7 @@ sub load_all {
     my ($class, $config) = @_;
 
     my $res = $config->db->do(q{
-        select m.macro_id, m.name, m.arguments, m.definition, n.name as nick, m.defined_at
+        select m.macro_id, m.name, m.arguments, m.definition, n.name as nick, m.defined_at, m.is_locked
         from macros m
             join nicks n on (n.id = m.defined_by)
     });
@@ -141,6 +147,7 @@ sub load_all {
             definition => $res->{'definition'},
             definer    => RoboBot::Nick->new( config => $config, name => $res->{'nick'} ),
             timestamp  => DateTime::Format::Pg->parse_datetime($res->{'defined_at'}),
+            is_locked  => $res->{'is_locked'},
         );
     }
 
@@ -159,6 +166,7 @@ sub save {
             name       => $self->name,
             arguments  => encode_json($self->arguments),
             definition => $self->definition,
+            is_locked  => $self->is_locked,
         }, $self->id);
 
         return 1 if $res;
@@ -176,6 +184,7 @@ sub save {
             definition => $self->definition,
             defined_by => $self->definer->id,
             defined_at => $self->timestamp,
+            is_locked  => $self->is_locked,
         });
 
         if ($res && $res->next) {
@@ -198,6 +207,24 @@ sub delete {
 
     return 0 unless $res;
     return 1;
+}
+
+sub lock {
+    my ($self) = @_;
+
+    return 0 if $self->is_locked;
+
+    $self->is_locked(1);
+    return $self->save;
+}
+
+sub unlock {
+    my ($self) = @_;
+
+    return 0 if ! $self->is_locked;
+
+    $self->is_locked(0);
+    return $self->save;
 }
 
 sub expand {
