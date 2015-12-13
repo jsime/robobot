@@ -37,8 +37,41 @@ has '+commands' => (
         'seen' => { method      => 'last_seen',
                     description => 'Reports the last time the given nick was observed saying something in any channel.',
                     usage       => '<nick>' },
+
+        'search' => { method      => 'log_search',
+                      description => 'Searches scrollback in the current channel for anything that matches <pattern>, which may be a simple string or a regular expression. Returns the most recent matching entry.',
+                      usage       => '<pattern>' },
     }},
 );
+
+sub log_search {
+    my ($self, $message, $command, $pattern) = @_;
+
+    unless (defined $pattern && $pattern =~ m{.+}) {
+        $message->response->raise('Must provide a pattern to search.');
+        return;
+    }
+
+    my $res = $self->bot->config->db->do(q{
+        select n.name, l.message, to_char(l.posted_at, 'YYYY-MM-DD HH24:MI') as posted_at
+        from logger_log l
+            join channels c on (c.id = l.channel_id)
+            join nicks n on (n.id = l.nick_id)
+        where c.id = ?
+            and l.message ~* ?
+            and not l.has_expression
+        order by l.posted_at desc
+        limit 1
+    }, $message->channel->id, $pattern);
+
+    unless ($res && $res->next) {
+        $message->response->raise('No matching messages were found.');
+        return;
+    }
+
+    $message->response->push(sprintf('[%s] <%s> %s', $res->{'posted_at'}, $res->{'name'}, $res->{'message'}));
+    return;
+}
 
 sub last_seen {
     my ($self, $message, $command, $nick) = @_;
