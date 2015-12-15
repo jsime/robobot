@@ -48,6 +48,9 @@ sub bool_binary {
 
     return unless $self->has_two_values($message, @args);
 
+    $op = '&&' if lc($op) eq 'and';
+    $op = '||' if lc($op) eq 'or';
+
     my $r;
     eval '$r = $args[0] ' . $op . ' $args[1];';
 
@@ -59,6 +62,8 @@ sub bool_unary {
     my ($self, $message, $op, @args) = @_;
 
     return unless $self->has_one_value($message, @args);
+
+    $op = '!' if lc($op) eq 'not';
 
     my $r;
     eval '$r = ' . $op . ' $args[0];';
