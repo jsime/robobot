@@ -30,6 +30,7 @@ create table channels (
     network_id  integer not null references networks (id) on update cascade on delete cascade,
     name        text not null,
     extradata   jsonb not null default '{}',
+    log_enabled boolean not null default true,
     created_at  timestamp with time zone not null default now(),
     updated_at  timestamp with time zone
 );

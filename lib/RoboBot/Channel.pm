@@ -29,6 +29,12 @@ has 'extradata' => (
     default => sub { {} },
 );
 
+has 'log_enabled' => (
+    is      => 'rw',
+    isa     => 'Bool',
+    default => 1,
+);
+
 has 'network' => (
     is        => 'ro',
     isa       => 'RoboBot::Network',
@@ -46,7 +52,7 @@ sub find_by_id {
     my ($class, $bot, $id) = @_;
 
     my $res = $bot->config->db->do(q{
-        select c.id, c.name, c.extradata, n.name as network
+        select c.id, c.name, c.extradata, c.log_enabled, n.name as network
         from channels c
             join networks n on (n.id = c.network_id)
         where c.id = ?
@@ -55,11 +61,12 @@ sub find_by_id {
     return unless $res && $res->next;
 
     return $class->new(
-        id        => $res->{'id'},
-        name      => $res->{'name'},
-        extradata => decode_json($res->{'extradata'}),
-        network   => (grep { $_->name eq $res->{'network'} } @{$bot->networks})[0],
-        config    => $bot->config,
+        id          => $res->{'id'},
+        name        => $res->{'name'},
+        extradata   => decode_json($res->{'extradata'}),
+        log_enabled => $res->{'log_enabled'},
+        network     => (grep { $_->name eq $res->{'network'} } @{$bot->networks})[0],
+        config      => $bot->config,
     );
 }
 
@@ -70,17 +77,22 @@ sub BUILD {
         die "Invalid channel creation" unless $self->has_name && $self->has_network;
 
         my $res = $self->config->db->do(q{
-            select id
+            select id, log_enabled
             from channels
             where network_id = ? and lower(name) = lower(?)
         }, $self->network->id, $self->name);
 
         if ($res && $res->next) {
             $self->id($res->{'id'});
+            $self->log_enabled($res->{'log_enabled'});
         } else {
             $res = $self->config->db->do(q{
                 insert into channels ??? returning id
-            }, { network_id => $self->network->id, name => $self->name });
+            }, {
+                network_id  => $self->network->id,
+                name        => $self->name,
+                log_enabled => $self->log_enabled,
+            });
 
             if ($res && $res->next) {
                 $self->id($res->{'id'});
@@ -101,6 +113,40 @@ sub part {
     my ($self, $irc) = @_;
 
     # TODO switch to AnyEvent and perform part appropriate to network's type
+}
+
+sub disable_logging {
+    my ($self) = @_;
+
+    return 1 unless $self->log_enabled;
+
+    my $res = $self->config->db->do(q{
+        update channels
+        set log_enabled = false
+        where id = ?
+    }, $self->id);
+
+    return 0 unless $res;
+
+    $self->log_enabled(0);
+    return 1;
+}
+
+sub enable_logging {
+    my ($self) = @_;
+
+    return 1 if $self->log_enabled;
+
+    my $res = $self->config->db->do(q{
+        update channels
+        set log_enabled = true
+        where id = ?
+    }, $self->id);
+
+    return 0 unless $res;
+
+    $self->log_enabled(1);
+    return 1;
 }
 
 __PACKAGE__->meta->make_immutable;

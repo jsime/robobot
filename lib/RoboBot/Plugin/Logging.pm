@@ -41,11 +41,54 @@ has '+commands' => (
         'search' => { method      => 'log_search',
                       description => 'Searches scrollback in the current channel for anything that matches <pattern>, which may be a simple string or a regular expression. Returns the most recent matching entry.',
                       usage       => '<pattern>' },
+
+        'disable-logging' => { method      => 'log_disable',
+                               description => 'Disables logging any activity in the current channel until the (enable-logging) function is called.' },
+
+        'enable-logging' => { method      => 'log_enable',
+                              description => 'Enables logging activity in the current channel if it had been previously turned off via (disable-logging).' },
     }},
 );
 
+sub log_disable {
+    my ($self, $message, $command) = @_;
+
+    if ($message->channel->log_enabled) {
+        if ($message->channel->disable_logging) {
+            $message->response->push('Logging has now been disabled for this channel. No messages will be saved and any functions which interact with logging features will fail.');
+        } else {
+            $message->response->raise('Logging could not be disabled. Please try again.');
+        }
+    } else {
+        $message->response->push('This channel is already unlogged. No changes made.');
+    }
+
+    return;
+}
+
+sub log_enable {
+    my ($self, $message, $command) = @_;
+
+    if ($message->channel->log_enabled) {
+        $message->response->push('This channel is already being logged. No changes made.');
+    } else {
+        if ($message->channel->enable_logging) {
+            $message->response->push('Logging has now been enabled for this channel.');
+        } else {
+            $message->response->raise('Logging could not be enabled. Please try again.');
+        }
+    }
+
+    return;
+}
+
 sub log_search {
     my ($self, $message, $command, $pattern) = @_;
+
+    if ( ! $message->channel->log_enabled) {
+        $message->response->raise('This channel is unlogged. You cannot retrieve channel history here.');
+        return;
+    }
 
     unless (defined $pattern && $pattern =~ m{.+}) {
         $message->response->raise('Must provide a pattern to search.');
@@ -75,6 +118,11 @@ sub log_search {
 
 sub last_seen {
     my ($self, $message, $command, $nick) = @_;
+
+    if ( ! $message->channel->log_enabled) {
+        $message->response->raise('This channel is unlogged. You cannot retrieve channel history here.');
+        return;
+    }
 
     my $res = $self->bot->config->db->do(q{
         select id, name
@@ -111,6 +159,11 @@ sub last_seen {
 
 sub show_last {
     my ($self, $message, $command, @args) = @_;
+
+    if ( ! $message->channel->log_enabled) {
+        $message->response->raise('This channel is unlogged. You cannot retrieve channel history here.');
+        return;
+    }
 
     my $include_expressions = 0;
     my $step = 1;
@@ -167,7 +220,7 @@ sub show_last {
 sub log_incoming {
     my ($self, $message) = @_;
 
-    if ($message->has_channel) {
+    if ($message->has_channel && $message->channel->log_enabled) {
         $self->bot->config->db->do(q{
             insert into logger_log ???
         }, {
@@ -185,7 +238,7 @@ sub log_incoming {
 sub log_outgoing {
     my ($self, $message) = @_;
 
-    if ($message->response->has_channel && $message->response->has_content) {
+    if ($message->response->has_channel && $message->response->has_content && $message->channel->log_enabled) {
         $self->bot->config->db->do(q{
             insert into logger_log ???
         }, [map {{
