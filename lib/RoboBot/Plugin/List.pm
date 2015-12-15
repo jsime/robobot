@@ -66,8 +66,111 @@ has '+commands' => (
         'count' => { method      => 'list_count',
                      description => 'Returns the number of items in the provided list. If no arguments are provided, the return value will be 0, same as for an empty list.',
                      usage       => '[<list>]' },
+
+        'filter' => { method      => 'list_filter',
+                      preprocess_args => 0,
+                      description => 'Returns a list of elements from the input list which, when aliased to % and applied to <function>, result in a true evaluation.',
+                      usage       => '<function> <list>',
+                      example     => '(match "a" %) "Jon" "Jane" "Frank" "Zoe"',
+                      result      => '"Jane" "Frank"' },
+
+        'reduce' => { method      => 'list_reduce',
+                      preprocess_args => 0,
+                      description => 'Returns the result of repeatedly applying <function> to the <accumulator>, aliased as $, and each element of the input list, aliased as %.',
+                      usage       => '<function> <accumulator> <list>',
+                      example     => '(* $ %) 1 (seq 1 10)',
+                      result      => '3628800' },
+
+        'map' => { method      => 'list_map',
+                   preprocess_args => 0,
+                   description => 'Applies <function> to every element of the input list and returns a list of the results, preserving order. Each element of the input list is aliased to % within the function being applied.',
+                   usage       => '<function> <list>',
+                   example     => '(upper %) "Jon" "Jane" "frank"',
+                   result      => '"JON" "JANE" "FRANK"' },
     }},
 );
+
+sub list_filter {
+    my ($self, $message, $command, $filter_func, @list) = @_;
+
+    my @ret_list = ();
+    my $p_masked = exists $message->vars->{'%'} ? $message->vars->{'%'} : undef;
+
+    foreach my $el (@list) {
+        my @vals = ref($el) eq 'ARRAY' ? $message->process_list($el) : ($el);
+
+        foreach my $val (@vals) {
+            $message->vars->{'%'} = $val;
+
+            push(@ret_list, $val) if $message->process_list($filter_func);
+        }
+    }
+
+    if (defined $p_masked) {
+        $message->vars->{'%'} = $p_masked;
+    } else {
+        delete $message->vars->{'%'};
+    }
+
+    return @ret_list;
+}
+
+sub list_reduce {
+    my ($self, $message, $command, $reduce_func, $accumulator, @list) = @_;
+
+    my $p_masked = exists $message->vars->{'%'} ? $message->vars->{'%'} : undef;
+    my $d_masked = exists $message->vars->{'$'} ? $message->vars->{'$'} : undef;
+
+    foreach my $el (@list) {
+        my @vals = ref($el) eq 'ARRAY' ? $message->process_list($el) : ($el);
+
+        foreach my $val (@vals) {
+            $message->vars->{'$'} = $accumulator;
+            $message->vars->{'%'} = $val;
+
+            $accumulator = $message->process_list($reduce_func);
+        }
+    }
+
+    if (defined $p_masked) {
+        $message->vars->{'%'} = $p_masked;
+    } else {
+        delete $message->vars->{'%'};
+    }
+
+    if (defined $d_masked) {
+        $message->vars->{'$'} = $d_masked;
+    } else {
+        delete $message->vars->{'$'};
+    }
+
+    return $accumulator;
+}
+
+sub list_map {
+    my ($self, $message, $command, $map_func, @list) = @_;
+
+    my @ret_list = ();
+    my $p_masked = exists $message->vars->{'%'} ? $message->vars->{'%'} : undef;
+
+    foreach my $el (@list) {
+        my @vals = ref($el) eq 'ARRAY' ? $message->process_list($el) : ($el);
+
+        foreach my $val (@vals) {
+            $message->vars->{'%'} = $val;
+
+            push(@ret_list, $message->process_list($map_func));
+        }
+    }
+
+    if (defined $p_masked) {
+        $message->vars->{'%'} = $p_masked;
+    } else {
+        delete $message->vars->{'%'};
+    }
+
+    return @ret_list;
+}
 
 sub list_count {
     my ($self, $message, $command, @list) = @_;
