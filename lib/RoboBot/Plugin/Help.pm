@@ -53,14 +53,28 @@ sub help {
 sub general_help {
     my ($self, $message) = @_;
 
-    my %plugins = ( map { $_->name => 1 } @{$self->bot->plugins} );
+    my %plugins = (
+        map { $_->name => 1 }
+        grep { ! exists $message->network->disabled_plugins->{lc($_->name)} }
+        @{$self->bot->plugins}
+    );
 
     $message->response->push(sprintf('RoboBot v%s', $self->bot->version));
     $message->response->push(sprintf('For additional help, use (help <function>) or (help :plugin "<plugin>").'));
     $message->response->push(sprintf('Installed plugins: %s', join(', ', sort keys %plugins)));
 
     local $Text::Wrap::columns = 200;
-    my @functions = split(/\n/o, wrap('Available functions: ','', join(', ', sort grep { $_ !~ m{\:\:}o } keys %{$self->bot->commands})));
+    my @functions = split(
+        /\n/o,
+        wrap( 'Available functions: ',
+              '',
+              join(', ',
+                  sort { lc($a) cmp lc($b) }
+                  grep { $_ !~ m{\:\:}o && !exists $message->network->disabled_plugins->{lc($self->bot->commands->{$_}->name)} }
+                  keys %{$self->bot->commands}
+              )
+        )
+    );
     $message->response->push($_) for @functions;
 
     return;
