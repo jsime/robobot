@@ -89,6 +89,14 @@ sub _read_element {
     my $in_str  = 0;
     my $chr_esc = 0;
 
+    my %escs = (
+        'n'  => "\n",
+        'r'  => "",
+        't'  => "\t",
+        ' '  => " ",
+        "'"  => "'",
+    );
+
     while (defined (my $c = $self->_read_char)) {
         if ($c eq '"') {
             if ($in_str && !$chr_esc) {
@@ -102,6 +110,9 @@ sub _read_element {
         } elsif ($c eq ')' && !$in_str) {
             $self->_step_back;
             return $el;
+        } elsif (exists $escs{$c} && $chr_esc) {
+            $el .= $escs{$c};
+            $chr_esc = 0;
         } elsif ($c =~ m{[\s,]}) {
             if ($in_str) {
                 $el .= $c;
