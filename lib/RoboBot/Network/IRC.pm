@@ -170,8 +170,9 @@ sub handle_message {
             raw     => $msg->{'params'}->[1],
             network => $self,
             sender  => $self->resolve_nick($msg->{'prefix'}),
-            channel => $channel,
         );
+
+        $message->channel($channel) if defined $channel;
 
         $message->process;
     }
