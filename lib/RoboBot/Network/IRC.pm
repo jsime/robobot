@@ -99,30 +99,28 @@ sub disconnect {
 sub send {
     my ($self, $response) = @_;
 
-    my @output;
-
-    # TODO: Move maximum number of output lines into a config var for each IRC
-    #       network (with a default).
-
-    if ($response->num_lines > 10) {
-        my $n = $response->num_lines;
-        @output = (
-            @{$response->content}[0..3],
-            '... Output Truncated (' . ($n - 7) . ' lines removed) ...',
-            @{$response->content}[($n-3)..($n-1)]
-        );
-    } else {
-        @output = @{$response->content};
-    }
-
     # Make sure that linebreaks are treated as separators for "line" output in IRC,
     # since that isn't always the case for every protocol.
     # TODO: possibly re-wrap lines that exceed an irc-acceptable length
-    my @f_output = ();
-    foreach my $l (@output) {
-        push(@f_output, grep { defined $_ && $_ =~ m{.+} } split(/\n/, $l));
+    my @output = ();
+    foreach my $l (@{$response->content}) {
+        push(@output, grep { defined $_ && $_ =~ m{.+} } split(/\n/, $l));
     }
-    @output = @f_output;
+
+    # TODO: Move maximum number of output lines into a config var for each IRC
+    #       network (with a default).
+    my $max_lines = 12;
+
+    if (@output > $max_lines) {
+        my $n = scalar @output;
+        my $split_at = int($max_lines / 2) - 2;
+
+        @output = (
+            @output[0..$split_at],
+            '... Output Truncated (' . ($n - (($split_at + 1) * 2)) . ' lines removed) ...',
+            @output[($n - ($split_at + 1))..($n - 1)]
+        );
+    }
 
     my $recipient = $response->has_channel ? '#' . $response->channel->name : $response->nick->name;
 
