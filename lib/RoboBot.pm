@@ -19,6 +19,12 @@ use RoboBot::Plugin;
 
 our $VERSION = '2.003001';
 
+has 'config_paths' => (
+    is        => 'ro',
+    isa       => 'ArrayRef[Str]',
+    predicate => 'has_config_paths',
+);
+
 has 'config' => (
     is     => 'rw',
     isa    => 'RoboBot::Config',
@@ -66,7 +72,13 @@ has 'networks' => (
 sub BUILD {
     my ($self) = @_;
 
-    $self->config(RoboBot::Config->new( bot => $self ))->load_config;
+    if ($self->has_config_paths) {
+        $self->config(RoboBot::Config->new( bot => $self, config_paths => $self->config_paths ));
+    } else {
+        $self->config(RoboBot::Config->new( bot => $self ));
+    }
+
+    $self->config->load_config;
 
     # Gather list of supported plugin commands (naming conflicts are considered
     # warnable offenses, not fatal errors).

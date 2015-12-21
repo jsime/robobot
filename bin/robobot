@@ -8,5 +8,14 @@ use AnyEvent;
 
 use RoboBot;
 
-RoboBot->new->run;
+if (@ARGV && @ARGV > 0) {
+    if (scalar(grep { ! -f $_ } @ARGV) == 0) {
+        RoboBot->new( config_paths => \@ARGV )->run;
+    } else {
+        die "All arguments should be paths to configuration files.\n"
+          . "With no arguments, I will attempt to find configuration data in common locations.\n";
+    }
+} else {
+    RoboBot->new->run;
+}
 
