@@ -63,6 +63,10 @@ has '+commands' => (
                              usage       => '<number> [<precision> [<trailing zeroes>]]',
                              example     => '1830472.2 4 1',
                              result      => '1,830,472.2000' },
+
+        'str' => { method      => 'str_str',
+                   description => 'Returns a single string, either a simple concatenation of all arguments, or an empty string when no argument are given.',
+                   usage       => '[<list>]', },
     }},
 );
 
@@ -71,6 +75,13 @@ has 'nf' => (
     isa     => 'Number::Format',
     default => sub { Number::Format->new() },
 );
+
+sub str_str {
+    my ($self, $message, $command, @list) = @_;
+
+    return "" unless @list;
+    return join('', @list);
+}
 
 sub clear_output {
     my ($self, $message) = @_;
@@ -93,7 +104,7 @@ sub split_str {
     my @list;
 
     eval {
-        @list = split(m{$pattern}, $string);
+        @list = split(($pattern =~ m{^m?[/\{|\[](.*)[/\}|\]]$}s ? m{$1} : $pattern), $string);
     };
 
     if ($@) {
