@@ -1,0 +1,106 @@
+package RoboBot::Plugin::Types::String;
+
+use v5.20;
+
+use namespace::autoclean;
+
+use Moose;
+
+extends 'RoboBot::Plugin';
+
+has '+name' => (
+    default => 'Types::String',
+);
+
+has '+description' => (
+    default => 'Provides functions for creating and manipulating string-like values.',
+);
+
+has '+commands' => (
+    default => sub {{
+        'substring' => { method      => 'str_substring',
+                         description => 'Returns <n> characters from <str> beginning at position <pos> (first character in a string is 0). Without <n> will return from <pos> to the end of the original string. A negative value for <n> will return from <pos> until |<n>|-1 characters prior to the end of the string (<n> = -1 would have the same effect as omitting <n>)..',
+                         usage       => '<str> <pos> [<n>]',
+                         example     => '"The quick brown fox ..." 4 5',
+                         result      => 'quick', },
+
+        'index' => { method      => 'str_index',
+                     description => 'Returns the starting position(s) in a list of all occurrences of the substring <match> in <str>. If <match> does not exist anywhere in <str> then an empty list is returned.',
+                     usage       => '<str> <match>',
+                     example     => '"The quick brown fox ..." "fox"',
+                     result      => '[16]',
+                     see_also    => ['index-n'], },
+
+        'index-n' => { method      => 'str_index_n',
+                       description => 'Returns the <n>th (from 1) starting position of the substring <match> in <str>. If there are no occurrences of <match> in <str>, or there are less than <n>, nothing is returned.',
+                       usage       => '<str> <match> <n>',
+                       example     => '"This string has three occurrences of the substring \"str\" in it." "str" 2',
+                       result      => '44',
+                       see_also    => ['index'], },
+    }},
+);
+
+sub str_index {
+    my ($self, $message, $command, $str, $match) = @_;
+
+    unless (defined $str && defined $match) {
+        $message->response->raise('Must provide a string and substring.');
+        return;
+    }
+
+    # Short circuit if a match is going to be impossible. This is not an error.
+    return [] if length($match) > length($str);
+
+    my @positions;
+
+    for (my $i = 0; $i <= length($str) - length($match); $i++) {
+        push(@positions, $i) if substr($str, $i, length($match)) eq $match;
+    }
+
+    return @positions;
+}
+
+sub str_index_n {
+    my ($self, $message, $command, $str, $match, $n) = @_;
+
+    unless (defined $n && $n =~ m{^\d+$}) {
+        $message->response->raise('Must supply <n> as a positive integer.');
+        return;
+    }
+
+    my @matches = $self->str_index($message, $command, $str, $match);
+
+    return unless @matches && @matches >= $n;
+    return $matches[$n - 1];
+}
+
+sub str_substring {
+    my ($self, $message, $command, $str, $pos, $n) = @_;
+
+    unless (defined $str && defined $pos) {
+        $message->response->raise('Must provide a string and starting position.');
+        return;
+    }
+
+    unless ($pos =~ m{^\d+$}) {
+        $message->response->raise('Starting position must be a positive integer or 0.');
+        return;
+    }
+
+    return "" if $pos >= length($str);
+
+    if (defined $n) {
+        if ($n =~ m{^-?\d+$}) {
+            return substr($str, $pos, $n);
+        } else {
+            $message->response->raise('Character count <n> must be an integer.');
+            return;
+        }
+    } else {
+        return substr($str, $pos);
+    }
+}
+
+__PACKAGE__->meta->make_immutable;
+
+1;
