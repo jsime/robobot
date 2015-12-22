@@ -206,10 +206,20 @@ sub show_macro {
 
     my $macro = $self->bot->macros->{$macro_name};
 
-    my $pp = sprintf("(defmacro %s\n  (%s)\n  '%s)", $macro->name, $macro->signature, _pprint($macro->expression, 2));
+    my $pp;
+
+    # Only do multi-line pretty-printing with indentation and all that other
+    # fancy business for macros over a given length.
+    if (length($macro->definition) > 40) {
+        $pp = sprintf("(defmacro %s\n  (%s)\n  '%s)", $macro->name, $macro->signature, _pprint($macro->expression, 2));
+    } else {
+        $pp = sprintf('(defmacro %s (%s) \'%s)', $macro->name, $macro->signature, $macro->definition);
+    }
+
     $pp =~ s{\n\s+([^\(]+)\n}{ $1\n}gs;
     $message->response->push($pp);
     $message->response->push(sprintf('Defined by <%s> on %s', $macro->definer->name, $macro->timestamp->ymd));
+    $message->response->push('This macro is locked and may only be edited by its definer.') if $macro->is_locked;
 
     return;
 }
