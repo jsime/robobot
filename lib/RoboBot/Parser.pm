@@ -67,18 +67,43 @@ sub _read_list {
             push(@{$l}, $self->_read_list);
         } elsif ($c eq ')') {
             return $l;
+        } elsif ($c eq '{') {
+            push(@{$l}, $self->_read_map);
         } elsif ($c =~ m{\S}) {
             $self->_step_back;
             push(@{$l}, $self->_read_element);
         } else {
             $self->{'_err'} = 'Unexpected character "' . $c . '"';
             warn $self->error;
-#            return;
         }
     }
 
     return $l if @{$l} > 0;
     return;
+}
+
+sub _read_map {
+    my ($self) = @_;
+
+    my @elements = ();
+
+    while (defined (my $c = $self->_read_char)) {
+        last if $c eq '}';
+        next if $c =~ m{[\s,]};
+
+        # TODO: Allow lists and maps (and possibly other types added later) to
+        #       be used as elements in a map. E.g. { :one-to-ten (seq 1 10) }
+        $self->_step_back;
+        push(@elements, $self->_read_element);
+    }
+
+    if (@elements % 2 != 0) {
+        $self->{'_err'} = 'Unbalanced map';
+        warn $self->error;
+        return {};
+    }
+
+    return { @elements };
 }
 
 sub _read_element {
