@@ -9,6 +9,7 @@ use MooseX::SetOnce;
 
 use Data::Dumper;
 use Number::Format;
+use Scalar::Util qw( looks_like_number );
 
 extends 'RoboBot::Plugin';
 
@@ -130,18 +131,76 @@ sub str_upper {
 sub print_str {
     my ($self, $message, $command, @args) = @_;
 
-    if (@args) {
-        if (@args > 1) {
-            local $Data::Dumper::Indent = 0;
-            local $Data::Dumper::Terse  = 1;
+    # Do nothing if we received nothing.
+    return unless @args && @args > 0;
 
-            $message->response->push(Dumper(\@args));
-        } else {
-            $message->response->push($args[0]);
-        }
-
+    # If we received only a single scalar value, send that unaltered as the message,
+    # and return it to any outer expression.
+    if (@args == 1 && !ref($args[0])) {
+        $message->response->push($args[0]);
         return @args;
     }
+
+    # For everything else, traverse the input and pretty-print it on a single
+    # line with appropriate expression/type markup.
+    my $output = '';
+    _print_el($self->bot, \$output, $_) for @args;
+
+    $output =~ s{(^\s+|\s+$)}{}ogs;
+
+    $output = "($output)" if @args > 1;
+
+    $message->response->push($output);
+    return @args;
+}
+
+sub _print_el {
+    my ($bot, $output, $el) = @_;
+
+    if (!defined $el) {
+        $$output .= " undef";
+    } elsif (ref($el) eq 'HASH') {
+        _print_map($bot, $output, $el);
+    } elsif (ref($el) eq 'ARRAY') {
+        _print_list($bot, $output, $el);
+    } elsif (looks_like_number($el)) {
+        $$output .= " $el";
+    } else {
+        $el =~ s{"}{\\"}g;
+        $el =~ s{\n}{\\n}gs;
+        $el =~ s{\r}{\\r}gs;
+        $el =~ s{\t}{\\t}gs;
+        $$output .= sprintf(' "%s"', $el);
+    }
+
+    return;
+}
+
+sub _print_list {
+    my ($bot, $output, $list) = @_;
+
+    $$output .= ' (';
+
+    if (!ref($list->[0]) && (exists $bot->commands->{lc($list->[0])} || exists $bot->macros->{lc($list->[0])})) {
+        $$output .= shift @{$list};
+    }
+
+    _print_el($bot, $output, $_) for @{$list};
+
+    $$output .= ')';
+}
+
+sub _print_map {
+    my ($bot, $output, $map) = @_;
+
+    $$output .= ' {';
+
+    foreach my $k (keys %{$map}) {
+        $$output .= " $k";
+        _print_el($bot, $output, $map->{$k});
+    }
+
+    $$output .= ' }';
 }
 
 sub format_str {
