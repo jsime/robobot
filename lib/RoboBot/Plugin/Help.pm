@@ -116,6 +116,9 @@ sub command_help {
         } elsif (exists $metadata->{'example'}) {
             $message->response->push(sprintf('Example: (%s %s)', $command_name, $metadata->{'example'}));
         }
+
+        $message->response->push(sprintf('See also: %s', join(', ', @{$metadata->{'see_also'}})))
+            if exists $metadata->{'see_also'};
     } else {
         $message->response->push(sprintf('Unknown function: %s', $command_name));
     }
