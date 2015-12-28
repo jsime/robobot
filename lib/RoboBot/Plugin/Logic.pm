@@ -75,22 +75,14 @@ sub bool_unary {
 sub has_one_value {
     my ($self, $message, @args) = @_;
 
-    unless (@args && @args == 1) {
-        $message->response->raise('Must supply exactly one value.');
-        return 0;
-    }
-
+    return 0 unless @args && @args == 1;
     return 1;
 }
 
 sub has_two_values {
     my ($self, $message, @args) = @_;
 
-    unless (@args && @args == 2) {
-        $message->response->raise('Must supply exactly two values.');
-        return 0;
-    }
-
+    return 0 unless @args && @args == 2;
     return 1;
 }
 
