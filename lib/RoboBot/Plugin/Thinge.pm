@@ -314,9 +314,12 @@ sub show_types {
     my ($self, $message) = @_;
 
     my $res = $self->bot->config->db->do(q{
-        select name
-        from thinge_types
-        order by name asc
+        select tt.name
+        from thinge_types tt
+            join thinge_thinges t on (t.type_id = tt.id)
+        where t.network_id = ?
+        group by tt.name
+        order by lower(name) asc
     });
 
     if ($res) {
