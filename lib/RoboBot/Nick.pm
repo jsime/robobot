@@ -75,8 +75,15 @@ sub BUILD {
     # TODO basic normalization of nicks (removing trailing underscores and single
     # digits from automatic nick renames for dupe connections)
 
+    $self->update_permissions;
+}
+
+sub update_permissions {
+    my ($self) = @_;
+
     # TODO: Restore old functionality of per-server permissions. Pre-AnyEvent
     #       the information to do so was missing, but now we have it back.
+
     my %denied;
 
     my $res = $self->config->db->do(q{
