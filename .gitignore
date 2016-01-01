@@ -21,5 +21,10 @@ pm_to_blib
 Session.vim
 .netrwhist
 *~
-Acme-ConstraintByName-*.tar.gz
 Makefile.PL
+
+etc/ddl/*
+!etc/ddl/schema.pgsql
+
+bin/*
+!bin/robobot
