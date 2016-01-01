@@ -41,6 +41,7 @@ create unique index channels_network_lower_name_idx on channels (network_id, low
 --
 create table macros (
     macro_id    serial not null primary key,
+    network_id  integer not null references networks (id) on update cascade on delete restrict,
     name        text not null,
     arguments   jsonb not null default '{}',
     definition  text not null,

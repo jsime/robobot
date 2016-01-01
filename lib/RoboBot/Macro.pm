@@ -12,13 +12,15 @@ use RoboBot::Parser;
 
 use Clone qw( clone );
 use Data::Dumper;
+use Data::Dump qw( dumpf );
 use DateTime;
 use DateTime::Format::Pg;
 use JSON;
+use Scalar::Util qw( blessed );
 
-has 'config' => (
+has 'bot' => (
     is       => 'ro',
-    isa      => 'RoboBot::Config',
+    isa      => 'RoboBot',
     required => 1,
 );
 
@@ -27,6 +29,12 @@ has 'id' => (
     isa       => 'Num',
     traits    => [qw( SetOnce )],
     predicate => 'has_id',
+);
+
+has 'network' => (
+    is       => 'rw',
+    isa      => 'RoboBot::Network',
+    required => 1,
 );
 
 has 'name' => (
@@ -82,7 +90,7 @@ has 'error' => (
 
 has 'expression' => (
     is     => 'ro',
-    isa    => 'ArrayRef',
+    isa    => 'Object',
     writer => '_set_expression',
 );
 
@@ -112,12 +120,12 @@ sub _generate_expression {
         return;
     }
 
-    my $parser = RoboBot::Parser->new;
+    my $parser = RoboBot::Parser->new( bot => $self->bot );
     my $expr = $parser->parse($def);
 
-    unless (defined $expr && ref($expr) eq 'ARRAY') {
+    unless (defined $expr && blessed($expr) =~ m{^RoboBot::Type}) {
         $self->_set_valid(0);
-        $self->_set_error("Macro definition body must be provided as a list of expressions.");
+        $self->_set_error("Macro definition body must be a valid expression or list.");
         return;
     }
 
@@ -126,10 +134,11 @@ sub _generate_expression {
 };
 
 sub load_all {
-    my ($class, $config) = @_;
+    my ($class, $bot) = @_;
 
-    my $res = $config->db->do(q{
-        select m.macro_id, m.name, m.arguments, m.definition, n.name as nick, m.defined_at, m.is_locked
+    my $res = $bot->config->db->do(q{
+        select m.macro_id, m.network_id, m.name, m.arguments, m.definition,
+            n.name as nick, m.defined_at, m.is_locked
         from macros m
             join nicks n on (n.id = m.defined_by)
     });
@@ -139,13 +148,17 @@ sub load_all {
     my %macros;
 
     while ($res->next) {
+        my $network = $bot->network_by_id($res->{'network_id'});
+        next unless defined $network;
+
         $macros{$res->{'name'}} = $class->new(
-            config     => $config,
+            bot        => $bot,
             id         => $res->{'macro_id'},
+            network    => $network,
             name       => $res->{'name'},
             arguments  => decode_json($res->{'arguments'}),
             definition => $res->{'definition'},
-            definer    => RoboBot::Nick->new( config => $config, name => $res->{'nick'} ),
+            definer    => RoboBot::Nick->new( config => $bot->config, name => $res->{'nick'} ),
             timestamp  => DateTime::Format::Pg->parse_datetime($res->{'defined_at'}),
             is_locked  => $res->{'is_locked'},
         );
@@ -160,7 +173,7 @@ sub save {
     my $res;
 
     if ($self->has_id) {
-        $res = $self->config->db->do(q{
+        $res = $self->bot->config->db->do(q{
             update macros set ??? where macro_id = ?
         }, {
             name       => $self->name,
@@ -176,10 +189,11 @@ sub save {
             return 0;
         }
 
-        $res = $self->config->db->do(q{
+        $res = $self->bot->config->db->do(q{
             insert into macros ??? returning macro_id
         }, {
             name       => $self->name,
+            network_id => $self->network->id,
             arguments  => encode_json($self->arguments),
             definition => $self->definition,
             defined_by => $self->definer->id,
@@ -201,7 +215,7 @@ sub delete {
 
     return 0 unless $self->has_id;
 
-    my $res = $self->config->db->do(q{
+    my $res = $self->bot->config->db->do(q{
         delete from macros where macro_id = ?
     }, $self->id);
 
@@ -256,30 +270,7 @@ sub expand {
         $rpl{ $self->arguments->{'rest'} } = join(' ', @args);
     }
 
-    return $self->expand_list($message, $expr, \%rpl);
-}
-
-sub expand_list {
-    my ($self, $message, $list, $args) = @_;
-
-    return $list unless ref($list) eq 'ARRAY';
-
-    my $new_list = [];
-    foreach my $el (@{$list}) {
-        if (ref($el) eq 'ARRAY') {
-            if (exists $message->bot->commands->{$el->[0]} && exists $message->bot->commands->{$el->[0]}{'preprocess_args'} && $message->bot->commands->{$el->[0]}{'preprocess_args'} == 0) {
-                push(@{$new_list}, clone($el));
-            } else {
-                push(@{$new_list}, $self->expand_list($message, $el, $args));
-            }
-        } elsif (exists $args->{"$el"}) {
-            push(@{$new_list}, $args->{"$el"});
-        } else {
-            push(@{$new_list}, "$el");
-        }
-    }
-
-    return $new_list;
+    return $expr->evaluate($message, \%rpl);
 }
 
 sub collapse {
