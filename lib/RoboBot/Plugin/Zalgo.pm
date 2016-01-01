@@ -28,7 +28,7 @@ has '+commands' => (
 );
 
 sub filter_zalgo {
-    my ($self, $message, $filter, @args) = @_;
+    my ($self, $message, $filter, $rpl, @args) = @_;
 
     return unless @args && @args > 0;
 

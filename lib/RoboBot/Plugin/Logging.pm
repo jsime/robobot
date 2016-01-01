@@ -51,7 +51,7 @@ has '+commands' => (
 );
 
 sub log_disable {
-    my ($self, $message, $command) = @_;
+    my ($self, $message, $command, $rpl) = @_;
 
     if ($message->channel->log_enabled) {
         if ($message->channel->disable_logging) {
@@ -67,7 +67,7 @@ sub log_disable {
 }
 
 sub log_enable {
-    my ($self, $message, $command) = @_;
+    my ($self, $message, $command, $rpl) = @_;
 
     if ($message->channel->log_enabled) {
         $message->response->push('This channel is already being logged. No changes made.');
@@ -83,7 +83,7 @@ sub log_enable {
 }
 
 sub log_search {
-    my ($self, $message, $command, $pattern) = @_;
+    my ($self, $message, $command, $rpl, $pattern) = @_;
 
     if ( ! $message->channel->log_enabled) {
         $message->response->raise('This channel is unlogged. You cannot retrieve channel history here.');
@@ -117,7 +117,7 @@ sub log_search {
 }
 
 sub last_seen {
-    my ($self, $message, $command, $nick) = @_;
+    my ($self, $message, $command, $rpl, $nick) = @_;
 
     if ( ! $message->channel->log_enabled) {
         $message->response->raise('This channel is unlogged. You cannot retrieve channel history here.');
@@ -158,7 +158,7 @@ sub last_seen {
 }
 
 sub show_last {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     if ( ! $message->channel->log_enabled) {
         $message->response->raise('This channel is unlogged. You cannot retrieve channel history here.');

@@ -56,7 +56,7 @@ sub init {
 }
 
 sub list_groups {
-    my ($self, $message, $command) = @_;
+    my ($self, $message, $command, $rpl) = @_;
 
     return unless $self->_validate_config($message);
 
@@ -73,7 +73,7 @@ sub list_groups {
 }
 
 sub oncall {
-    my ($self, $message, $command, $group, @extras) = @_;
+    my ($self, $message, $command, $rpl, $group, @extras) = @_;
 
     return unless $self->_validate_group_config($message, $group);
 

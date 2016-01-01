@@ -62,7 +62,7 @@ has '+commands' => (
 );
 
 sub relate_skills {
-    my ($self, $message, $command, $skill, @skills) = @_;
+    my ($self, $message, $command, $rpl, $skill, @skills) = @_;
 
     unless (defined $skill && $skill =~ m{\w+}) {
         $message->response->raise('You must provide a parent skill name.');
@@ -118,7 +118,7 @@ sub relate_skills {
 }
 
 sub describe_skill {
-    my ($self, $message, $command, $skill, @args) = @_;
+    my ($self, $message, $command, $rpl, $skill, @args) = @_;
 
     unless (defined $skill && $skill =~ m{\w}) {
         $message->response->raise('You must provide a skill name.');
@@ -149,7 +149,7 @@ sub describe_skill {
 }
 
 sub skill_dontknow {
-    my ($self, $message, $command, @skills) = @_;
+    my ($self, $message, $command, $rpl, @skills) = @_;
 
     unless (@skills) {
         $message->response->push('Must supply skill name(s) to remove.');
@@ -179,7 +179,7 @@ sub skill_dontknow {
 }
 
 sub skill_know {
-    my ($self, $message, $command, $skill_name, $skill_level) = @_;
+    my ($self, $message, $command, $rpl, $skill_name, $skill_level) = @_;
 
     unless (defined $skill_name && $skill_name =~ m{\w+}) {
         my @skills = $self->show_user_skills($message, $message->sender->id);
@@ -293,7 +293,7 @@ sub skill_know {
 }
 
 sub skill_theyknow {
-    my ($self, $message, $command, $targetname) = @_;
+    my ($self, $message, $command, $rpl, $targetname) = @_;
 
     my $res = $self->bot->config->db->do(q{
         select id, name
@@ -347,7 +347,7 @@ sub show_user_skills {
 }
 
 sub skill_whoknows {
-    my ($self, $message, $command, @skill_names) = @_;
+    my ($self, $message, $command, $rpl, @skill_names) = @_;
 
     unless (@skill_names && @skill_names > 0) {
         $message->response->raise('You must supply at least one skill name.');
@@ -418,7 +418,7 @@ sub skill_whoknows {
 }
 
 sub skill_whoknows_intersect {
-    my ($self, $message, $command, @skill_names) = @_;
+    my ($self, $message, $command, $rpl, @skill_names) = @_;
 
     unless (@skill_names && @skill_names > 1) {
         $message->response->raise('Skill intersections require at least two skill names.');
@@ -551,7 +551,7 @@ sub skill_whoknows_intersect {
 }
 
 sub skill_add {
-    my ($self, $message, $command, @skills) = @_;
+    my ($self, $message, $command, $rpl, @skills) = @_;
 
     my @existing;
     my @new;
@@ -586,7 +586,7 @@ sub skill_add {
 }
 
 sub skill_list {
-    my ($self, $message, $command, $pattern) = @_;
+    my ($self, $message, $command, $rpl, $pattern) = @_;
 
     my ($res);
 
@@ -637,7 +637,7 @@ sub skill_list {
 }
 
 sub skill_levels {
-    my ($self, $message, $command) = @_;
+    my ($self, $message, $command, $rpl) = @_;
 
     my $res = $self->bot->config->db->do(q{
         select name, description

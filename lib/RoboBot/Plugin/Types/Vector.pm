@@ -27,7 +27,7 @@ has '+commands' => (
 );
 
 sub vec_vec {
-    my ($self, $message, $command, @list) = @_;
+    my ($self, $message, $command, $rpl, @list) = @_;
 
     return [] unless @list && @list > 0;
     return [@list];

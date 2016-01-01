@@ -51,7 +51,7 @@ has 'nf' => (
 );
 
 sub add_karma {
-    my ($self, $message, $command, $nick) = @_;
+    my ($self, $message, $command, $rpl, $nick) = @_;
 
     $nick = RoboBot::Nick->new( config => $self->bot->config, name => "$nick" );
 
@@ -70,7 +70,7 @@ sub add_karma {
 }
 
 sub subtract_karma {
-    my ($self, $message, $command, $nick) = @_;
+    my ($self, $message, $command, $rpl, $nick) = @_;
 
     $nick = RoboBot::Nick->new( config => $self->bot->config, name => "$nick" );
 
@@ -120,7 +120,7 @@ sub update_karma {
 }
 
 sub display_karma {
-    my ($self, $message, $command, @nicks) = @_;
+    my ($self, $message, $command, $rpl, @nicks) = @_;
 
     if (!@nicks || @nicks < 1) {
         @nicks = ($message->sender->name);
@@ -161,7 +161,7 @@ sub display_karma {
 }
 
 sub karma_leaders {
-    my ($self, $message, $command) = @_;
+    my ($self, $message, $command, $rpl) = @_;
 
     my $res = $self->bot->config->db->do(q{
         with t as (select count(*) as nicks from nicks)

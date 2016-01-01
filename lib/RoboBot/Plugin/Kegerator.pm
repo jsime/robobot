@@ -107,7 +107,7 @@ sub init {
 }
 
 sub show_ontap {
-    my ($self, $message, $command, $tap_no) = @_;
+    my ($self, $message, $command, $rpl, $tap_no) = @_;
 
     if (defined $tap_no && $tap_no !~ m{^\d+$}o) {
         $message->response->raise('Optional tap number must be an integer if specified.');

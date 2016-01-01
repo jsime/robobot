@@ -78,7 +78,7 @@ has 'nf' => (
 );
 
 sub str_str {
-    my ($self, $message, $command, @list) = @_;
+    my ($self, $message, $command, $rpl, @list) = @_;
 
     return "" unless @list;
     return join('', @list);
@@ -91,14 +91,14 @@ sub clear_output {
 }
 
 sub join_str {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     return unless @args && scalar(@args) >= 2;
     return join($args[0], @args[1..$#args]);
 }
 
 sub split_str {
-    my ($self, $message, $command, $pattern, $string) = @_;
+    my ($self, $message, $command, $rpl, $pattern, $string) = @_;
 
     return unless defined $pattern && defined $string;
 
@@ -117,19 +117,20 @@ sub split_str {
 }
 
 sub str_lower {
-    my ($self, $message, $command, $str) = @_;
+    my ($self, $message, $command, $rpl, $str) = @_;
 
+    return unless defined $str;
     return lc($str);
 }
 
 sub str_upper {
-    my ($self, $message, $command, $str) = @_;
+    my ($self, $message, $command, $rpl, $str) = @_;
 
     return uc($str);
 }
 
 sub print_str {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     # Do nothing if we received nothing.
     return unless @args && @args > 0;
@@ -204,7 +205,7 @@ sub _print_map {
 }
 
 sub format_str {
-    my ($self, $message, $command, $format, @args) = @_;
+    my ($self, $message, $command, $rpl, $format, @args) = @_;
 
     my $str;
 
@@ -219,7 +220,7 @@ sub format_str {
 }
 
 sub format_num {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     return $self->nf->format_number(@args);
 }

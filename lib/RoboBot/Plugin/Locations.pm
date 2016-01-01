@@ -30,7 +30,7 @@ has '+commands' => (
 );
 
 sub location_set {
-    my ($self, $message, $command, $location, @details) = @_;
+    my ($self, $message, $command, $rpl, $location, @details) = @_;
 
     unless (defined $location && $location =~ m{\w+}) {
         $message->response->raise('You must provide a location name.');
@@ -58,7 +58,7 @@ sub location_set {
 }
 
 sub location_nick {
-    my ($self, $message, $command, $name) = @_;
+    my ($self, $message, $command, $rpl, $name) = @_;
 
     unless (defined $name && $name =~ m{\w+}) {
         $message->response->raise('You must provide the name of the person whose location you want to see.');

@@ -60,7 +60,7 @@ has '+commands' => (
 );
 
 sub set_global {
-    my ($self, $message, $command, $var_name, @values) = @_;
+    my ($self, $message, $command, $rpl, $var_name, @values) = @_;
 
     unless (defined $var_name && $var_name =~ m{\w+}) {
         $message->response->raise('Must provide a variable name and at least one value.');
@@ -105,7 +105,7 @@ sub set_global {
 }
 
 sub unset_global {
-    my ($self, $message, $command, $var_name) = @_;
+    my ($self, $message, $command, $rpl, $var_name) = @_;
 
     unless (defined $var_name && $var_name =~ m{\w+}) {
         $message->response->raise('Must provide a variable name to unset it.');
@@ -122,7 +122,7 @@ sub unset_global {
 }
 
 sub get_global {
-    my ($self, $message, $command, $var_name) = @_;
+    my ($self, $message, $command, $rpl, $var_name) = @_;
 
     unless (defined $var_name && $var_name =~ m{\w+}) {
         $message->response->raise('Must provide a variable name to retrieve a value.');
@@ -143,7 +143,7 @@ sub get_global {
 }
 
 sub is_defined {
-    my ($self, $message, $command, @var_list) = @_;
+    my ($self, $message, $command, $rpl, @var_list) = @_;
 
     return 0 unless @var_list > 0;
 
@@ -169,7 +169,7 @@ sub is_defined {
 }
 
 sub set_var {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     if (@args && @args == 2 && $args[0] =~ m{^[\$\@\*\:\+0-9a-zA-Z_-]+$}) {
         return $message->vars->{$args[0]} = $message->process_list($args[1]);
@@ -177,7 +177,7 @@ sub set_var {
 }
 
 sub unset_var {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     if (@args && @args == 1) {
         if (exists $message->vars->{$args[0]}) {
@@ -189,7 +189,7 @@ sub unset_var {
 }
 
 sub increment_var {
-    my ($self, $message, $command, $var_name, $amount) = @_;
+    my ($self, $message, $command, $rpl, $var_name, $amount) = @_;
 
     $amount = 1 unless defined $amount;
 

@@ -73,7 +73,7 @@ sub init {
 }
 
 sub list_repo_watchers {
-    my ($self, $message, $command) = @_;
+    my ($self, $message, $command, $rpl) = @_;
 
     unless ($message->has_channel) {
         $message->response->raise('Only channels may have Github repository watchers.');
@@ -102,7 +102,7 @@ sub list_repo_watchers {
 }
 
 sub add_repo_watcher {
-    my ($self, $message, $command, @repo_urls) = @_;
+    my ($self, $message, $command, $rpl, @repo_urls) = @_;
 
     unless ($message->has_channel) {
         $message->response->raise('Cannot add Github repository watchers without a channel.');
@@ -157,7 +157,7 @@ sub add_repo_watcher {
 }
 
 sub remove_repo_watcher {
-    my ($self, $message, $command, @repo_urls) = @_;
+    my ($self, $message, $command, $rpl, @repo_urls) = @_;
 
     unless ($message->has_channel) {
         $message->response->raise('Cannot remove Github repository watchers from a non-channel context.');

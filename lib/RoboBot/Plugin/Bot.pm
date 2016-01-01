@@ -34,7 +34,7 @@ has '+commands' => (
 );
 
 sub channels {
-    my ($self, $message, $command, $pattern) = @_;
+    my ($self, $message, $command, $rpl, $pattern) = @_;
 
     my $network = $message->network;
 

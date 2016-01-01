@@ -26,7 +26,7 @@ has '+commands' => (
 );
 
 sub channel_topic {
-    my ($self, $message, $command, $new_topic) = @_;
+    my ($self, $message, $command, $rpl, $new_topic) = @_;
 
     return unless $message->has_channel;
 

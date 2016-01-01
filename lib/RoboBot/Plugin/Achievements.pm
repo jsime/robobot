@@ -43,7 +43,7 @@ has '+commands' => (
 );
 
 sub list_achievements {
-    my ($self, $message, $command) = @_;
+    my ($self, $message, $command, $rpl) = @_;
 
     my $res = $self->bot->config->db->do(q{
         select name
@@ -68,7 +68,7 @@ sub list_achievements {
 }
 
 sub show_achievement {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     return unless @args;
     my $name = join(' ', @args);
@@ -120,7 +120,7 @@ sub show_achievement {
 }
 
 sub nick_achievements {
-    my ($self, $message, $command, $nick) = @_;
+    my ($self, $message, $command, $rpl, $nick) = @_;
 
     $nick //= $message->sender->name;
 
@@ -151,7 +151,7 @@ sub nick_achievements {
 }
 
 sub add_achievement {
-    my ($self, $message, $command, $name, $desc, $query) = @_;
+    my ($self, $message, $command, $rpl, $name, $desc, $query) = @_;
 
     $message->response->push('Achievements must be added manually, to prevent abuse. Contact your neighborhood RoboBot representative for details.');
     return;

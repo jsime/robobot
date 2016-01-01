@@ -76,7 +76,7 @@ has '+commands' => (
 );
 
 sub comparison {
-    my ($self, $message, $op, @args) = @_;
+    my ($self, $message, $op, $rpl, @args) = @_;
 
     return undef unless $self->has_two_values($message, @args);
 
@@ -88,7 +88,7 @@ sub comparison {
 }
 
 sub comparison_str {
-    my ($self, $message, $op, @args) = @_;
+    my ($self, $message, $op, $rpl, @args) = @_;
 
     return undef unless $self->has_two_values($message, @args);
 

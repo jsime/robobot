@@ -41,7 +41,7 @@ has '+commands' => (
 );
 
 sub str_index {
-    my ($self, $message, $command, $str, $match) = @_;
+    my ($self, $message, $command, $rpl, $str, $match) = @_;
 
     unless (defined $str && defined $match) {
         $message->response->raise('Must provide a string and substring.');
@@ -61,7 +61,7 @@ sub str_index {
 }
 
 sub str_index_n {
-    my ($self, $message, $command, $str, $match, $n) = @_;
+    my ($self, $message, $command, $rpl, $str, $match, $n) = @_;
 
     unless (defined $n && $n =~ m{^\d+$}) {
         $message->response->raise('Must supply <n> as a positive integer.');
@@ -75,7 +75,7 @@ sub str_index_n {
 }
 
 sub str_substring {
-    my ($self, $message, $command, $str, $pos, $n) = @_;
+    my ($self, $message, $command, $rpl, $str, $pos, $n) = @_;
 
     unless (defined $str && defined $pos) {
         $message->response->raise('Must provide a string and starting position.');

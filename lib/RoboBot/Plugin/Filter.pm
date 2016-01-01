@@ -37,7 +37,7 @@ has 'filter_paths' => (
 );
 
 sub filter_text {
-    my ($self, $message, $filter, @args) = @_;
+    my ($self, $message, $filter, $rpl, @args) = @_;
 
     return unless exists $self->commands->{$filter};
 

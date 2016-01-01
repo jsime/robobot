@@ -34,7 +34,7 @@ has '+commands' => (
 );
 
 sub random_int {
-    my ($self, $message, $command, $max) = @_;
+    my ($self, $message, $command, $rpl, $max) = @_;
 
     $max //= 1;
     return unless $max =~ m{^\d+$};
@@ -43,7 +43,7 @@ sub random_int {
 }
 
 sub roll {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     my $nf = Number::Format->new();
 

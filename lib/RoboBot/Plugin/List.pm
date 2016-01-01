@@ -8,6 +8,7 @@ use Moose;
 use MooseX::SetOnce;
 
 use List::Util qw( shuffle );
+use Scalar::Util qw( blessed );
 
 extends 'RoboBot::Plugin';
 
@@ -91,7 +92,7 @@ has '+commands' => (
 );
 
 sub list_filter {
-    my ($self, $message, $command, $filter_func, @list) = @_;
+    my ($self, $message, $command, $rpl, $filter_func, @list) = @_;
 
     my @ret_list = ();
     my $p_masked = exists $message->vars->{'%'} ? $message->vars->{'%'} : undef;
@@ -116,7 +117,7 @@ sub list_filter {
 }
 
 sub list_reduce {
-    my ($self, $message, $command, $reduce_func, $accumulator, @list) = @_;
+    my ($self, $message, $command, $rpl, $reduce_func, $accumulator, @list) = @_;
 
     my $p_masked = exists $message->vars->{'%'} ? $message->vars->{'%'} : undef;
     my $d_masked = exists $message->vars->{'$'} ? $message->vars->{'$'} : undef;
@@ -148,7 +149,7 @@ sub list_reduce {
 }
 
 sub list_map {
-    my ($self, $message, $command, $map_func, @list) = @_;
+    my ($self, $message, $command, $rpl, $map_func, @list) = @_;
 
     my @ret_list = ();
     my $p_masked = exists $message->vars->{'%'} ? $message->vars->{'%'} : undef;
@@ -173,14 +174,14 @@ sub list_map {
 }
 
 sub list_count {
-    my ($self, $message, $command, @list) = @_;
+    my ($self, $message, $command, $rpl, @list) = @_;
 
     return 0 unless @list;
     return scalar(@list) || 0;
 }
 
 sub list_any {
-    my ($self, $message, $command, $str, @list) = @_;
+    my ($self, $message, $command, $rpl, $str, @list) = @_;
 
     return unless defined $str && @list && scalar(@list) > 0;
 
@@ -191,7 +192,7 @@ sub list_any {
 }
 
 sub list_nth {
-    my ($self, $message, $command, $nth, @args) = @_;
+    my ($self, $message, $command, $rpl, $nth, @args) = @_;
 
     if (defined $nth && $nth =~ m{^\d+$}o) {
         if ($nth < 0) {
@@ -213,31 +214,31 @@ sub list_nth {
 }
 
 sub list_first {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
-    return $self->list_nth($message, $command, 1, @args);
+    return $self->list_nth($message, $command, $rpl, 1, @args);
 }
 
 sub list_last {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
-    return $self->list_nth($message, $command, scalar(@args), @args);
+    return $self->list_nth($message, $command, $rpl, scalar(@args), @args);
 }
 
 sub list_shuffle {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     return shuffle @args;
 }
 
 sub list_sort {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     return sort @args;
 }
 
 sub list_seq {
-    my ($self, $message, $command, $first, $last, $step) = @_;
+    my ($self, $message, $command, $rpl, $first, $last, $step) = @_;
 
     $step //= 1;
 

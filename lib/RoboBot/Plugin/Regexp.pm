@@ -34,7 +34,7 @@ has '+commands' => (
 );
 
 sub re_match {
-    my ($self, $message, $command, $pattern, @args) = @_;
+    my ($self, $message, $command, $rpl, $pattern, @args) = @_;
 
     unless ($pattern = $self->cleanup_pattern($pattern)) {
         $message->response->raise('Invalid regular expression provided.');
@@ -58,7 +58,7 @@ sub re_match {
 }
 
 sub re_replace {
-    my ($self, $message, $command, $pattern, $replace, @args) = @_;
+    my ($self, $message, $command, $rpl, $pattern, $replace, @args) = @_;
 
     unless ($pattern = $self->cleanup_pattern($pattern)) {
         $message->response->raise('Invalid regular expression provided.');

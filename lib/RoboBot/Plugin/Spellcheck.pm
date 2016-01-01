@@ -100,7 +100,7 @@ sub clean_word {
 }
 
 sub remember_words {
-    my ($self, $message, $command, @words) = @_;
+    my ($self, $message, $command, $rpl, @words) = @_;
 
     @words = map { $self->clean_word($_) } grep { $_ =~ m{\w}o } @words;
     my @new_words;
@@ -124,7 +124,7 @@ sub remember_words {
 }
 
 sub forget_words {
-    my ($self, $message, $command, @words) = @_;
+    my ($self, $message, $command, $rpl, @words) = @_;
 
     @words = map { $self->clean_word($_) } grep { $_ =~ m{\w}o } @words;
 

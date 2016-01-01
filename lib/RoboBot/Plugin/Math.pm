@@ -62,14 +62,14 @@ has '+commands' => (
 );
 
 sub abs {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     return unless $self->has_n_number($message, 1, @args);
     return $args[0] >= 0 ? $args[0] : $args[0] * -1;
 }
 
 sub add {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     push(@args, 1) unless @args && @args > 1;
     return unless $self->has_n_numbers($message, 2, @args);
@@ -77,21 +77,21 @@ sub add {
 }
 
 sub subtract {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     return unless $self->has_n_numbers($message, 2, @args);
     return $args[0] - $args[1];
 }
 
 sub multiply {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     return unless $self->has_n_numbers($message, 2, @args);
     return $args[0] * $args[1];
 }
 
 sub divide {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     return unless $self->has_n_numbers($message, 2, @args);
     return unless $self->denominator_not_zero($message, @args);
@@ -99,7 +99,7 @@ sub divide {
 }
 
 sub modulo {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     return unless $self->has_n_numbers($message, 2, @args);
     return unless $self->denominator_not_zero($message, @args);
@@ -107,14 +107,14 @@ sub modulo {
 }
 
 sub power {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     return unless $self->has_n_numbers($message, 2, @args);
     return $args[0] ** $args[1];
 }
 
 sub sqrt {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     return unless $self->has_n_numbers($message, 1, @args);
     return unless $self->has_all_positive_numbers($message, @args);

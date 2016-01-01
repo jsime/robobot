@@ -7,6 +7,8 @@ use namespace::autoclean;
 use Moose;
 use MooseX::SetOnce;
 
+use Scalar::Util qw( blessed );
+
 extends 'RoboBot::Plugin';
 
 has '+name' => (
@@ -64,15 +66,19 @@ has '+commands' => (
 );
 
 sub control_repeat {
-    my ($self, $message, $command, $num, $list) = @_;
+    my ($self, $message, $command, $rpl, $num, $list) = @_;
+
+    if (defined $num && blessed($num) && $num->can('evaluate')) {
+        $num = $num->evaluate($message, $rpl);
+    }
 
     unless (defined $num && $num =~ m{^\d+$}) {
         $message->response->raise('First argument must be the number of times to repeat list evaluation.');
         return;
     }
 
-    unless (defined $list && ref($list) eq 'ARRAY') {
-        $message->response->raise('Must provide a list to repeatedly evaluate.');
+    unless (defined $list && blessed($list) && $list->can('evaluate')) {
+        $message->response->raise('Must provide a list or expression to repeatedly evaluate.');
         return;
     }
 
@@ -82,50 +88,75 @@ sub control_repeat {
     my @ret;
 
     while ($num--) {
-        push(@ret, $message->process_list($list));
+        push(@ret, $list->evaluate($message, $rpl));
     }
 
     return @ret;
 }
 
 sub control_if {
-    my ($self, $message, $command, $condition, $expr_if) = @_;
+    my ($self, $message, $command, $rpl, $condition, $expr_if) = @_;
 
-    my $res = $message->process_list($condition);
+    if (defined $condition && blessed($condition) && $condition->can('evaluate')) {
+        $condition = $condition->evaluate($message, $rpl);
+    }
 
-    if ($res) {
-        return $message->process_list($expr_if);
+    unless (defined $expr_if && blessed($expr_if) && $expr_if->can('evaluate')) {
+        $message->response->raise('Second argument must be a list or expression to evaluate when condition is truthy.');
+        return;
+    }
+
+    if ($condition) {
+        return $expr_if->evaluate($message, $rpl);
     }
 
     return;
 }
 
 sub control_ifelse {
-    my ($self, $message, $command, $condition, $expr_if, $expr_else) = @_;
+    my ($self, $message, $command, $rpl, $condition, $expr_if, $expr_else) = @_;
 
-    my $res = $message->process_list($condition);
+    if (defined $condition && blessed($condition) && $condition->can('evaluate')) {
+        $condition = $condition->evaluate($message, $rpl);
+    }
 
-    if ($res) {
-        return $message->process_list($expr_if);
+    unless (defined $expr_if && blessed($expr_if) && $expr_if->can('evaluate')) {
+        $message->response->raise('Second argument must be a list or expression to evaluate when condition is truthy.');
+        return;
+    }
+
+    unless (defined $expr_else && blessed($expr_else) && $expr_else->can('evaluate')) {
+        $message->response->raise('Third argument must be a list or expression to evaluate when condition is falsey.');
+        return;
+    }
+
+    if ($condition) {
+        return $expr_if->evaluate($message, $rpl);
     } else {
-        return $message->process_list($expr_else);
+        return $expr_else->evaluate($message, $rpl);
     }
 
     return;
 }
 
 sub control_while {
-    my ($self, $message, $command, $condition, $expr_loop) = @_;
+    my ($self, $message, $command, $rpl, $condition, $expr_loop) = @_;
 
     my @res;
 
     # TODO make the loop-limit configurable
     my $i = 0;
-    my $ret = $message->process_list($condition);
+
+    unless (defined $condition && blessed($condition) && $condition->can('evaluate')) {
+        $message->response->raise('First argument must be a list or expression which will evaluate to a truthy/falsey value.');
+        return;
+    }
+
+    my $ret = $condition->evaluate($message, $rpl);
 
     while ($i < 100 && $ret) {
-        @res = $message->process_list($expr_loop);
-        $ret = $message->process_list($condition);
+        @res = $expr_loop->evaluate($message, $rpl);
+        $ret = $condition->evaluate($message, $rpl);
         $i++;
     }
 
@@ -133,33 +164,37 @@ sub control_while {
 }
 
 sub control_cond {
-    my ($self, $message, $command, @pairs) = @_;
+    my ($self, $message, $command, $rpl, @pairs) = @_;
 
-    return unless @pairs && @pairs >= 2;
+    unless (@pairs && @pairs >= 2) {
+        $message->response->raise('You must supply at least one condition and action.');
+        return;
+    }
 
-    my $fallback = scalar(@pairs) % 2 == 1 ? pop @pairs : [];
+    my $fallback = pop @pairs if scalar(@pairs) % 2 == 1;
 
     while (my $cond = shift @pairs) {
-        my $list = shift @pairs;
-        if ($message->process_list($cond)) {
-            my @r = $message->process_list($list);
-            return @r;
+        my $action = shift @pairs;
+        if ($cond->evaluate($message, $rpl)) {
+            return $action->evaluate($message, $rpl)
         }
     }
 
-    return $message->process_list($fallback);
+    if (defined $fallback) {
+        return $fallback->evaluate($message, $rpl);
+    }
 }
 
 sub control_apply {
-    my ($self, $message, $command, $func_name, @args) = @_;
+    my ($self, $message, $command, $rpl, $func, @args) = @_;
 
-    unless (defined $func_name && (exists $self->bot->commands->{lc($func_name)} || exists $self->bot->macros->{lc($func_name)})) {
-        $message->response->raise('You must provide a function name to apply to your arguments.');
+    unless (defined $func && blessed($func) =~ m{^RoboBot::Type::(Function|Macro)}) {
+        $message->response->raise('You must provide a function or macro to apply to your arguments.');
         return;
     }
 
     unless (@args) {
-        $message->response->raise('You cannot apply a function to a non-existent list of arguments.');
+        $message->response->raise('You cannot apply a function or macro to a non-existent list of arguments.');
         return;
     }
 
@@ -169,8 +204,8 @@ sub control_apply {
     my @collect;
 
     foreach my $arg (@args) {
-        my @res = $message->process_list($arg);
-        push(@collect, $message->process_list([$func_name, $_])) foreach @res;
+        my @res = $arg->evaluate($message, $rpl);
+        push(@collect, $func->evaluate($message, $rpl, $_)) foreach @res;
     }
 
     return @collect;

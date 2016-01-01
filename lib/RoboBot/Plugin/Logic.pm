@@ -41,7 +41,7 @@ has '+commands' => (
 );
 
 sub bool_binary {
-    my ($self, $message, $op, @args) = @_;
+    my ($self, $message, $op, $rpl, @args) = @_;
 
     # TODO make these short-circuit, which will require separating method handlers out since short-circuiting
     # conditions vary
@@ -59,7 +59,7 @@ sub bool_binary {
 }
 
 sub bool_unary {
-    my ($self, $message, $op, @args) = @_;
+    my ($self, $message, $op, $rpl, @args) = @_;
 
     return unless $self->has_one_value($message, @args);
 

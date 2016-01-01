@@ -27,7 +27,7 @@ has '+commands' => (
 );
 
 sub help {
-    my ($self, $message, $command, $section, @args) = @_;
+    my ($self, $message, $command, $rpl, $section, @args) = @_;
 
     if (defined $section && $section =~ m{\w+}o) {
         if ($section =~ m{^\:?plugin$}oi) {
@@ -97,7 +97,7 @@ sub plugin_help {
 }
 
 sub command_help {
-    my ($self, $message, $command_name) = @_;
+    my ($self, $message, $command_name, $rpl) = @_;
 
     if (exists $self->bot->commands->{$command_name}) {
         my $plugin = $self->bot->commands->{$command_name};

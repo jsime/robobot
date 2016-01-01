@@ -37,7 +37,7 @@ has '+commands' => (
 );
 
 sub madlib {
-    my ($self, $message, $command, $id, @words) = @_;
+    my ($self, $message, $command, $rpl, $id, @words) = @_;
 
     if (defined $id) {
         return $self->complete_madlib($message, $command, $id, @words);
@@ -47,7 +47,7 @@ sub madlib {
 }
 
 sub complete_madlib {
-    my ($self, $message, $command, $id, @words) = @_;
+    my ($self, $message, $command, $rpl, $id, @words) = @_;
 
     unless (@words && @words > 0) {
         $message->response->raise('You must supply words to complete a madlib.');
@@ -137,7 +137,7 @@ sub start_madlib {
 }
 
 sub create_madlib {
-    my ($self, $message, $command, @madlib) = @_;
+    my ($self, $message, $command, $rpl, @madlib) = @_;
 
     unless (@madlib && @madlib > 0) {
         $message->response->raise('You must provide text for the new madlib.');
@@ -177,7 +177,7 @@ sub create_madlib {
 }
 
 sub show_madlib {
-    my ($self, $message, $command, $madlib_id) = @_;
+    my ($self, $message, $command, $rpl, $madlib_id) = @_;
 
     my $res;
 

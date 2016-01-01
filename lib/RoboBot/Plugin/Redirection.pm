@@ -34,7 +34,7 @@ has '+commands' => (
 );
 
 sub to_nick {
-    my ($self, $message, $command, $to_nick, @args) = @_;
+    my ($self, $message, $command, $rpl, $to_nick, @args) = @_;
 
     # TODO: more protection against malicious nick input (maybe done in Nick.pm)
 
@@ -51,7 +51,7 @@ sub to_nick {
 }
 
 sub to_channel {
-    my ($self, $message, $command, $to_channel, @args) = @_;
+    my ($self, $message, $command, $rpl, $to_channel, @args) = @_;
 
     $to_channel =~ s{^\#*}{}ogs;
 

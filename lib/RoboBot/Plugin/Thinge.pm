@@ -70,7 +70,7 @@ sub init {
 }
 
 sub thinge {
-    my ($self, $message, $command, $type, $id_or_tag) = @_;
+    my ($self, $message, $command, $rpl, $type, $id_or_tag) = @_;
 
     my $type_id = $self->get_type_id($message, $type) || return;
 
@@ -150,7 +150,7 @@ sub thinge {
 }
 
 sub find_thinge {
-    my ($self, $message, $command, $type, $pattern) = @_;
+    my ($self, $message, $command, $rpl, $type, $pattern) = @_;
 
     return unless defined $type && defined $pattern;
 
@@ -167,7 +167,7 @@ sub find_thinge {
 
     if ($res && $res->next) {
         # We found a thinge. Delegate displaying it to the normal thinge() method.
-        return $self->thinge($message, $command, $type, $res->{'thinge_num'});
+        return $self->thinge($message, $command, $rpl, $type, $res->{'thinge_num'});
     } else {
         # We could not find a matching thinge.
         $message->response->raise('Could not locate a %s that matched the pattern "%s".', $type, $pattern);
@@ -177,7 +177,7 @@ sub find_thinge {
 }
 
 sub search_thinges {
-    my ($self, $message, $command, $type, $pattern, $limit) = @_;
+    my ($self, $message, $command, $rpl, $type, $pattern, $limit) = @_;
 
     $limit //= 10;
 
@@ -216,7 +216,7 @@ sub search_thinges {
 }
 
 sub save_thinge {
-    my ($self, $message, $command, $type, $text) = @_;
+    my ($self, $message, $command, $rpl, $type, $text) = @_;
 
     return unless defined $text && $text =~ m{\w+}o;
     $text =~ s{(^\s+|\s+$)}{}ogs;
@@ -250,7 +250,7 @@ sub save_thinge {
 }
 
 sub delete_thinge {
-    my ($self, $message, $command, $type, $thinge_id) = @_;
+    my ($self, $message, $command, $rpl, $type, $thinge_id) = @_;
 
     return unless defined $thinge_id && $thinge_id =~ m{^\d+$}o;
 
@@ -272,7 +272,7 @@ sub delete_thinge {
 }
 
 sub tag_thinge {
-    my ($self, $message, $command, $type, $id, @tags) = @_;
+    my ($self, $message, $command, $rpl, $type, $id, @tags) = @_;
 
     my $type_id = $self->get_type_id($message, $type) || return;
 
@@ -320,7 +320,7 @@ sub show_types {
         where t.network_id = ?
         group by tt.name
         order by lower(name) asc
-    });
+    }, $message->network->id);
 
     if ($res) {
         my @types;

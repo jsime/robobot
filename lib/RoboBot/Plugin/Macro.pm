@@ -10,6 +10,7 @@ use MooseX::SetOnce;
 use RoboBot::Macro;
 
 use Data::Dumper;
+use Scalar::Util qw( blessed );
 
 extends 'RoboBot::Plugin';
 
@@ -52,14 +53,15 @@ has '+commands' => (
 );
 
 sub list_macros {
-    my ($self, $message, $command, $pattern) = @_;
+    my ($self, $message, $command, $rpl, $pattern) = @_;
 
     my $res = $self->bot->config->db->do(q{
         select name
         from macros
         where name ~* ?
+            and network_id = ?
         order by name asc
-    }, ($pattern // '.*'));
+    }, ($pattern // '.*'), $message->network->id);
 
     unless ($res) {
         $message->response->raise('Could not obtain list of macros. If you supplied a pattern, please ensure that it is a valid regular expression.');
@@ -77,7 +79,7 @@ sub list_macros {
 }
 
 sub define_macro {
-    my ($self, $message, $command, $macro_name, $args, $def) = @_;
+    my ($self, $message, $command, $rpl, $macro_name, $args, $def) = @_;
 
     unless (defined $macro_name && defined $args && defined $def) {
         $message->response->raise('Macro definitions must consist of a name, a list of arguments, and a definition body list.');
@@ -168,7 +170,7 @@ sub define_macro {
 }
 
 sub undefine_macro {
-    my ($self, $message, $command, $macro_name) = @_;
+    my ($self, $message, $command, $rpl, $macro_name) = @_;
 
     unless (defined $macro_name && $macro_name =~ m{\w+}o) {
         $message->response->raise('Must provide the name of a macro to undefine.');
@@ -197,7 +199,7 @@ sub undefine_macro {
 }
 
 sub show_macro {
-    my ($self, $message, $command, $macro_name) = @_;
+    my ($self, $message, $command, $rpl, $macro_name) = @_;
 
     unless (defined $macro_name && exists $self->bot->macros->{$macro_name}) {
         $message->response->raise('No such macro defined.');
@@ -208,12 +210,10 @@ sub show_macro {
 
     my $pp;
 
-    # Only do multi-line pretty-printing with indentation and all that other
-    # fancy business for macros over a given length.
     if (length($macro->definition) > 40) {
-        $pp = sprintf("(defmacro %s\n  (%s)\n  '%s)", $macro->name, $macro->signature, _pprint($macro->expression, 2));
+        $pp = sprintf("(defmacro %s (%s)\n  '%s)", $macro->name, $macro->signature, $macro->expression->pprint);
     } else {
-        $pp = sprintf('(defmacro %s (%s) \'%s)', $macro->name, $macro->signature, $macro->definition);
+        $pp = sprintf('(defmacro %s (%s) \'%s)', $macro->name, $macro->signature, $macro->expression->flatten);
     }
 
     $pp =~ s{\n\s+([^\(]+)\n}{ $1\n}gs;
@@ -225,7 +225,7 @@ sub show_macro {
 }
 
 sub lock_macro {
-    my ($self, $message, $command, $macro) = @_;
+    my ($self, $message, $command, $rpl, $macro) = @_;
 
     unless (defined $macro && $macro =~ m{\S+}) {
         $message->response->raise('Must provide the name of the macro you wish to lock.');
@@ -259,7 +259,7 @@ sub lock_macro {
 }
 
 sub unlock_macro {
-    my ($self, $message, $command, $macro) = @_;
+    my ($self, $message, $command, $rpl, $macro) = @_;
 
     unless (defined $macro && $macro =~ m{\S+}) {
         $message->response->raise('Must provide the name of the macro you wish to unlock.');

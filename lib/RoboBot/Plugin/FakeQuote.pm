@@ -40,7 +40,7 @@ has '+commands' => (
 );
 
 sub fake_quote {
-    my ($self, $message, $command, $personality) = @_;
+    my ($self, $message, $command, $rpl, $personality) = @_;
 
     my $res;
 
@@ -124,7 +124,7 @@ sub fake_quote {
 }
 
 sub add_fake_person {
-    my ($self, $message, $command, $personality, $suppress_output) = @_;
+    my ($self, $message, $command, $rpl, $personality, $suppress_output) = @_;
 
     return unless defined $personality;
 
@@ -155,7 +155,7 @@ sub add_fake_person {
 }
 
 sub add_fake_quote {
-    my ($self, $message, $command, $personality, $phrase) = @_;
+    my ($self, $message, $command, $rpl, $personality, $phrase) = @_;
 
     unless (defined $personality && defined $phrase && $personality =~ m{\w+} && $phrase =~ m{\w+}) {
         $message->response->raise('You must provide both a personality name and a fake quote phrase.');
@@ -182,7 +182,7 @@ sub add_fake_quote {
 }
 
 sub add_fake_term {
-    my ($self, $message, $command, $personality, $type, @terms) = @_;
+    my ($self, $message, $command, $rpl, $personality, $type, @terms) = @_;
 
     unless (defined $personality && defined $type && $personality =~ m{\w+} && $type =~ m{\w+}) {
         $message->response->raise('You must provide both a personality name and a term type.');

@@ -95,7 +95,7 @@ sub check_urls {
 }
 
 sub shorten_url {
-    my ($self, $message, $command, $url) = @_;
+    my ($self, $message, $command, $rpl, $url) = @_;
 
     return unless defined $url && length($url) > 0;
 

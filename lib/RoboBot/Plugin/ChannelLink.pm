@@ -79,7 +79,7 @@ sub init {
 }
 
 sub link_channels {
-    my ($self, $message, $command, $network, $channel) = @_;
+    my ($self, $message, $command, $rpl, $network, $channel) = @_;
 
     return unless defined $network && defined $channel;
     return unless $message->has_channel;
@@ -140,7 +140,7 @@ sub link_channels {
 }
 
 sub unlink_channels {
-    my ($self, $message, $command, $network, $channel) = @_;
+    my ($self, $message, $command, $rpl, $network, $channel) = @_;
 
     return unless defined $network && defined $channel;
     return unless $message->has_channel;
@@ -189,7 +189,7 @@ sub unlink_channels {
 }
 
 sub show_links {
-    my ($self, $message, $command) = @_;
+    my ($self, $message, $command, $rpl) = @_;
 
     return unless $message->has_channel;
 

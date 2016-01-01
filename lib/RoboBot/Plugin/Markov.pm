@@ -64,7 +64,7 @@ sub parse_message {
 }
 
 sub generate_markov {
-    my ($self, $message, $command, $target, @args) = @_;
+    my ($self, $message, $command, $rpl, $target, @args) = @_;
 
     my ($res, $seed);
 

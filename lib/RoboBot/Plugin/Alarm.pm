@@ -78,7 +78,7 @@ sub init {
 }
 
 sub set_alarm {
-    my ($self, $message, $command, $name, @args) = @_;
+    my ($self, $message, $command, $rpl, $name, @args) = @_;
 
     return unless $message->has_channel;
 
@@ -195,7 +195,7 @@ sub set_alarm {
 }
 
 sub delete_alarm {
-    my ($self, $message, $command, $name) = @_;
+    my ($self, $message, $command, $rpl, $name) = @_;
 
     return unless $message->has_channel;
 
@@ -219,7 +219,7 @@ sub delete_alarm {
 }
 
 sub show_alarm {
-    my ($self, $message, $command, $name) = @_;
+    my ($self, $message, $command, $rpl, $name) = @_;
 
     return unless $message->has_channel;
 
@@ -263,7 +263,7 @@ sub show_alarm {
 }
 
 sub list_alarms {
-    my ($self, $message, $command) = @_;
+    my ($self, $message, $command, $rpl) = @_;
 
     return unless $message->has_channel;
 
@@ -288,7 +288,7 @@ sub list_alarms {
 }
 
 sub resume_alarm {
-    my ($self, $message, $command, $name) = @_;
+    my ($self, $message, $command, $rpl, $name) = @_;
 
     return unless $message->has_channel;
 
@@ -325,7 +325,7 @@ sub resume_alarm {
 }
 
 sub suspend_alarm {
-    my ($self, $message, $command, $name) = @_;
+    my ($self, $message, $command, $rpl, $name) = @_;
 
     return unless $message->has_channel && defined $name;
 

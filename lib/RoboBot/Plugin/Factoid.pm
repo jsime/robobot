@@ -81,7 +81,7 @@ sub check_factoids {
 }
 
 sub add_factoid {
-    my ($self, $message, $command, $name, @factoids) = @_;
+    my ($self, $message, $command, $rpl, $name, @factoids) = @_;
 
     return unless defined $name && @factoids && @factoids > 0;
 
@@ -131,7 +131,7 @@ sub add_factoid {
 }
 
 sub remove_factoid {
-    my ($self, $message, $command, $name) = @_;
+    my ($self, $message, $command, $rpl, $name) = @_;
 
     return unless defined $name;
 

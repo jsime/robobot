@@ -51,25 +51,25 @@ has 'max_len' => (
 );
 
 sub bofh {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     return $self->get_fortune($message, 'bofh-excuses');
 }
 
 sub fortune {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     return $self->get_fortune($message, qw( people miscellaneous wisdom paradoxum fortunes humorists computers cookie pets ));
 }
 
 sub startrek {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     return $self->get_fortune($message, 'startrek');
 }
 
 sub zippy {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     return $self->get_fortune($message, 'zippy');
 }

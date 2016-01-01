@@ -100,7 +100,7 @@ sub init {
 }
 
 sub show_tid {
-    my ($self, $message, $command, $tid) = @_;
+    my ($self, $message, $command, $rpl, $tid) = @_;
 
     return unless defined $tid && $tid =~ m{^\d+$}o;
 

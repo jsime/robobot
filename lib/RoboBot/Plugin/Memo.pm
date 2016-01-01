@@ -77,7 +77,7 @@ sub check_memos {
 }
 
 sub memo_save {
-    my ($self, $message, $command, $nick, @args) = @_;
+    my ($self, $message, $command, $rpl, $nick, @args) = @_;
 
     unless (@args && @args > 0) {
         $message->response->raise('You must provide memo text to save.');

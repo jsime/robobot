@@ -39,7 +39,7 @@ has '+commands' => (
 );
 
 sub map_assoc {
-    my ($self, $message, $command, $map, @new_elements) = @_;
+    my ($self, $message, $command, $rpl, $map, @new_elements) = @_;
 
     unless (defined $map && ref($map) eq 'HASH') {
         $message->response->raise('Must provide a map.');
@@ -64,7 +64,7 @@ sub map_assoc {
 }
 
 sub map_keys {
-    my ($self, $message, $command, $map) = @_;
+    my ($self, $message, $command, $rpl, $map) = @_;
 
     unless (defined $map && ref($map) eq 'HASH') {
         $message->response->raise('Must supply a map.');
@@ -75,7 +75,7 @@ sub map_keys {
 }
 
 sub map_values {
-    my ($self, $message, $command, $map) = @_;
+    my ($self, $message, $command, $rpl, $map) = @_;
 
     unless (defined $map && ref($map) eq 'HASH') {
         $message->response->raise('Must supply a map.');

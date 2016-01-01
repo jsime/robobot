@@ -36,7 +36,7 @@ has '+commands' => (
 );
 
 sub auth_default {
-    my ($self, $message, $command, $function_name, $mode) = @_;
+    my ($self, $message, $command, $rpl, $function_name, $mode) = @_;
 
     unless (defined $function_name && defined $mode) {
         $message->response->raise('Must provide a function name and permission mode.');
@@ -77,7 +77,7 @@ sub auth_default {
 }
 
 sub auth_modify {
-    my ($self, $message, $command, $function_name, $nick_name) = @_;
+    my ($self, $message, $command, $rpl, $function_name, $nick_name) = @_;
 
     my $mode = $command eq 'auth-allow' ? 'allow' : 'deny';
 
