@@ -17,7 +17,7 @@ use RoboBot::Config;
 use RoboBot::Message;
 use RoboBot::Plugin;
 
-our $VERSION = '2.003001';
+our $VERSION = '3.001001';
 
 has 'config_paths' => (
     is        => 'ro',
@@ -105,7 +105,7 @@ sub BUILD {
     }
 
     # Pre-load all saved macros
-    $self->macros({ RoboBot::Macro->load_all($self->config) });
+    $self->macros({ RoboBot::Macro->load_all($self) });
 }
 
 sub run {
@@ -135,7 +135,7 @@ sub add_macro {
         return unless $self->macros->{$macro_name}->save;
     } else {
         my $macro = RoboBot::Macro->new(
-            config     => $self->config,
+            bot        => $self,
             name       => "$macro_name",
             arguments  => $args,
             definition => $body,
@@ -159,6 +159,13 @@ sub remove_macro {
     delete $self->macros->{$macro_name};
 
     return 1;
+}
+
+sub network_by_id {
+    my ($self, $network_id) = @_;
+
+    return undef unless defined $network_id && $network_id =~ m{^\d+$};
+    return (grep { $_->id == $network_id } @{$self->networks})[0] || undef;
 }
 
 __PACKAGE__->meta->make_immutable;

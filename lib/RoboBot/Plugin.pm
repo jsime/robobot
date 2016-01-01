@@ -7,6 +7,9 @@ use namespace::autoclean;
 use Moose;
 use MooseX::SetOnce;
 
+use Data::Dumper;
+use Scalar::Util qw( blessed );
+
 has 'name' => (
     is  => 'ro',
     isa => 'Str',
@@ -47,7 +50,7 @@ sub init {
 }
 
 sub process {
-    my ($self, $message, $command, @args) = @_;
+    my ($self, $message, $command, $rpl, @args) = @_;
 
     # Remove namespace from command if present (by the time we reach this point, we
     # already know what plugin namespace we're in)
@@ -68,31 +71,29 @@ sub process {
     # By default, we pre-process all arguments, but some plugins can opt out
     # of this to handle things like conditional evaluations or loops
     unless (exists $self->commands->{$command}{'preprocess_args'} && $self->commands->{$command}{'preprocess_args'} == 0) {
-        my @processed_args;
+        # TODO: There are much better ways of deciding how to pass a symbol
+        #       that happens to have the name of a function as a function, or
+        #       as a string, than this.
+        my $pass_funcs = exists $self->commands->{$command}{'take_funcs'} && $self->commands->{$command}{'take_funcs'} == 1 ? 1 : 0;
 
-        # TODO this duplicates code from RoboBot.pm in process_list (which this even
-        # calls) -- they should be get refactored to use a common set of list
-        # processing code instead (especially for clean handling of variables)
+        my @new_args;
+
         foreach my $arg (@args) {
-            if (ref($arg) eq 'ARRAY') {
-                push(@processed_args, $message->process_list($arg));
-            } else {
-                if (defined $arg && exists $message->vars->{$arg}) {
-                    if (ref($message->vars->{$arg}) eq 'ARRAY') {
-                        push(@processed_args, $message->process_list($arg));
-                    } else {
-                        push(@processed_args, $message->vars->{$arg});
-                    }
+            if (blessed($arg) && $arg->can('evaluate')) {
+                if (($arg->type eq 'Function' || $arg->type eq 'Macro') && !$pass_funcs) {
+                    push(@new_args, $arg->value);
                 } else {
-                    push(@processed_args, $arg);
+                    push(@new_args, $arg->evaluate($message, $rpl));
                 }
+            } else {
+                push(@new_args, $arg);
             }
         }
 
-        @args = @processed_args;
+        @args = @new_args;
     }
 
-    return $self->$method($message, $command, @args);
+    return $self->$method($message, $command, $rpl, @args);
 }
 
 sub hook_before {

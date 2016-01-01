@@ -8,6 +8,7 @@ use Moose;
 use MooseX::SetOnce;
 
 use Data::Dumper;
+use Data::Dump qw( dumpf );
 use DateTime;
 
 use RoboBot::Parser;
@@ -21,7 +22,7 @@ has 'raw' => (
 
 has 'expression' => (
     is        => 'rw',
-    isa       => 'ArrayRef',
+    isa       => 'Object',
     predicate => 'has_expression',
 );
 
@@ -123,9 +124,7 @@ sub BUILD {
     }
 
     if ($self->raw =~ m{^\s*\(\S+}o) {
-        return unless $self->expressions_balanced;
-
-        my $parser = RoboBot::Parser->new;
+        my $parser = RoboBot::Parser->new( bot => $self->bot );
         my $expr;
 
         eval {
@@ -134,14 +133,13 @@ sub BUILD {
 
         return if $@;
 
-        if (defined $expr && ref($expr) eq 'ARRAY' && @{$expr} > 0) {
-            my @exps = @{$expr};
-            # Special-case a check to see if there was only one parenthetical
-            # expression and if the first member of the list is not a known
-            # function name. This prevents the bot from parsing a simple aside
-            # comment made in parentheses as if it were an expression containing
-            # only bareword strings.
-            if (@exps > 1 || exists $self->bot->commands->{lc("$exps[0][0]")} || exists $self->bot->macros->{lc("$exps[0][0]")}) {
+        if (defined $expr && ref($expr) =~ m{^RoboBot::Type::}) {
+            # To prevent unnecessary echoing of parenthetical remarks, make sure
+            # that the top-level form is either an Expression or a List with its
+            # own first member being an Expression.
+            if ($expr->type eq 'Expression') {
+                $self->expression($expr);
+            } elsif ($expr->type eq 'List' && defined $expr->value->[0] && $expr->value->[0]->type eq 'Expression') {
                 $self->expression($expr);
             }
         }
@@ -164,20 +162,13 @@ sub process {
     # Process the message itself (unless the network on which it was received is
     # marked as "passive" - only hooks will run, not functions or macros).
     if ($self->has_expression && ! $self->network->passive) {
-        my (@r);
+        my @r = $self->expression->evaluate($self);
 
-        foreach my $expr (@{$self->expression}) {
-            @r = $self->process_list($expr);
-        }
-
-        if (@r && scalar(@r) > 0) {
-            # Special-case a check for the last top-level function called being
-            # (print ...) and do not run the auto-printer if that was the case.
-            # Otherwise, assume that the return values of the final expression
-            # should be printed back to the channel/sender.
-            unless (lc($self->expression->[-1][0]) eq 'print') {
-                $self->bot->commands->{'print'}->process($self, 'print', @r);
-            }
+        # TODO: Restore pre-type functionality of only adding the implicit
+        #       (print ...) call if the last function evaluated wasn't already
+        #       an explicit print call.
+        if (@r && @r > 0) {
+            $self->bot->commands->{'print'}->process($self, 'print', {}, @r);
         }
     }
 
@@ -195,70 +186,12 @@ sub process {
     $self->response->send;
 }
 
-sub process_list {
-    my ($self, $list) = @_;
-
-    return $list unless ref($list) eq 'ARRAY';
-    return unless defined $list->[0];
-
-    my $command = lc(scalar($list->[0]));
-
-    if (exists $self->bot->commands->{$command}) {
-        # If first element is a recognized command, pass list to appropriate plugin
-        return $self->bot->commands->{$command}->process(
-            $self,
-            $command,
-            @{$list}[1..$#$list]
-        );
-    } elsif (exists $self->bot->macros->{$command}) {
-        # And if it's a macro name (which cannot override built-in/plugin commands)
-        # expand the macro and process the results of that expansion.
-        return $self->process_list(
-            $self->bot->macros->{$command}->expand(
-               $self, @{$list}[1..$#$list]
-            )
-        );
-    } else {
-        # Otherwise, just process any sub expressions in the order they appear,
-        # then return the processed list
-        my @r;
-        foreach my $el (@{$list}) {
-            if (ref($el) eq 'ARRAY') {
-                push(@r, $self->process_list($el));
-            } else {
-                if (defined $el && exists $self->vars->{$el}) {
-                    if (ref($self->vars->{$el}) eq 'ARRAY') {
-                        push(@r, $self->process_list($self->vars->{$el}));
-                    } else {
-                        push(@r, $self->vars->{$el});
-                    }
-                } else {
-                    push(@r, $el);
-                }
-            }
-        }
-        return @r;
-    }
-}
-
 sub update_response_channel {
     my ($self, $new_channel, $old_channel) = @_;
 
     if ($self->has_response && $self->has_channel) {
         $self->response->channel($new_channel);
     }
-}
-
-sub expressions_balanced {
-    my ($self) = @_;
-
-    # TODO: make this smarter (quote-enclosed parens and such)
-    # for now we just count left and right parens and make sure the numbers match
-
-    my @lp = ($self->raw =~ m{\(}g);
-    my @rp = ($self->raw =~ m{\)}g);
-
-    return scalar(@lp) == scalar(@rp);
 }
 
 __PACKAGE__->meta->make_immutable;
