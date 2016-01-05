@@ -151,7 +151,9 @@ sub load_all {
         my $network = $bot->network_by_id($res->{'network_id'});
         next unless defined $network;
 
-        $macros{$res->{'name'}} = $class->new(
+        $macros{$network->id} = {} unless exists $macros{$network->id};
+
+        $macros{$network->id}{$res->{'name'}} = $class->new(
             bot        => $bot,
             id         => $res->{'macro_id'},
             network    => $network,
@@ -272,39 +274,6 @@ sub expand {
 
     return $expr->evaluate($message, \%rpl);
 }
-
-=begin OLD
-sub collapse {
-    my ($class, $definition) = @_;
-
-    unless (ref($definition) eq 'ARRAY') {
-        return __PACKAGE__->quoted_string($definition);
-    }
-
-    my $backquoted = $definition->[0] eq 'backquote'
-                  && ref($definition->[1]) eq 'ARRAY'
-                  && scalar(@{$definition}) == 2
-        ? 1 : 0;
-
-    my @r;
-    if ($backquoted) {
-        push(@r, __PACKAGE__->collapse($_)) foreach @{$definition->[1]};
-    } else {
-        push(@r, __PACKAGE__->collapse($_)) foreach @{$definition};
-    }
-
-    return sprintf('%s(%s)', ($backquoted ? "'" : ''), join(' ', @r));
-}
-
-sub quoted_string {
-    my ($class, $string) = @_;
-
-    return $string unless $string =~ m{[\s"]+}o;
-
-    $string =~ s{\"}{\\"}og;
-    return sprintf('"%s"', $string);
-}
-=cut
 
 sub signature {
     my ($self) = @_;

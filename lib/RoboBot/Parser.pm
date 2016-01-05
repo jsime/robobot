@@ -61,6 +61,12 @@ class_has 'tf' => (
     isa    => 'RoboBot::TypeFactory',
 );
 
+class_has 'macros' => (
+    is      => 'rw',
+    isa     => 'HashRef',
+    default => sub { {} },
+);
+
 sub BUILD {
     my ($self) = @_;
 
@@ -72,6 +78,14 @@ sub parse {
 
     return unless defined $text && !ref($text);
     return unless $text =~ m{^\s*\(.+\)\s*$}s;
+
+    # Refresh the lookup table of all known macro names for symbol resolution.
+    $self->macros({});
+    foreach my $nid (keys %{$self->bot->macros}) {
+        foreach my $macro (keys %{$self->bot->macros->{$nid}}) {
+            $self->macros->{lc($macro)} = 1;
+        }
+    }
 
     $self->clear_err;
     $self->text($text);
@@ -275,7 +289,7 @@ sub _read_element {
             return $self->tf->build('Number', $el);
         } elsif (exists $self->bot->commands->{lc($el)}) {
             return $self->tf->build('Function', $el);
-        } elsif (exists $self->bot->macros->{lc($el)}) {
+        } elsif (exists $self->macros->{lc($el)}) {
             return $self->tf->build('Macro', $el);
         } else {
             return $self->tf->build('String', $el);

@@ -126,13 +126,13 @@ sub version {
 sub add_macro {
     my ($self, $network, $nick, $macro_name, $args, $body) = @_;
 
-    if (exists $self->macros->{$macro_name}) {
-        $self->macros->{$macro_name}->name("$macro_name");
-        $self->macros->{$macro_name}->arguments($args);
-        $self->macros->{$macro_name}->definition($body);
-        $self->macros->{$macro_name}->definer($nick);
+    if (exists $self->macros->{$network->id}{$macro_name}) {
+        $self->macros->{$network->id}{$macro_name}->name("$macro_name");
+        $self->macros->{$network->id}{$macro_name}->arguments($args);
+        $self->macros->{$network->id}{$macro_name}->definition($body);
+        $self->macros->{$network->id}{$macro_name}->definer($nick);
 
-        return unless $self->macros->{$macro_name}->save;
+        return unless $self->macros->{$network->id}{$macro_name}->save;
     } else {
         my $macro = RoboBot::Macro->new(
             bot        => $self,
@@ -145,19 +145,20 @@ sub add_macro {
 
         return unless $macro->save;
 
-        $self->macros->{$macro->name} = $macro;
+        $self->macros->{$network->id} = {} unless exists $self->macros->{$network->id};
+        $self->macros->{$network->id}{$macro->name} = $macro;
     }
 
     return 1;
 }
 
 sub remove_macro {
-    my ($self, $macro_name) = @_;
+    my ($self, $network, $macro_name) = @_;
 
-    return unless exists $self->macros->{$macro_name};
+    return unless exists $self->macros->{$network->id}{$macro_name};
 
-    $self->macros->{$macro_name}->delete;
-    delete $self->macros->{$macro_name};
+    $self->macros->{$network->id}{$macro_name}->delete;
+    delete $self->macros->{$network->id}{$macro_name};
 
     return 1;
 }

@@ -49,7 +49,7 @@ create table macros (
     defined_at  timestamp with time zone not null default now(),
     is_locked   boolean not null default false
 );
-create unique index macros_name_idx on macros (lower(name));
+create unique index macros_network_id_name_idx on macros (network_id, lower(name));
 
 --
 -- GLOBAL VARIABLES

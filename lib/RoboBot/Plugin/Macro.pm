@@ -19,7 +19,7 @@ has '+name' => (
 );
 
 has '+description' => (
-    default => 'Provides functionality for defining and managing macros. Macros defined by this plugin are available to all users across all connected networks and channels, and persist across bot restarts.',
+    default => 'Provides functionality for defining and managing macros. Macros defined by this plugin are available to all users in all channels on the current network, and persist across bot restarts.',
 );
 
 has '+commands' => (
@@ -74,12 +74,13 @@ sub list_macros {
         push(@macros, $res->{'name'});
     }
 
-    $message->response->push(join(', ', @macros));
-    return;
+    return @macros;
 }
 
 sub define_macro {
     my ($self, $message, $command, $rpl, $macro_name, $args, $def) = @_;
+
+    my $network = $message->network;
 
     unless (defined $macro_name && defined $args && defined $def) {
         $message->response->raise('Macro definitions must consist of a name, a list of arguments, and a definition body list.');
@@ -106,11 +107,11 @@ sub define_macro {
         return;
     }
 
-    if (exists $self->bot->macros->{lc($macro_name)} && $self->bot->macros->{lc($macro_name)}->is_locked) {
-        if ($self->bot->macros->{lc($macro_name)}->definer->id != $message->sender->id) {
+    if (exists $self->bot->macros->{$network->id}{lc($macro_name)} && $self->bot->macros->{$network->id}{lc($macro_name)}->is_locked) {
+        if ($self->bot->macros->{$network->id}{lc($macro_name)}->definer->id != $message->sender->id) {
             $message->response->raise(
                 'The %s macro has been locked by its creator (who happens to not be you) and cannot be redefined by anyone else.',
-                $self->bot->macros->{lc($macro_name)}->name
+                $self->bot->macros->{$network->id}{lc($macro_name)}->name
             );
             return;
         }
@@ -191,23 +192,26 @@ sub define_macro {
 sub undefine_macro {
     my ($self, $message, $command, $rpl, $macro_name) = @_;
 
+    # For brevity below.
+    my $network = $message->network;
+
     unless (defined $macro_name && $macro_name =~ m{\w+}o) {
         $message->response->raise('Must provide the name of a macro to undefine.');
         return;
     }
 
-    unless (exists $self->bot->macros->{$macro_name}) {
+    unless (exists $self->bot->macros->{$network->id}{$macro_name}) {
         $message->response->raise('Macro %s has not been defined.', $macro_name);
         return;
     }
 
-    if ($self->bot->macros->{$macro_name}->is_locked && $self->bot->macros->{$macro_name}->definer != $message->sender->id) {
+    if ($self->bot->macros->{$network->id}{$macro_name}->is_locked && $self->bot->macros->{$network->id}{$macro_name}->definer != $message->sender->id) {
         $message->response->raise(
             'The %s macro has been locked by its creator (who happens to not be you). You may not undefine it.',
-            $self->bot->macros->{$macro_name}->name
+            $self->bot->macros->{$network->id}{$macro_name}->name
         );
     } else {
-        if ($self->bot->remove_macro($macro_name)) {
+        if ($self->bot->remove_macro($network, $macro_name)) {
             $message->response->push(sprintf('Macro %s undefined.', $macro_name));
         } else {
             $message->response->push(sprintf('Could not undefine macro %s.', $macro_name));
@@ -220,12 +224,14 @@ sub undefine_macro {
 sub show_macro {
     my ($self, $message, $command, $rpl, $macro_name) = @_;
 
-    unless (defined $macro_name && exists $self->bot->macros->{$macro_name}) {
+    my $network = $message->network;
+
+    unless (defined $macro_name && exists $self->bot->macros->{$network->id}{$macro_name}) {
         $message->response->raise('No such macro defined.');
         return;
     }
 
-    my $macro = $self->bot->macros->{$macro_name};
+    my $macro = $self->bot->macros->{$network->id}{$macro_name};
     my $pp = sprintf('(defmacro %s [%s] \'%s)', $macro->name, $macro->signature, $macro->expression->flatten);
 
     $pp =~ s{\n\s+([^\(]+)\n}{ $1\n}gs;
@@ -239,17 +245,19 @@ sub show_macro {
 sub lock_macro {
     my ($self, $message, $command, $rpl, $macro) = @_;
 
+    my $network = $message->network;
+
     unless (defined $macro && $macro =~ m{\S+}) {
         $message->response->raise('Must provide the name of the macro you wish to lock.');
         return;
     }
 
-    unless (exists $self->bot->macros->{lc($macro)}) {
+    unless (exists $self->bot->macros->{$network->id}{lc($macro)}) {
         $message->response->raise('No such macro defined.');
         return;
     }
 
-    $macro = $self->bot->macros->{lc($macro)};
+    $macro = $self->bot->macros->{$network->id}{lc($macro)};
 
     if ($macro->is_locked) {
         $message->response->raise('The macro %s is already locked.', $macro->name);
@@ -273,17 +281,19 @@ sub lock_macro {
 sub unlock_macro {
     my ($self, $message, $command, $rpl, $macro) = @_;
 
+    my $network = $message->network;
+
     unless (defined $macro && $macro =~ m{\S+}) {
         $message->response->raise('Must provide the name of the macro you wish to unlock.');
         return;
     }
 
-    unless (exists $self->bot->macros->{lc($macro)}) {
+    unless (exists $self->bot->macros->{$network->id}{lc($macro)}) {
         $message->response->raise('No such macro defined.');
         return;
     }
 
-    $macro = $self->bot->macros->{lc($macro)};
+    $macro = $self->bot->macros->{$network->id}{lc($macro)};
 
     if ( ! $macro->is_locked) {
         $message->response->raise('The macro %s is not locked.', $macro->name);
