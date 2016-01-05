@@ -233,13 +233,25 @@ sub _read_element {
                 $chr_esc = 1;
             }
         } elsif ($c eq "'" && length($el) == 0) {
-            if ($self->_peek_char =~ m/[\(\|\{\[]/) {
-                my $form = $self->_read_list;
+            my $peek = $self->_peek_char;
+
+            if ($peek =~ m/[\(\|\{\[]/) {
+                my $form;
+
+                my $opener = $self->_read_char;
+
+                if ($opener eq '(') {
+                    $form = $self->_read_list;
+                } elsif ($opener eq '{') {
+                    $form = $self->_read_map;
+                } elsif ($opener eq '[') {
+                    $form = $self->_read_vec;
+                } elsif ($opener eq '|') {
+                    $form = $self->_read_set;
+                }
+
                 $form->quoted(1);
                 return $form;
-#            if ($self->_peek_char eq '(') {
-#                $self->_read_char;
-#                return $self->_read_list;
             } else {
                 $el = $self->_read_element;
                 $el->quoted(1);
