@@ -124,7 +124,7 @@ sub version {
 }
 
 sub add_macro {
-    my ($self, $nick, $macro_name, $args, $body) = @_;
+    my ($self, $network, $nick, $macro_name, $args, $body) = @_;
 
     if (exists $self->macros->{$macro_name}) {
         $self->macros->{$macro_name}->name("$macro_name");
@@ -136,6 +136,7 @@ sub add_macro {
     } else {
         my $macro = RoboBot::Macro->new(
             bot        => $self,
+            network    => $network,
             name       => "$macro_name",
             arguments  => $args,
             definition => $body,

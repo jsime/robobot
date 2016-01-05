@@ -273,6 +273,7 @@ sub expand {
     return $expr->evaluate($message, \%rpl);
 }
 
+=begin OLD
 sub collapse {
     my ($class, $definition) = @_;
 
@@ -303,6 +304,7 @@ sub quoted_string {
     $string =~ s{\"}{\\"}og;
     return sprintf('"%s"', $string);
 }
+=cut
 
 sub signature {
     my ($self) = @_;

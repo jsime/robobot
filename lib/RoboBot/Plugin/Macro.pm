@@ -86,6 +86,26 @@ sub define_macro {
         return;
     }
 
+    # Get the actual stringy name.
+    if ($macro_name->type eq 'Macro') {
+        # We need to special-case this, as redefining an existing macro is going to have the
+        # parser identify the name token in the (defmacro ...) call as the name of an
+        # existing macro (and therefore type "Macro") instead of just a bare string.
+        $macro_name = $macro_name->value;
+    } elsif ($macro_name->type eq 'Function') {
+        # We can short-circuit and reject macros named the same as a function right away.
+        $message->response->raise('Macros cannot have the same name as a function.');
+        return;
+    } else {
+        $macro_name = $macro_name->evaluate($message, $rpl);
+    }
+
+    # Enforce a few rules on macro names.
+    unless (defined $macro_name && !ref($macro_name) && $macro_name =~ m{^[^\s\{\(\)\[\]\{\}\|,#]+$} && substr($macro_name, 0, 1) ne "'") {
+        $message->response->raise('Macro name must be a single string value.');
+        return;
+    }
+
     if (exists $self->bot->macros->{lc($macro_name)} && $self->bot->macros->{lc($macro_name)}->is_locked) {
         if ($self->bot->macros->{lc($macro_name)}->definer->id != $message->sender->id) {
             $message->response->raise(
@@ -96,15 +116,21 @@ sub define_macro {
         }
     }
 
-    unless (ref($args) eq 'ARRAY' && ref($def) eq 'ARRAY') {
-        $message->response->raise('Macro arguments and definition body must both be provided as lists.');
+    unless (blessed($args) && ($args->type eq 'List' || $args->type eq 'Vector')) {
+        $message->response->raise('Macro arguments must be specified as a list or vector.');
         return;
     }
 
+    unless (blessed($def) && ($def->type eq 'List' || $def->type eq 'Expression') && $def->quoted) {
+        $message->response->raise('Macro body definition must be a quoted expression or list.');
+        return;
+    }
+
+    $def->quoted(0);
+
     # Work through the argument list looking for &optional (and maybe in the
     # future we'll do things like &key and friends), building up the arrayref
-    # of hashrefs for our macro's arguments. Note: All values are forced into
-    # plain strings via interpolation to drop all the D::S blessings.
+    # of hashrefs for our macro's arguments.
     my $args_def = {
         has_optional => 0,
         positional   => [],
@@ -113,9 +139,9 @@ sub define_macro {
     };
     my $next_rest = 0;
 
-    foreach my $arg (@{$args}) {
+    foreach my $arg ($args->evaluate($message, $rpl)) {
         if ($next_rest) {
-            $args_def->{'rest'} = "$arg";
+            $args_def->{'rest'} = $arg;
             $next_rest = 0;
             next;
         }
@@ -123,10 +149,10 @@ sub define_macro {
         # We hit an '&optional', so all following arguments are optional. And if
         # more than the stated number are passed, they can be accessed through
         # the autovivified &rest list in the macro.
-        if ("$arg" eq '&optional') {
+        if ($arg eq '&optional') {
             $args_def->{'has_optional'} = 1;
             next;
-        } elsif ("$arg" eq '&rest') {
+        } elsif ($arg eq '&rest') {
             $next_rest = 1;
             next;
         }
@@ -134,7 +160,7 @@ sub define_macro {
         # TODO; Add support for &key'ed macro arguments.
 
         push(@{$args_def->{'positional'}}, {
-            name     => "$arg",
+            name     => $arg,
             optional => $args_def->{'has_optional'},
         });
     }
@@ -147,20 +173,13 @@ sub define_macro {
         return;
     }
 
-    # We aren't really doing actual Lisp macros, just a shoddy simulacrum, so if someone has passed
-    # a quoted list as the macro definition, pop out the list itself and remove the quoting before
-    # we process everything and save the macro.
-    if (@{$def} == 2 && "$def->[0]" eq 'backquote' && ref($def->[1]) eq 'ARRAY') {
-        $def = $def->[1];
-    }
-
     my $body;
-    unless ($body = RoboBot::Macro->collapse($def)) {
+    unless ($body = $def->flatten) {
         $message->response->raise('Could not collapse macro definition.');
         return;
     }
 
-    if ($self->bot->add_macro($message->sender, $macro_name, $args_def, $body)) {
+    if ($self->bot->add_macro($message->network, $message->sender, $macro_name, $args_def, $body)) {
         $message->response->push(sprintf('Macro %s defined.', $macro_name));
     } else {
         $message->response->raise('Could not define macro %s.', $macro_name);
@@ -207,14 +226,7 @@ sub show_macro {
     }
 
     my $macro = $self->bot->macros->{$macro_name};
-
-    my $pp;
-
-    if (length($macro->definition) > 40) {
-        $pp = sprintf("(defmacro %s (%s)\n  '%s)", $macro->name, $macro->signature, $macro->expression->pprint);
-    } else {
-        $pp = sprintf('(defmacro %s (%s) \'%s)', $macro->name, $macro->signature, $macro->expression->flatten);
-    }
+    my $pp = sprintf('(defmacro %s [%s] \'%s)', $macro->name, $macro->signature, $macro->expression->flatten);
 
     $pp =~ s{\n\s+([^\(]+)\n}{ $1\n}gs;
     $message->response->push($pp);
