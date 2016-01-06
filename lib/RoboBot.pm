@@ -91,13 +91,13 @@ sub BUILD {
         $plugin->init($self);
 
         foreach my $command (keys %{$plugin->commands}) {
-            warn sprintf("Command name collision: %s::%s superseded by %s::%s",
-                         $self->commands->{$command}->name, $command, $plugin->name, $command)
+            warn sprintf("Command name collision: %s/%s superseded by %s/%s",
+                         $self->commands->{$command}->ns, $command, $plugin->ns, $command)
                 if exists $self->commands->{$command};
 
             # Offer both plain and namespaced access to individual functions
             $self->commands->{$command} = $plugin;
-            $self->commands->{sprintf('%s::%s', lc($plugin->name), $command)} = $plugin;
+            $self->commands->{sprintf('%s/%s', $plugin->ns, $command)} = $plugin;
         }
 
         # Gather list of plugins which have before/after hooks.

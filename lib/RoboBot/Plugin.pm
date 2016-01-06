@@ -49,12 +49,21 @@ sub init {
     my ($self, $bot) = @_;
 }
 
+sub ns {
+    my ($self) = @_;
+
+    my $ns = lc($self->name);
+    $ns =~ s{::}{.}g;
+
+    return $ns;
+}
+
 sub process {
     my ($self, $message, $command, $rpl, @args) = @_;
 
     # Remove namespace from command if present (by the time we reach this point, we
     # already know what plugin namespace we're in)
-    if ($command =~ m{\:\:(.*)$}) {
+    if ($command =~ m{/(.*)$}) {
         $command = $1;
     }
 
