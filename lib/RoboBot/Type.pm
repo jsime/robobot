@@ -98,7 +98,13 @@ sub evaluate {
     return unless $self->has_value;
 
     if (defined $rpl && ref($rpl) eq 'HASH' && exists $rpl->{$self->value}) {
-        return $rpl->{$self->value};
+        my $r = $rpl->{$self->value};
+
+        if (defined $r && blessed($r) && $r->can('evaluate')) {
+            return $r->evaluate($message, $rpl);
+        } else {
+            return $r;
+        }
     } else {
         return $self->value;
     }
