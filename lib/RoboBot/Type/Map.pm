@@ -68,7 +68,7 @@ sub build_from_val {
 }
 
 sub flatten {
-    my ($self) = @_;
+    my ($self, $rpl) = @_;
 
     return '{}' unless $self->has_value && scalar(keys(%{$self->value})) > 0;
     return '{' .
@@ -76,7 +76,7 @@ sub flatten {
             map {
                 sprintf(':%s %s',
                     $_,
-                    (defined $self->value->{$_} ? $self->value->{$_}->flatten : 'nil')
+                    (defined $self->value->{$_} ? $self->value->{$_}->flatten($rpl) : 'nil')
                 )
             } keys %{$self->value}
         ) . '}';

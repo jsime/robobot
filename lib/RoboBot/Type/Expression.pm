@@ -58,12 +58,12 @@ sub evaluate {
 }
 
 sub flatten {
-    my ($self) = @_;
+    my ($self, $rpl) = @_;
 
     my $opener = $self->quoted ? "'(" : '(';
 
     return $opener . ')' unless $self->has_value && @{$self->value} > 0;
-    return $opener . join(' ', map { $_->flatten } @{$self->value}) . ')';
+    return $opener . join(' ', map { $_->flatten($rpl) } @{$self->value}) . ')';
 }
 
 sub function {

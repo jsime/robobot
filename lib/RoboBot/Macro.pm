@@ -12,7 +12,6 @@ use RoboBot::Parser;
 
 use Clone qw( clone );
 use Data::Dumper;
-use Data::Dump qw( dumpf );
 use DateTime;
 use DateTime::Format::Pg;
 use JSON;
@@ -244,7 +243,7 @@ sub unlock {
 }
 
 sub expand {
-    my ($self, $message, @args) = @_;
+    my ($self, $message, $rpl, @args) = @_;
 
     my $expr = clone($self->expression);
 
@@ -257,22 +256,21 @@ sub expand {
     # TODO: Add a first pass to collect any &key'ed arguments first, before
     #       processing the simple positional ones. Possibly needs to be done
     #       even before the argument count check above is performed.
-    my %rpl = ();
     foreach my $arg (@{$self->arguments->{'positional'}}) {
         # No need to care whether argument is required or not at this point.
         # We would have already errored out above if there was a mismatch. Just
         # set the optional ones without values to undefined.
-        $rpl{$arg->{'name'}} = @args ? shift(@args) : undef;
+        $rpl->{$arg->{'name'}} = @args ? shift(@args) : undef;
     }
     # If anything is left in the arguments list passed to the macro invocation,
     # then it belongs in &rest, should the macro care to make use of them.
     if ($self->arguments->{'rest'} && @args) {
         # TODO: Array support in variables still needs work. For now, join all
         #       remaining values from &rest into a single space-delim string.
-        $rpl{ $self->arguments->{'rest'} } = join(' ', @args);
+        $rpl->{ $self->arguments->{'rest'} } = join(' ', @args);
     }
 
-    return $expr->evaluate($message, \%rpl);
+    return $expr->evaluate($message, $rpl);
 }
 
 sub signature {

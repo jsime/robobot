@@ -7,6 +7,7 @@ use v5.18;
 use namespace::autoclean;
 
 use Moose;
+use MooseX::ClassAttribute;
 use MooseX::SetOnce;
 
 use AnyEvent;
@@ -37,18 +38,6 @@ has 'plugins' => (
     default => sub { [] },
 );
 
-has 'commands' => (
-    is      => 'rw',
-    isa     => 'HashRef',
-    default => sub { {} },
-);
-
-has 'macros' => (
-    is      => 'rw',
-    isa     => 'HashRef',
-    default => sub { {} },
-);
-
 has 'before_hooks' => (
     is        => 'rw',
     isa       => 'ArrayRef',
@@ -67,6 +56,18 @@ has 'networks' => (
     is      => 'rw',
     isa     => 'ArrayRef[RoboBot::Network]',
     default => sub { [] },
+);
+
+class_has 'commands' => (
+    is      => 'rw',
+    isa     => 'HashRef',
+    default => sub { {} },
+);
+
+class_has 'macros' => (
+    is      => 'rw',
+    isa     => 'HashRef',
+    default => sub { {} },
 );
 
 sub BUILD {
@@ -127,7 +128,7 @@ sub add_macro {
     my ($self, $network, $nick, $macro_name, $args, $body) = @_;
 
     if (exists $self->macros->{$network->id}{$macro_name}) {
-        $self->macros->{$network->id}{$macro_name}->name("$macro_name");
+        $self->macros->{$network->id}{$macro_name}->name($macro_name);
         $self->macros->{$network->id}{$macro_name}->arguments($args);
         $self->macros->{$network->id}{$macro_name}->definition($body);
         $self->macros->{$network->id}{$macro_name}->definer($nick);
@@ -137,7 +138,7 @@ sub add_macro {
         my $macro = RoboBot::Macro->new(
             bot        => $self,
             network    => $network,
-            name       => "$macro_name",
+            name       => $macro_name,
             arguments  => $args,
             definition => $body,
             definer    => $nick,

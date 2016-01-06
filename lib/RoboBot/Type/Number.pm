@@ -18,10 +18,10 @@ has '+value' => (
 );
 
 sub flatten {
-    my ($self) = @_;
+    my ($self, $rpl) = @_;
 
-    return "nil" unless $self->has_value;
-    return "" . $self->value;
+    return 'nil' unless $self->has_value;
+    return '' . $self->value;
 }
 
 __PACKAGE__->meta->make_immutable;

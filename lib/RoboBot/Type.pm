@@ -6,6 +6,8 @@ use namespace::autoclean;
 
 use Moose;
 
+use Scalar::Util qw( blessed );
+
 has 'bot' => (
     is       => 'ro',
     isa      => 'RoboBot',
@@ -41,6 +43,20 @@ sub build_from_val {
     $quoted //= 0;
 
     return unless defined $bot && defined $val;
+
+    # If we're building a List or Expression, we need to downgrade to Strings
+    # any operands that follow which are marked as Macros, since a macro must
+    # always be the operator.
+    if (ref($val) eq 'ARRAY') {
+        foreach my $el (@{$val}[1..$#$val]) {
+            next unless blessed($el) && $el->type eq 'Macro';
+            $el = RoboBot::Type::String->new(
+                bot    => $bot,
+                value  => $el->value,
+                quoted => $el->quoted,
+            );
+        }
+    }
 
     return $class->new(
         bot    => $bot,
@@ -89,10 +105,10 @@ sub evaluate {
 }
 
 sub flatten {
-    my ($self) = @_;
+    my ($self, $rpl) = @_;
 
-    return $self->value if $self->has_value;
-    return "nil";
+    return 'nil' unless $self->has_value;
+    return $self->evaluate(undef, $rpl);
 }
 
 sub is_nil {

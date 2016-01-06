@@ -175,7 +175,7 @@ sub define_macro {
     }
 
     my $body;
-    unless ($body = $def->flatten) {
+    unless ($body = $def->flatten($rpl)) {
         $message->response->raise('Could not collapse macro definition.');
         return;
     }

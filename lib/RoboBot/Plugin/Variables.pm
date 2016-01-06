@@ -8,6 +8,7 @@ use Moose;
 use MooseX::SetOnce;
 
 use Data::Dumper;
+use Scalar::Util qw( blessed );
 
 extends 'RoboBot::Plugin';
 
@@ -150,18 +151,22 @@ sub is_defined {
     my $defined = 1;
 
     foreach my $var (@var_list) {
-        unless (defined $var) {
-            $defined = 0;
-            last;
-        }
+        if (blessed($var) && $var->can('type')) {
+            $defined = 0 unless $var->has_value;
+        } else {
+            unless (defined $var) {
+                $defined = 0;
+                last;
+            }
 
-        if (ref($var) eq 'ARRAY') {
-            $var = $message->process_list($var);
-        }
+            if (ref($var) eq 'ARRAY') {
+                $var = $message->process_list($var);
+            }
 
-        unless (defined $var) {
-            $defined = 0;
-            last;
+            unless (defined $var) {
+                $defined = 0;
+                last;
+            }
         }
     }
 

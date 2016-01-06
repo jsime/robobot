@@ -115,7 +115,7 @@ sub BUILD {
 
             $self->raw($no_excl)
                 if exists $self->bot->commands->{lc($maybe_cmd)}
-                || exists $self->bot->macros->{lc($maybe_cmd)};
+                || exists $self->bot->macros->{$self->network->id}{lc($maybe_cmd)};
         }
     } elsif ($self->raw =~ m{ ^ $self->bot->nick->name : \s* (.+) }ixs) {
         # It looks like someone said something to us directly, so strip off our

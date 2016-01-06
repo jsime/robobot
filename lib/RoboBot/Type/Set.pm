@@ -32,10 +32,10 @@ sub evaluate {
 }
 
 sub flatten {
-    my ($self) = @_;
+    my ($self, $rpl) = @_;
 
     return '||' unless $self->has_value && @{$self->value} > 0;
-    return '|' . join(' ', map { $_->flatten } @{$self->value}) . '|';
+    return '|' . join(' ', map { $_->flatten($rpl) } @{$self->value}) . '|';
 }
 
 sub union {

@@ -44,7 +44,7 @@ has '+commands' => (
 
         'cond' => { method          => 'control_cond',
                     preprocess_args => 0,
-                    description     => 'Accepts pairs of expressions, where the first of each pair is a condition that if true in its evaluation leads to the second expression being evaluated and its value returned. The first condition-expression pair to evaluate will terminate the (cond) function\'s evaluation. If the argument list ends with a single, un-paired fallback expression, then that will be evaluated in the event none of the preceding conditions were true. If no fallback is provided, and none of the conditions are true, then an empty list is returned.',
+                    description     => 'Accepts pairs of expressions, where the first of each pair is a condition that if true in its evaluation leads to the second expression being evaluated and its value returned. The first condition-expression pair to evaluate will terminate the (cond) function\'s evaluation. If the argument list ends with a single, un-paired fallback expression, that will be evaluated in the event none of the preceding conditions were true.',
                     usage           => '(<condition>) (<expression>) [(<condition>) (<expression>) [...]] [(<fallback>)]',
                     example         => '(> 1 5) (format "%d is somehow greater than %d" 1 5) (eq "foo" "bar") (format "%s somehow matches %s" "foo" "bar") "Nothing is true."',
                     result          => '"Nothing is true."' },
@@ -183,6 +183,8 @@ sub control_cond {
     if (defined $fallback) {
         return $fallback->evaluate($message, $rpl);
     }
+
+    return;
 }
 
 sub control_apply {

@@ -26,6 +26,7 @@ sub evaluate {
     return unless exists $self->bot->macros->{$message->network->id}{$self->value};
     return $self->bot->macros->{$message->network->id}{$self->value}->expand(
         $message,
+        $rpl,
         map {
             blessed($_) && $_->can('evaluate')
             ? $_->evaluate($message, $rpl)
@@ -35,7 +36,7 @@ sub evaluate {
 }
 
 sub flatten {
-    my ($self) = @_;
+    my ($self, $rpl) = @_;
 
     return $self->value;
 }

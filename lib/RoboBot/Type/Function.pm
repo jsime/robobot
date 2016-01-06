@@ -30,7 +30,7 @@ sub evaluate {
 }
 
 sub flatten {
-    my ($self) = @_;
+    my ($self, $rpl) = @_;
 
     # Simple function names (referencing something from a plugin or macro) just
     # get returned plain. Anonymous functions, represented by ArrayRefs, get a
@@ -57,7 +57,7 @@ sub flatten {
     # Now we can just flatten everything else. If there's nothing left, though,
     # just tack on an empty expression.
     if (@v > 0) {
-        $ret .= join(' ', map { $_->flatten } @v);
+        $ret .= join(' ', map { $_->flatten($rpl) } @v);
     } else {
         $ret .= '()';
     }

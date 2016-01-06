@@ -18,11 +18,18 @@ has '+value' => (
 );
 
 sub flatten {
-    my ($self) = @_;
+    my ($self, $rpl) = @_;
 
-    return "nil" unless $self->has_value;
+    return 'nil' unless $self->has_value;
 
-    my $v = $self->value;
+    my $v;
+
+    if (defined $rpl && ref($rpl) eq 'HASH' && exists $rpl->{$self->value}) {
+        $v = $rpl->{$self->value};
+    } else {
+        $v = $self->value;
+    }
+
     $v =~ s{"}{\\"}g;
     $v =~ s{\n}{\\n}g;
     $v =~ s{\r}{\\r}g;

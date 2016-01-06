@@ -38,7 +38,7 @@ sub BUILD {
 }
 
 sub flatten {
-    my ($self) = @_;
+    my ($self, $rpl) = @_;
 
     return ':' . $self->value;
 }
