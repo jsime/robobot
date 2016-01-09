@@ -158,12 +158,15 @@ sub find_thinge {
         select t.thinge_num
         from thinge_thinges t
             join thinge_types tt on (tt.id = t.type_id)
+            left join thinge_thinge_tags tttg on (tttg.thinge_id = t.id)
+            left join thinge_tags tg on (tg.id = tttg.tag_id)
         where lower(tt.name) = lower(?)
-            and t.thinge_url ~* ?
             and t.network_id = ?
+            and (t.thinge_url ~* ? or tg.tag_name ~* ?)
+        group by t.thinge_num
         order by random()
         limit 1
-    }, $type, $pattern, $message->network->id);
+    }, $type, $message->network->id, $pattern, $pattern);
 
     if ($res && $res->next) {
         # We found a thinge. Delegate displaying it to the normal thinge() method.
