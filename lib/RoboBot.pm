@@ -107,6 +107,13 @@ sub BUILD {
 
     # Pre-load all saved macros
     $self->macros({ RoboBot::Macro->load_all($self) });
+    # TODO: This is an awful hack around the fact that nested macros get parsed incorrectly
+    #       the first time around, depending on their load order out of the database. The
+    #       Parser module doesn't know about their name yet, so it parses them as a String
+    #       instead of a Macro object. That should get fixed in a cleaner way, but for now
+    #       we can just load them a second time. All their names will be available for the
+    #       Parser and we'll just overwrite their definitions with the correct versions.
+    $self->macros({ RoboBot::Macro->load_all($self) });
 }
 
 sub run {
