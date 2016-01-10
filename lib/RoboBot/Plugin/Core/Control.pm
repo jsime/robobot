@@ -1,4 +1,4 @@
-package RoboBot::Plugin::Control;
+package RoboBot::Plugin::Core::Control;
 
 use v5.20;
 
@@ -12,7 +12,7 @@ use Scalar::Util qw( blessed );
 extends 'RoboBot::Plugin';
 
 has '+name' => (
-    default => 'Control',
+    default => 'Core::Control',
 );
 
 has '+description' => (
@@ -23,17 +23,10 @@ has '+commands' => (
     default => sub {{
         'if' => { method          => 'control_if',
                   preprocess_args => 0,
-                  description     => 'Conditionally evaluates an expression when the given condition is true.',
-                  usage           => '(<boolean condition>) (<expression>)',
+                  description     => 'Conditionally evaluates an expression when the given condition is true. If the condition is not true, and a third argument is provided, then it is evaluated and its result is returned instead.',
+                  usage           => '(<boolean condition>) (<expression>) [(<else>)]',
                   example         => '(> 1 5) ("One is somehow larger than five on this system.")',
                   result          => '' },
-
-        'if-else' => { method          => 'control_ifelse',
-                       preprocess_args => 0,
-                       description     => 'Conditionally evaluates the first expression if the condition is true, otherwise evaluates the second expression.',
-                       usage           => '(<boolean condition>) (<expression>) (<expression>)',
-                       example         => '(> 1 5) ("One is somehow larger than five on this system.") ("Five is still larger than one.")',
-                       result          => 'Five is still larger than one.' },
 
         'while' => { method          => 'control_while',
                      preprocess_args => 0,
@@ -95,25 +88,6 @@ sub control_repeat {
 }
 
 sub control_if {
-    my ($self, $message, $command, $rpl, $condition, $expr_if) = @_;
-
-    if (defined $condition && blessed($condition) && $condition->can('evaluate')) {
-        $condition = $condition->evaluate($message, $rpl);
-    }
-
-    unless (defined $expr_if && blessed($expr_if) && $expr_if->can('evaluate')) {
-        $message->response->raise('Second argument must be a list or expression to evaluate when condition is truthy.');
-        return;
-    }
-
-    if ($condition) {
-        return $expr_if->evaluate($message, $rpl);
-    }
-
-    return;
-}
-
-sub control_ifelse {
     my ($self, $message, $command, $rpl, $condition, $expr_if, $expr_else) = @_;
 
     if (defined $condition && blessed($condition) && $condition->can('evaluate')) {
@@ -125,14 +99,9 @@ sub control_ifelse {
         return;
     }
 
-    unless (defined $expr_else && blessed($expr_else) && $expr_else->can('evaluate')) {
-        $message->response->raise('Third argument must be a list or expression to evaluate when condition is falsey.');
-        return;
-    }
-
     if ($condition) {
         return $expr_if->evaluate($message, $rpl);
-    } else {
+    } elsif (defined $expr_else && blessed($expr_else) && $expr_else->can('evaluate')) {
         return $expr_else->evaluate($message, $rpl);
     }
 
