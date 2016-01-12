@@ -155,14 +155,16 @@ sub add_fake_person {
 }
 
 sub add_fake_quote {
-    my ($self, $message, $command, $rpl, $personality, $phrase) = @_;
+    my ($self, $message, $command, $rpl, $personality, @args) = @_;
+
+    my $phrase = join(' ', @args);
 
     unless (defined $personality && defined $phrase && $personality =~ m{\w+} && $phrase =~ m{\w+}) {
         $message->response->raise('You must provide both a personality name and a fake quote phrase.');
         return;
     }
 
-    $self->add_fake_person($message, $command, $personality, 1);
+    $self->add_fake_person($message, $command, $rpl, $personality, 1);
 
     my $res = $self->bot->config->db->do(q{
         insert into fakequotes_phrases (person_id, phrase) values (
