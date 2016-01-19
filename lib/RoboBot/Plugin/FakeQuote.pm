@@ -21,7 +21,7 @@ has '+commands' => (
     default => sub {{
         'fake-quote' => { method      => 'fake_quote',
                           description => 'Generates a fake quote either by the personality specified, otherwise by one chosen at random.',
-                          usage       => '[<personality>]', },
+                          usage       => '[<personality> [<pattern>]]', },
 
         'add-fake-personality' => { method      => 'add_fake_person',
                                     description => 'Adds a new fake personality with the given name.',
@@ -40,7 +40,9 @@ has '+commands' => (
 );
 
 sub fake_quote {
-    my ($self, $message, $command, $rpl, $personality) = @_;
+    my ($self, $message, $command, $rpl, $personality, $pattern) = @_;
+
+    $pattern //= '.*';
 
     my $res;
 
@@ -70,12 +72,13 @@ sub fake_quote {
         select id, phrase
         from fakequotes_phrases
         where person_id = ?
+            and phrase ~* ?
         order by random() desc
         limit 1
-    }, $person_id);
+    }, $person_id, $pattern);
 
     unless ($res && $res->next) {
-        $message->response->raise('The personality %s has no phrases. I cannot generate a fake quote without any phrases.', $name);
+        $message->response->raise('The personality %s has no matching phrases.', $name);
         return;
     }
 
