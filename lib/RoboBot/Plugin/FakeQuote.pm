@@ -200,7 +200,7 @@ sub add_fake_term {
         return;
     }
 
-    $self->add_fake_person($message, $command, $personality, 1);
+    $self->add_fake_person($message, $command, $rpl, $personality, 1);
 
     foreach my $term (@terms) {
         $self->bot->config->db->do(q{
