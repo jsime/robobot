@@ -61,6 +61,9 @@ sub ns {
 sub process {
     my ($self, $message, $command, $rpl, @args) = @_;
 
+    # Short-circuit if this plugin is disabled on the current message's network.
+    return if exists $message->network->disabled_plugins->{lc($self->name)};
+
     # Remove namespace from command if present (by the time we reach this point, we
     # already know what plugin namespace we're in)
     if ($command =~ m{/(.*)$}) {
