@@ -55,8 +55,8 @@ has '+commands' => (
                             usage       => '<name>' },
 
         'var' => { method      => 'get_global',
-                   description => 'Retrieves the value(s) of a global variable, if it exists on the current network. If the variable does not exist, an empty list is returned.',
-                   usage       => '<name>' },
+                   description => 'Retrieves the value(s) of a global variable, if it exists on the current network. If the variable does not exist, an empty list is returned, unless <default> is specified in which case that is used instead.',
+                   usage       => '<name> [<default>]' },
     }},
 );
 
@@ -123,7 +123,7 @@ sub unset_global {
 }
 
 sub get_global {
-    my ($self, $message, $command, $rpl, $var_name) = @_;
+    my ($self, $message, $command, $rpl, $var_name, $default) = @_;
 
     unless (defined $var_name && $var_name =~ m{\w+}) {
         $message->response->raise('Must provide a variable name to retrieve a value.');
@@ -138,6 +138,8 @@ sub get_global {
 
     if ($res && $res->next && defined $res->{'var_values'}) {
         return @{$res->{'var_values'}};
+    } elsif (defined $default) {
+        return $default;
     } else {
         return;
     }
