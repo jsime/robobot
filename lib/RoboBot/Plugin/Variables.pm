@@ -159,8 +159,8 @@ sub is_defined {
                 last;
             }
 
-            if (ref($var) eq 'ARRAY') {
-                $var = $message->process_list($var);
+            if (ref($var)) {
+                $var = $var->evaluate($message, $rpl);
             }
 
             unless (defined $var) {
