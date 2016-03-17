@@ -95,22 +95,22 @@ sub list_filter {
     my ($self, $message, $command, $rpl, $filter_func, @list) = @_;
 
     my @ret_list = ();
-    my $p_masked = exists $message->vars->{'%'} ? $message->vars->{'%'} : undef;
+    my $p_masked = exists $rpl->{'%'} ? $rpl->{'%'} : undef;
 
     foreach my $el (@list) {
-        my @vals = ref($el) eq 'ARRAY' ? $message->process_list($el) : ($el);
+        my @vals = $el->evaluate($message, $rpl);
 
         foreach my $val (@vals) {
-            $message->vars->{'%'} = $val;
+            $rpl->{'%'} = $val;
 
-            push(@ret_list, $val) if $message->process_list($filter_func);
+            push(@ret_list, $val) if $filter_func->evaluate($message, $rpl);
         }
     }
 
     if (defined $p_masked) {
-        $message->vars->{'%'} = $p_masked;
+        $rpl->{'%'} = $p_masked;
     } else {
-        delete $message->vars->{'%'};
+        delete $rpl->{'%'};
     }
 
     return @ret_list;
@@ -119,30 +119,32 @@ sub list_filter {
 sub list_reduce {
     my ($self, $message, $command, $rpl, $reduce_func, $accumulator, @list) = @_;
 
-    my $p_masked = exists $message->vars->{'%'} ? $message->vars->{'%'} : undef;
-    my $d_masked = exists $message->vars->{'$'} ? $message->vars->{'$'} : undef;
+    my $p_masked = exists $rpl->{'%'} ? $rpl->{'%'} : undef;
+    my $d_masked = exists $rpl->{'$'} ? $rpl->{'$'} : undef;
+
+    $accumulator = $accumulator->evaluate($message, $rpl);
 
     foreach my $el (@list) {
-        my @vals = ref($el) eq 'ARRAY' ? $message->process_list($el) : ($el);
+        my @vals = $el->evaluate($message, $rpl);
 
         foreach my $val (@vals) {
-            $message->vars->{'$'} = $accumulator;
-            $message->vars->{'%'} = $val;
+            $rpl->{'$'} = $accumulator;
+            $rpl->{'%'} = $val;
 
-            $accumulator = $message->process_list($reduce_func);
+            $accumulator = $reduce_func->evaluate($message, $rpl);
         }
     }
 
     if (defined $p_masked) {
-        $message->vars->{'%'} = $p_masked;
+        $rpl->{'%'} = $p_masked;
     } else {
-        delete $message->vars->{'%'};
+        delete $rpl->{'%'};
     }
 
     if (defined $d_masked) {
-        $message->vars->{'$'} = $d_masked;
+        $rpl->{'$'} = $d_masked;
     } else {
-        delete $message->vars->{'$'};
+        delete $rpl->{'$'};
     }
 
     return $accumulator;
@@ -152,22 +154,22 @@ sub list_map {
     my ($self, $message, $command, $rpl, $map_func, @list) = @_;
 
     my @ret_list = ();
-    my $p_masked = exists $message->vars->{'%'} ? $message->vars->{'%'} : undef;
+    my $p_masked = exists $rpl->{'%'} ? $rpl->{'%'} : undef;
 
     foreach my $el (@list) {
-        my @vals = ref($el) eq 'ARRAY' ? $message->process_list($el) : ($el);
+        my @vals = $el->evaluate($message, $rpl);
 
         foreach my $val (@vals) {
-            $message->vars->{'%'} = $val;
+            $rpl->{'%'} = $val;
 
-            push(@ret_list, $message->process_list($map_func));
+            push(@ret_list, $map_func->evaluate($message, $rpl));
         }
     }
 
     if (defined $p_masked) {
-        $message->vars->{'%'} = $p_masked;
+        $rpl->{'%'} = $p_masked;
     } else {
-        delete $message->vars->{'%'};
+        delete $rpl->{'%'};
     }
 
     return @ret_list;
