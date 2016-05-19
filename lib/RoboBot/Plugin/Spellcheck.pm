@@ -12,6 +12,13 @@ use Text::Aspell;
 
 extends 'RoboBot::Plugin';
 
+=head1 spellcheck
+
+Randomly and annoyingly corrects (often mistakenly) spelling of other channel
+members. You will disable this plugin soon enough.
+
+=cut
+
 has '+name' => (
     default => 'Spellcheck',
 );
@@ -23,6 +30,38 @@ has '+description' => (
 has '+after_hook' => (
     default => 'check_spelling',
 );
+
+=head2 remember
+
+=head3 Description
+
+Add words to the local dictionary to avoid correcting their spelling in future
+messages.
+
+=head3 Usage
+
+<word> [<word> ...]
+
+=head3 Examples
+
+    (remember Automtomatromaton)
+
+=head2 forget
+
+=head3 Description
+
+Remove words from the local dictionary. Does not affect words in the global
+system dictionary.
+
+=head3 Usage
+
+<word> [<word> ...]
+
+=head3 Examples
+
+    (forget Automtomatromaton)
+
+=cut
 
 has '+commands' => (
     default => sub {{

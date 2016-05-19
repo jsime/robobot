@@ -11,18 +11,53 @@ use Text::Wrap qw( wrap );
 
 extends 'RoboBot::Plugin';
 
+=head1 help
+
+Provids access to documentation and help-related functions and information for
+modules, functions, and macros.
+
+=cut
+
 has '+name' => (
     default => 'Help',
 );
 
 has '+description' => (
-    default => 'Provides help and usage information for commands, macros, and plugins.',
+    default => 'Provides help and usage information for modules, functions, and macros.',
 );
+
+=head2 help
+
+=head3 Description
+
+With no arguments, displays general help information about the bot, including
+instructions on how to access further help.
+
+With the name of a function or a macro (only macros defined on the current
+network), displays help tailored to the function or macro, including usage
+details and links to more detailed documentation. In cases where a macro and a
+function have the same name, the function will always take precedence.
+
+Lastly, module-level help may be displayed by prefacing the name of the module
+with the symbol ``:module``. Module help displays the full list of exported
+functions for that module.
+
+=head3 Usage
+
+[ :module <name> | <function> | <macro> ]
+
+=head3 Examples
+
+    (help)
+    (help apply)
+    (help :module types.map)
+
+=cut
 
 has '+commands' => (
     default => sub {{
         'help' => { method  => 'help',
-                    usage   => '[<plugin> | <command> | <macro>]' },
+                    usage   => '[:module <module name> | <function> | <macro>]' },
     }},
 );
 
@@ -30,7 +65,7 @@ sub help {
     my ($self, $message, $command, $rpl, $section, @args) = @_;
 
     if (defined $section && $section =~ m{\w+}o) {
-        if ($section =~ m{^\:?plugin$}oi) {
+        if ($section =~ m{^\:?(mod(ule)|plugin)?$}oi) {
             if (@args && defined $args[0] && $args[0] =~ m{\w+}o) {
                 $self->plugin_help($message, $args[0]);
             } else {
@@ -60,8 +95,12 @@ sub general_help {
     );
 
     $message->response->push(sprintf('RoboBot v%s', $self->bot->version));
-    $message->response->push(sprintf('For additional help, use (help <function>) or (help :plugin "<plugin>").'));
-    $message->response->push(sprintf('Active plugins: %s', join(', ', sort keys %plugins)));
+    $message->response->push(sprintf('Documentation: https://robobot.automatomatromaton.com/'));
+    $message->response->push(sprintf('For additional help, use (help <function>) or (help :module "<name>").'));
+    $message->response->push(sprintf('Active modules: %s', join(', ', sort keys %plugins)));
+
+    # Return before the function display for now.
+    return;
 
     local $Text::Wrap::columns = 200;
     my @functions = split(
@@ -86,11 +125,12 @@ sub plugin_help {
     my ($plugin) = (grep { $_->ns eq lc($plugin_name) } @{$self->bot->plugins});
 
     if (defined $plugin) {
-        $message->response->push(sprintf('RoboBot Plugin: %s', $plugin->name));
+        $message->response->push(sprintf('RoboBot Module: %s', $plugin->ns));
+        $message->response->push(sprintf('Documentation: https://robobot.automatomatromaton.com/modules/%s/index.html', $plugin->ns));
         $message->response->push($plugin->description) if $plugin->has_description;
         $message->response->push(sprintf('Exports functions: %s', join(', ', sort keys %{$plugin->commands})));
     } else {
-        $message->response->push(sprintf('Unknown plugin: %s', $plugin_name));
+        $message->response->push(sprintf('Unknown module: %s', $plugin_name));
     }
 
     return;
@@ -119,6 +159,8 @@ sub command_help {
 
         $message->response->push(sprintf('See also: %s', join(', ', @{$metadata->{'see_also'}})))
             if exists $metadata->{'see_also'};
+
+        $message->response->push(sprintf('Documentation: https://robobot.automatomatromaton.com/modules/%s/index.html#%s', $plugin->ns, $command_name));
     } else {
         $message->response->push(sprintf('Unknown function: %s', $command_name));
     }

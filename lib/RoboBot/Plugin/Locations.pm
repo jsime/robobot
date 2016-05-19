@@ -8,6 +8,16 @@ use Moose;
 
 extends 'RoboBot::Plugin';
 
+=head1 locations
+
+Provides functions for tracking where you are and allowing other users on your
+chat network to display that information. Channels members may record that
+they are working remote, or at one campus or another, out on vacation, or many
+other possibilities. This information is then available for other channel
+members without having to ping the user directly.
+
+=cut
+
 has '+name' => (
     default => 'Locations',
 );
@@ -15,6 +25,43 @@ has '+name' => (
 has '+description' => (
     default => 'Provides functions for tracking where you are located.',
 );
+
+=head2 set-location
+
+=head3 Description
+
+Sets your most recent location, along with an optional message, which others
+may view with the (where-is) function.
+
+=head3 Usage
+
+<location> [<detailed message>]
+
+=head3 Examples
+
+    (set-location "Vancouver Campus" "I'll be working out of Vancouver HQ for the week.")
+
+=head2 where-is
+
+=head3 Description
+
+Displays the last-registered location for <nick>, along with any optional
+message they may have left.
+
+=head3 Usage
+
+<nick>
+
+=head3 Examples
+
+    :emphasize-lines: 2-4
+
+    (where-is Beauford)
+    Beauford: Vancouver Campus
+    I'll be working out of Vancouver HQ for the week.
+    Last updated: Thursday, 28th April 2016 at 11:15am
+
+=cut
 
 has '+commands' => (
     default => sub {{

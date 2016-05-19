@@ -13,6 +13,17 @@ use URI;
 
 extends 'RoboBot::Plugin';
 
+=head1 taskman
+
+Provides functions for interacting with OmniTI's task tracking system.
+
+In addition to exported functions, this module inserts a pre-hook into the
+message processing pipeline which looks for any substrings matching the
+regular expression ``tid(\d+)`` and automatically replies with a direct link to
+the Taskman post(s) mentioned.
+
+=cut
+
 has '+name' => (
     default => 'Taskman',
 );
@@ -24,6 +35,18 @@ has '+description' => (
 has '+before_hook' => (
     default => 'check_tids',
 );
+
+=head2 tid
+
+=head3 Description
+
+Displays task summary for the given ID.
+
+=head3 Usage
+
+<task ID>
+
+=cut
 
 has '+commands' => (
     default => sub {{

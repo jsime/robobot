@@ -9,6 +9,16 @@ use MooseX::SetOnce;
 
 extends 'RoboBot::Plugin';
 
+=head1 fortune
+
+Exports functions for displaying random selections from the ``fortune`` program
+commonly found on Un*x-y systems.
+
+The fortunes displayed are generally limited to those under a couple hundred
+characters.
+
+=cut
+
 has '+name' => (
     default => 'Fortune',
 );
@@ -16,6 +26,36 @@ has '+name' => (
 has '+description' => (
     default => 'Exports functions for displaying various types of quotes and fortunes.',
 );
+
+=head2 bofh
+
+=head3 Description
+
+Returns fortunes from just the BOFH Excuses collection. Useful when production
+just went down hard and laughter is all you have left before being shown the
+door.
+
+=head2 fortune
+
+=head3 Description
+
+Selects at random a collection from a relatively non-offensive list of fortune
+databases, and returns a random fortune. None of the fortune collections
+overlap with the more specific functions also exported by this module.
+
+=head2 startrek
+
+=head3 Description
+
+Returns a random Star Trek quote from the fortune database.
+
+=head2 zippy
+
+=head3 Description
+
+Returns a random Zippy the Pinhead quote from the fotune database.
+
+=cut
 
 has '+commands' => (
     default => sub {{

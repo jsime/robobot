@@ -10,6 +10,12 @@ use RoboBot::Type::String;
 
 extends 'RoboBot::Plugin';
 
+=head1 types
+
+Provides common functions for interacting with types.
+
+=cut
+
 has '+name' => (
     default => 'Types',
 );
@@ -17,6 +23,18 @@ has '+name' => (
 has '+description' => (
     default => 'Provides common functions for interacting with types.',
 );
+
+=head2 typeof
+
+=head3 Description
+
+Returns a string containing the type name of ``value``.
+
+=head3 Usage
+
+<value>
+
+=cut
 
 has '+commands' => (
     default => sub {{

@@ -11,6 +11,13 @@ use Number::Format;
 
 extends 'RoboBot::Plugin';
 
+=head1 roll
+
+Random number generator, including functionality for obtaining numbers in the
+style of arbitrary-sided dice-rolling.
+
+=cut
+
 has '+name' => (
     default => 'Roll',
 );
@@ -18,6 +25,41 @@ has '+name' => (
 has '+description' => (
     default => 'Random number generator in the style of arbitrary-sided dice-rolling.',
 );
+
+=head2 roll
+
+=head3 Description
+
+Given a die-size and a number of rolls, returns the summed result of all those
+rolls. Each roll is effectively a call to ``(random n)`` where ``n`` is your
+die size.
+
+Assumes a single roll if you don't specify otherwise.
+
+=head3 Usage
+
+<die size> [<roll count>]
+
+=head3 Examples
+
+    (roll 20)
+    (roll 4 3)
+
+=head2 random
+
+=head3 Description
+
+Returns a random integer between ``0`` and ``max`` (defaults to 1).
+
+=head3 Usage
+
+[<max>]
+
+=head3 Examples
+
+    (random 10)
+
+=cut
 
 has '+commands' => (
     default => sub {{

@@ -8,6 +8,12 @@ use Moose;
 
 extends 'RoboBot::Plugin';
 
+=head1 types.map
+
+Provides functions for creating and manipulating unordered maps.
+
+=cut
+
 has '+name' => (
     default => 'Types::Map',
 );
@@ -15,6 +21,64 @@ has '+name' => (
 has '+description' => (
     default => 'Provides functions for creating and manipulating unordered maps.',
 );
+
+=head2 keys
+
+=head3 Description
+
+Returns a list of keys from the given map, in no guaranteed order.
+
+=head3 Usage
+
+<map>
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    (keys { :first-name "Bobby" :last-name "Sue" })
+    (:first-name :last-name)
+
+=head2 values
+
+=head3 Description
+
+Returns a list of values from the given map, in no guaranteed order.
+
+=head3 Usage
+
+<map>
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    (keys { :first-name "Bobby" :last-name "Sue" })
+    ("Bobby" "Sue")
+
+=head2 assoc
+
+=head3 Description
+
+Returns a new map containing the existing keys and values, as well as any new
+key-value pairs provided. Values default to undefined, and keys that already
+exist will have their values replaced.
+
+Multiple key-value pairs may be provided. Providing no new key-value pairs will
+simply return the existing map.
+
+=head3 Usage
+
+<map> [<key> [<value>] [<key> [<value>] ...]]
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    (assoc { :old-key "foo" } :new-key "bar")
+    { :old-key "foo" :new-key "bar" }
+
+=cut
 
 has '+commands' => (
     default => sub {{

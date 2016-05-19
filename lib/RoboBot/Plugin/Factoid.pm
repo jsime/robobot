@@ -9,6 +9,17 @@ use MooseX::SetOnce;
 
 extends 'RoboBot::Plugin';
 
+=head1 factoid
+
+Exports functions for managing small snippets of keyword-based knowledge.
+
+In addition to the exported functions, this module inserts a pre-hook which
+inspects all messages for keywords which match the stored factoids.  Messages
+in the general format of a question which contain matching keywords trigger an
+automatic response from the bot with the stored factoid.
+
+=cut
+
 has '+name' => (
     default => 'Factoid',
 );
@@ -20,6 +31,52 @@ has '+description' => (
 has '+before_hook' => (
     default => 'check_factoids',
 );
+
+=head2 add-factoid
+
+=head3 Description
+
+Creates a new factoid of ``name`` on the current network with the given
+description. Descriptions are limited only by the restrictions of the current
+network.
+
+=head3 Usage
+
+<factoid name> "<description>"
+
+=head3 Examples
+
+    (add-factoid perl "A language which looks the same before and after encryption.")
+
+=head2 update-factoid
+
+=head3 Description
+
+Updates the description of the named factoid.
+
+=head3 Usage
+
+<factoid name> "<new description>"
+
+=head3 Examples
+
+    (update-factoid perl "A fine and upstanding member of the interpreted languages ecosystem.")
+
+=head2 remove-factoid
+
+=head3 Description
+
+Removes the named factoid.
+
+=head3 Usage
+
+<factoid name>
+
+=head3 Examples
+
+    (remove-factoid perl)
+
+=cut
 
 has '+commands' => (
     default => sub {{

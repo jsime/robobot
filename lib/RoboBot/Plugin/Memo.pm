@@ -9,6 +9,13 @@ use MooseX::SetOnce;
 
 extends 'RoboBot::Plugin';
 
+=head1 memo
+
+Allows for saving short memos to be delivered to other users when they are next
+observed by the bot.
+
+=cut
+
 has '+name' => (
     default => 'Memo',
 );
@@ -20,6 +27,23 @@ has '+description' => (
 has '+before_hook' => (
     default => 'check_memos',
 );
+
+=head2 memo
+
+=head3 Description
+
+Saves the message as a memo for the given nick, to be delivered to them when
+the bot next sees them speak.
+
+=head3 Usage
+
+<nick> <message>
+
+=head3 Examples
+
+    (memo Beauford "update your jira tickets!")
+
+=cut
 
 has '+commands' => (
     default => sub {{

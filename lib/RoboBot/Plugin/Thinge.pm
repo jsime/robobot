@@ -8,6 +8,17 @@ use Moose;
 
 extends 'RoboBot::Plugin';
 
+=head1 thinge
+
+Provides generalized functions for saving, recalling, and tagging links,
+funny cat pictures, quotes, or practically anything else that can be put into
+a chat message.
+
+The type of a thinge is arbitrary, and whenever a new thinge is added with a
+type that is not yet known, that type is created automatically.
+
+=cut
+
 has '+name' => (
     default => 'Thinge',
 );
@@ -15,6 +26,84 @@ has '+name' => (
 has '+description' => (
     default => 'Provides generalized functions for saving, recalling, and tagging links, quotes, etc.',
 );
+
+=head2 thinge
+
+=head3 Description
+
+Returns a specific thinge (when the ``id`` is given), a random thinge with a
+particular tag (when ``tag`` is given), or a random thinge of ``type`` from the
+collection (when only ``type`` is provided).
+
+=head3 Usage
+
+<type> [<id> | <tag>]
+
+=head2 thinge-find
+
+=head3 Description
+
+Searches through the thinges of a given type for any containing ``pattern``.
+Patterns may be simple strings or regular expressions.
+
+=head3 Usage
+
+<type> <pattern>
+
+=head2 thinge-add
+
+=head3 Description
+
+Saves a thinge to the collection and reports its ID. If there is no ``type``
+yet, it is created automatically and a new ID sequence is started for it.
+
+=head3 Usage
+
+<type> <text>
+
+=head2 thinge-delete
+
+=head3 Description
+
+Removes the specified thinge from the collection.
+
+=head3 Usage
+
+<type> <id>
+
+=head2 thinge-tag
+
+=head3 Description
+
+Tags the specified thinge with the given list of tags. Tags will also start
+with a ``#`` character - if you don't supply it, it will be added automatically
+before saving the tag.
+
+=head3 Usage
+
+<type> <id> <tag> [<tag> ...]
+
+=head2 thinge-types
+
+=head3 Description
+
+Lists the current types of thinges which have collections.
+
+=head2 thinge-search
+
+=head3 Description
+
+Like ``(thinge-find)``, will search through the type of thinges specified, but
+unlike find this function returns a summary of multiple matches. The ``limit``
+argument may be used to change the number of matches shown (10 by default).
+
+Search patterns are unanchored, case-insensitive regular expressions.
+
+=head3 Usage
+
+<type> <pattern> [<limit>]
+
+=cut
 
 has '+commands' => (
     default => sub {{

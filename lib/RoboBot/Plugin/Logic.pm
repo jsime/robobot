@@ -9,6 +9,12 @@ use MooseX::SetOnce;
 
 extends 'RoboBot::Plugin';
 
+=head1 logic
+
+Exports logic, bitwise, and boolean functions.
+
+=cut
+
 has '+name' => (
     default => 'Logic',
 );
@@ -16,6 +22,50 @@ has '+name' => (
 has '+description' => (
     default => 'Provides logic, bitwise, and boolean functions.',
 );
+
+=head2 and
+
+=head3 Description
+
+Returns a true value only if all expressions are also true.
+
+=head3 Usage
+
+<expression> [<expression> ...]
+
+=head3 Examples
+
+    (and (> 20 1) (> 40 20))
+
+=head2 or
+
+=head3 Description
+
+Returns a true value if at least one expression is true.
+
+=head3 Usage
+
+<expression> [<expression> ...]
+
+=head3 Examples
+
+    (or (> 20 1) (> 1 20))
+
+=head2 not
+
+=head3 Description
+
+Returns the logical negation of the value provided.
+
+=head3 Usage
+
+<expression>
+
+=head3 Examples
+
+    (not (> 1 20))
+
+=cut
 
 has '+commands' => (
     default => sub {{

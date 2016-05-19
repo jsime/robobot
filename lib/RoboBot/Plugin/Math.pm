@@ -9,6 +9,12 @@ use MooseX::SetOnce;
 
 extends 'RoboBot::Plugin';
 
+=head1 math
+
+Exports functions for performing a variety of mathematical operations.
+
+=cut
+
 has '+name' => (
     default => 'Math',
 );
@@ -16,6 +22,88 @@ has '+name' => (
 has '+description' => (
     default => 'Provides a set of functions for mathematical operations.',
 );
+
+=head2 +
+
+=head3 Description
+
+Adds operands together.
+
+=head3 Usage
+
+<addend> <addend>
+
+=head2 -
+
+=head3 Description
+
+Subtracts the subtrahend from the minuend..
+
+=head3 Usage
+
+<minuend> <subtrahend>
+
+=head2 *
+
+=head3 Description
+
+Returns the product of the operands.
+
+=head3 Usage
+
+<factor> <factor>
+
+=head2 /
+
+=head3 Description
+
+Divides the operands.
+
+=head3 Usage
+
+<dividend> <divisor>
+
+=head2 modulo
+
+=head3 Description
+
+Returns the remainder from the division.
+
+=head3 Usage
+
+<dividend> <divisor>
+
+=head2 pow
+
+=head3 Description
+
+Returns the result of raising base to the power.
+
+=head3 Usage
+
+<base> <power>
+
+=head2 sqrt
+
+=head3 Description
+
+Returns the square root of numeral.
+
+=head3 Usage
+
+<numeral>
+
+=head2 abs
+
+=head3 Description
+
+Returns the absolute value of numeral.
+
+=head3 Usage
+
+<numeral>
+
+=cut
 
 has '+commands' => (
     default => sub {{

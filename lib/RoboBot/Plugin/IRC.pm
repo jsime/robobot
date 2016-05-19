@@ -9,6 +9,13 @@ use MooseX::SetOnce;
 
 extends 'RoboBot::Plugin';
 
+=head1 irc
+
+Provides a variety of functions for performing IRC-related actions like channel
+topics, oper promotion/demotion, etc.
+
+=cut
+
 has '+name' => (
     default => 'IRC',
 );
@@ -16,6 +23,22 @@ has '+name' => (
 has '+description' => (
     default => 'Provides a variety of functions for performing IRC-related actions like channel topics, oper promotion/demotion, etc.',
 );
+
+=head2 topic
+
+=head3 Description
+
+When a new topic string is given, changes the channel\'s topic to that string. In all uses, returns the channel topic as a string.
+
+=head3 Usage
+
+[<new topic>]
+
+=head3 Examples
+
+    (topic "Super Awesome Channel Fun Times")
+
+=cut
 
 has '+commands' => (
     default => sub {{

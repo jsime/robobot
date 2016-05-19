@@ -19,6 +19,15 @@ use RoboBot::Response;
 
 extends 'RoboBot::Plugin';
 
+=head1 github
+
+Provides functions for interacting with Github APIs, including watching for
+repository related events.
+
+A poor man's alternative to simply enabling Github's built-in chat notifiers.
+
+=cut
+
 has '+name' => (
     default => 'Github',
 );
@@ -26,6 +35,47 @@ has '+name' => (
 has '+description' => (
     default => 'Provides functions for interacting with Github APIs, including watching for repository related events.',
 );
+
+=head2 github-watch
+
+=head3 Description
+
+Adds a watcher for the current channel on the given Github project. The watcher
+will periodically poll the Github APIs for commit, issue, and other events and
+report them in the channel when they occur. If multiple events have occurred
+since the last reporting, they will be bundled together.
+
+=head3 Usage
+
+<project url>
+
+=head3 Examples
+
+    (github-watch https://github.com/jsime/robobot)
+
+=head2 github-unwatch
+
+=head3 Description
+
+Removes the watcher for the given Github project in the current channel. If the
+same project is being watched in other channels as well, it will need to be
+removed from them separately.
+
+=head3 Usage
+
+<project url>
+
+=head3 Examples
+
+    (github-unwatch https://github.com/jsime/robobot)
+
+=head2 github-list
+
+=head3 Description
+
+Displays the list of Github projects being watched in the current channel.
+
+=cut
 
 has '+commands' => (
     default => sub {{

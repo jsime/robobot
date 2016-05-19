@@ -11,6 +11,13 @@ use RoboBot::Nick;
 
 extends 'RoboBot::Plugin';
 
+=head1 auth
+
+Provides functions for managing authorization lists, denying and allowing
+access to specific functions for specific users.
+
+=cut
+
 has '+name' => (
     default => 'Auth',
 );
@@ -18,6 +25,50 @@ has '+name' => (
 has '+description' => (
     default => 'Provides functions for managing authorization lists, denying and allowing access to specific functions for specific users.',
 );
+
+=head2 auth-default
+
+=head3 Description
+
+Sets the default permission mode for a function on the current network.
+
+=head3 Usage
+
+<function name> <"allow" | "deny">
+
+=head3 Examples
+
+    (auth-default set-alarm deny)
+
+=head2 auth-allow
+
+=head3 Description
+
+Grants permission for a user to call the specified function.
+
+=head3 Usage
+
+<function name> <nick>
+
+=head3 Examples
+
+    (auth-allow set-alarm Beauford)
+
+=head2 auth-deny
+
+=head3 Description
+
+Revokes permission for a user to the specified function.
+
+=head3 Usage
+
+<function name> <nick>
+
+=head3 Examples
+
+    (auth-allow set-alarm Beauford)
+
+=cut
 
 has '+commands' => (
     default => sub {{

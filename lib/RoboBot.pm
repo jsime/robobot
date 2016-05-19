@@ -18,6 +18,8 @@ use RoboBot::Config;
 use RoboBot::Message;
 use RoboBot::Plugin;
 
+use RoboBot::Doc;
+
 our $VERSION = '3.001001';
 
 has 'config_paths' => (
@@ -36,6 +38,12 @@ has 'plugins' => (
     is      => 'rw',
     isa     => 'ArrayRef',
     default => sub { [] },
+);
+
+has 'doc' => (
+    is     => 'rw',
+    isa    => 'RoboBot::Doc',
+    traits => [qw( SetOnce )],
 );
 
 has 'before_hooks' => (
@@ -72,6 +80,8 @@ class_has 'macros' => (
 
 sub BUILD {
     my ($self) = @_;
+
+    $self->doc(RoboBot::Doc->new( bot => $self ));
 
     if ($self->has_config_paths) {
         $self->config(RoboBot::Config->new( bot => $self, config_paths => $self->config_paths ));

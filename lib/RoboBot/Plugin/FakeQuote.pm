@@ -9,6 +9,13 @@ use MooseX::SetOnce;
 
 extends 'RoboBot::Plugin';
 
+=head1 fakequote
+
+Constructs fake quotes from (fictional?) personalities, based on pre-canned
+phrases and randomized substitutions.
+
+=cut
+
 has '+name' => (
     default => 'FakeQuote',
 );
@@ -16,6 +23,81 @@ has '+name' => (
 has '+description' => (
     default => 'Constructs fake quotes from (fictional?) personalities, based on pre-canned phrases and randomized substitutions.',
 );
+
+=head2 fake-quote
+
+=head3 Description
+
+Generates a fake quote either by the personality specified, otherwise by one
+chosen at random.
+
+=head3 Usage
+
+[<personality> [<pattern>]]
+
+=head3 Examples
+
+    (fake-quote)
+    (fake-quote joe)
+
+=head2 add-fake-personality
+
+=head3 Description
+
+Adds a new fake personality with the given name.
+
+New personalities have no phrases and will generate no quotes until at least
+one has been added with ``(add-fake-quote)``.
+
+=head3 Usage
+
+<personality name>
+
+=head3 Examples
+
+    (add-fake-personality joe)
+
+=head2 add-fake-quote
+
+=head3 Description
+
+Adds a fake quote phrase to the given personality, optionally including
+placeholders to use for randomized substitutions.
+
+Placeholders take the form of an identifier inside curly braces, such as
+``{verb}``. Any time a fake quote is being generated, placeholders are looked
+for and replaced with a random term of the type specified. There are no forced
+restrictions on the names for placeholders, other than they cannot contain
+curly braces.
+
+=head3 Usage
+
+<personality name> <phrase>
+
+=head3 Examples
+
+    (add-fake-quote joe "I like {food}!")
+
+=head2 add-fake-substitution
+
+=head3 Description
+
+Adds a term to the list of possible substitutions when generating phrases for
+the name  personality.
+
+The ``type`` should match the string used when including placeholders in
+``(add-fake-quote)`` phrases. Multiple terms may be specified, as long as they
+are all for the same ``type``.
+
+=head3 Usage
+
+<personality name> <type> <term> [<term> ...]
+
+=head3 Examples
+
+    (add-fake-substitution joe food "pizza" "ice cream cones" "hard gravel")
+
+=cut
 
 has '+commands' => (
     default => sub {{

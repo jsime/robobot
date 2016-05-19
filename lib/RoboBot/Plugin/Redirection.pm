@@ -9,6 +9,12 @@ use MooseX::SetOnce;
 
 extends 'RoboBot::Plugin';
 
+=head1 redirection
+
+Provides functions for modifying the recipient(s) of function output.
+
+=cut
+
 has '+name' => (
     default => 'Redirection',
 );
@@ -16,6 +22,38 @@ has '+name' => (
 has '+description' => (
     default => 'Provides functions for modifying the recipient(s) of function output.',
 );
+
+=head2 to-nick
+
+=head3 Description
+
+Redirects output to a private message delivered to the given nick. Must be on
+the same server. All input values are passed through unchanged.
+
+=head3 Usage
+
+<recipient name> <value> [<value> ...]
+
+=head3 Examples
+
+    (to-nick dungeonmaster (join ": " "I roll stealth" (roll 20 1)))
+
+=head2 to-channel
+
+=head3 Description
+
+Redirects output to a specific channel. Must be on the same server. All input
+values are passed through unchanged.
+
+=head3 Usage
+
+<channel name> <value> [<value> ...]
+
+=head3 Examples
+
+    (to-channel #boringchannel "Join us over in #superfunchannel!")
+
+=cut
 
 has '+commands' => (
     default => sub {{

@@ -11,6 +11,23 @@ use Scalar::Util qw( blessed );
 
 extends 'RoboBot::Plugin';
 
+=head1 core.control
+
+Exports a selection of control structure functions and special forms.
+
+Most of these functions and forms operate on the principle of "truthiness"
+which may not be self-evident to users of languages that have strict concepts
+of ``True`` and ``False`` (and sometimes nil/null/etc.). RoboBot follows the
+somewhat more expansive concept of truthiness that the Perl language uses, in
+which anything that isn't a negative number, the literal number ``0``,
+undefined, an empty string, or a string of nothing but a single zero character
+is considered to be true. Thus, an empty Map would be true; a String containing
+two or more zeroes but nothing else would be true; even the String ``"false"``
+would be true.  But a comparison operator that returns the numeric ``0``, or a
+string with a single zero character, or a ``nil`` would be false.
+
+=cut
+
 has '+name' => (
     default => 'Core::Control',
 );
@@ -18,6 +35,123 @@ has '+name' => (
 has '+description' => (
     default => 'Provides a selection of control structure functions.',
 );
+
+=head2 if
+
+=head3 Description
+
+Evaluates the given condition, which if truthy leads to the evaluation of the
+``<true expression>``. If the condition did not yield a truthy value and a
+third operand is present, that is evaluated instead.
+
+Neither of the true or false expressions need to be quoted to prevent their
+initial evaluation, as this is a special form. Only one of the expressions will
+ever be evaluated on any invocation of the ``if`` form.
+
+=head3 Usage
+
+<condition> <true expression> [<false expression>]
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    (if (< 1 2) "One is less than two." "This will never evaluate.")
+    "One is less than two."
+
+=head2 while
+
+=head3 Description
+
+Evaluates the given condition repeatedly, evaluating the expression each time
+that the condition is true. Completes only when the condition eventualy returns
+a false value (or the internal loop limit is reached).
+
+Note that is the condition has side-effects, they will occur on every single
+iteration until the ``while`` itself terminates.
+
+=head3 Usage
+
+<condition> <expression>
+
+=head3 Examples
+
+    (while (< 5 (random 10)) (print "Rolled over 5."))
+
+=head2 cond
+
+=head3 Description
+
+Similar to ``if``, this form evaluates a condition and if it yields a truthy
+value, evluates the expression immediately following the condition. Unlike
+``if``, this form accepts an arbitrary number of condition-expression pairs.
+The first pair whose condition is true will have its expression evaluated and
+the ``cond`` form will terminate without any further evaluations.
+
+If none of the conditions from the pairs yields a truthy value, and there are
+an odd number of operands provided, the last one will be used as a default
+expression to evaluate and its value will be returned by ``cond`` instead.
+
+The return value of the ``cond`` is that of the single expression which was
+evaluated.
+
+=head3 Usage
+
+<condition> <expression> [<condition> <expression> ...] [<fallback>]
+
+=head3 Examples
+
+    :emphasize-lines: 4,9,14
+
+    (cond
+      (== 1 2) "No way this gets evaluated."
+      (> 10 5) "Ten is a bigger number than five.")
+    "Ten is a bigger number than five."
+
+    (cond
+      (eq "foo" "bar") "Inequal strings. This won't happen."
+      (print "Fallback expression being evaluated."))
+    "Fallback expression being evaluated."
+
+    (cond
+      (!= 1 2) "These are indeed different numbers!"
+      (!= 3 4) "We never get this far, because the first condition was true.")
+    "These are indeed different numbers!"
+
+=head2 apply
+
+=head3 Description
+
+Repeatedly applies the function to each element of the list, in the order
+provided by the list, returning a new list of the results.
+
+=head3 Usage
+
+<function> <list>
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    (apply + (seq 1 5))
+    (2 3 4 5 6)
+
+=head2 repeat
+
+=head3 Description
+
+Repeats the evaluation of the given list/expression ``count`` times, returning
+a list of all the results.
+
+=head3 Usage
+
+<count> <list|expression>
+
+=head3 Examples
+
+    (repeat 3 (upper "foo"))
+
+=cut
 
 has '+commands' => (
     default => sub {{

@@ -12,6 +12,20 @@ use Scalar::Util qw( blessed );
 
 extends 'RoboBot::Plugin';
 
+=head1 variables
+
+Provides functions to create and manage variables.
+
+There are two types of variables in RoboBot: message scope and global. Message
+scope variables persist only as long as it takes to process the current message
+and then they are destroyed. Global variables, however, persist indefinitely
+and are available across all channels on a single network. They may be re-used,
+changed, and undefined from anywhere on the network they were initialized, by
+anyone with permission to call the ``(set-global)`` or ``(unset-global)``
+functions.
+
+=cut
+
 has '+name' => (
     default => 'Variable',
 );
@@ -19,6 +33,64 @@ has '+name' => (
 has '+description' => (
     default => 'Provides functions to create and manage variables.',
 );
+
+=head2 defined
+
+=head3 Description
+
+=head3 Usage
+
+=head3 Examples
+
+=head2 setvar
+
+=head3 Description
+
+=head3 Usage
+
+=head3 Examples
+
+=head2 unsetvar
+
+=head3 Description
+
+=head3 Usage
+
+=head3 Examples
+
+=head2 incr
+
+=head3 Description
+
+=head3 Usage
+
+=head3 Examples
+
+=head2 set-global
+
+=head3 Description
+
+=head3 Usage
+
+=head3 Examples
+
+=head2 unset-global
+
+=head3 Description
+
+=head3 Usage
+
+=head3 Examples
+
+=head2 var
+
+=head3 Description
+
+=head3 Usage
+
+=head3 Examples
+
+=cut
 
 has '+commands' => (
     default => sub {{

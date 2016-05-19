@@ -12,6 +12,12 @@ use Scalar::Util qw( blessed );
 
 extends 'RoboBot::Plugin';
 
+=head1 list
+
+Provides functions which generate and operate on lists.
+
+=cut
+
 has '+name' => (
     default => 'List',
 );
@@ -19,6 +25,185 @@ has '+name' => (
 has '+description' => (
     default => 'Provides functions which generate and operate on lists.',
 );
+
+=head2 nth
+
+=head3 Description
+
+Returns the ``n``th entry from the given list. Lists are considered
+``1``-indexed and negative numbers count backwards from the end of the list.
+If ``n`` is larger than the size of the list, no value is returned.
+
+=head3 Usage
+
+<n> <list>
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    (nth 3 "James" "Alice" "Frank" "Janet")
+    "Frank"
+
+=head2 first
+
+=head3 Description
+
+Returns the first element of the given list, discarding all remaining elements.
+
+=head3 Usage
+
+<list>
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    (first "James" "Alice" "Frank")
+    "James"
+
+=head2 last
+
+=head3 Description
+
+Returns the last element of the list, discard all elements preceding it.
+
+=head3 Usage
+
+<list>
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    (last "James" "Alice" "Frank" "Janet")
+    "Janet"
+
+=head2 shuffle
+
+=head3 Description
+
+Returns the full list of elements in a randomized order.
+
+=head3 Usage
+
+<list>
+
+=head2 sort
+
+=head3 Description
+
+Returns the full list of elements, sorted.
+
+=head3 Usage
+
+<list>
+
+=head2 seq
+
+=head3 Description
+
+Generates and returns a list of numeric elements, beginning with the number
+``first`` and ending with ``last``. By default, numbers increment by ``1``, but
+a custom increment may be supplied via ``step``.
+
+=head3 Usage
+
+<first> <last> <step>
+
+=head3 Examples
+
+    :emphasize-lines: 2,5
+
+    (seq 1 10)
+    (1 2 3 4 5 6 7 8 9 10)
+
+    (seq 2 20 2)
+    (2 4 6 8 10 12 14 16 18 20)
+
+=head2 any
+
+=head3 Description
+
+Returns ``1`` if ``string`` matches any element of ``list``, ``0`` otherwise.
+
+=head3 Usage
+
+<string> <list>
+
+=head2 count
+
+=head3 Description
+
+Returns the number of elements in the provided list.
+
+=head3 Usage
+
+<list>
+
+=head2 filter
+
+=head3 Description
+
+Returns a list of elements from the input list which, when aliased to ``%`` and
+applied to ``function``, result in a true evaluation.
+
+=head3 Usage
+
+<function> <list>
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    (filter (match "a" %) "Jon" "Jane" "Frank" "Zoe")
+    ("Jane" "Frank")
+
+=head2 reduce
+
+=head3 Description
+
+Returns the result of repeatedly applying ``function`` to the ``accumulator``,
+aliased as ``$``, and each element of the input list, aliased as ``%``.
+
+Reductions may be performed on any type, but you should ensure that you provide
+an initial value for the accumulator that is appropriate to the function you
+will be applying. In the example provided, a simple factorial was performed by
+initializing the accumulator to ``1`` and then applying a continuous sequence
+of integers beginning at 1 to the product function. It would have made no sense
+to initialize the accumulator in that example with a string value.
+
+=head3 Usage
+
+<function> <accumulator> <list>
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    (reduce (* $ %) 1 (seq 1 10))
+    3628800
+
+=head2 map
+
+=head3 Description
+
+Applies ``function`` to every element of the input list and returns a list of
+the results, preserving order. Each element of the input list is aliased to
+``%`` within the function being applied.
+
+=head3 Usage
+
+<function> <list>
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    (map (* 2 %) (seq 1 5))
+    (2 4 6 8 10)
+
+=cut
 
 has '+commands' => (
     default => sub {{

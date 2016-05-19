@@ -9,6 +9,12 @@ use MooseX::SetOnce;
 
 extends 'RoboBot::Plugin';
 
+=head1 bot
+
+Exports functions returning information about the bot and its environment.
+
+=cut
+
 has '+name' => (
     default => 'Bot',
 );
@@ -16,6 +22,38 @@ has '+name' => (
 has '+description' => (
     default => 'Exports functions returning information about the bot and its environment.',
 );
+
+=head2 version
+
+=head3 Description
+
+Returns a string with the bot's version number.
+
+=head2 channel-list
+
+=head3 Description
+
+Returns a list of the channels on the current network which the bot has joined.
+If provided a network name, will return the list of channels on that network
+instead. The network name must be one from the list provided by
+``(network-list)``.
+
+=head3 Usage
+
+[<network name>]
+
+=head3 Examples
+
+    (channel-list freenode)
+
+=head2 network-list
+
+=head3 Description
+
+Returns a list of the networks to which the current instance of the bot is
+connected.
+
+=cut
 
 has '+commands' => (
     default => sub {{

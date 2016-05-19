@@ -13,6 +13,12 @@ use Scalar::Util qw( looks_like_number );
 
 extends 'RoboBot::Plugin';
 
+=head1 output
+
+Provides string formatting and output/display functions.
+
+=cut
+
 has '+name' => (
     default => 'Output',
 );
@@ -20,6 +26,183 @@ has '+name' => (
 has '+description' => (
     default => 'Provides string formatting and output/display functions.',
 );
+
+=head2 clear
+
+=head3 Description
+
+Clears current contents of the output buffer without displaying them.
+
+This applies only to normal output - error messages will still be dispayed to
+the user should occur.
+
+=head2 join
+
+=head3 Description
+
+Joins together arguments into a single string, using the first argument as the
+delimiter.
+
+=head3 Usage
+
+<delimiter string> <list>
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    (join ", " (seq 1 10))
+    "1, 2, 3, 4, 5, 6, 7, 8, 9, 10"
+
+=head2 split
+
+=head3 Description
+
+Splits a string into a list based on the delimiter provided. Delimiters may be
+a regular expression or fixed string.
+
+=head3 Usage
+
+<delimiter> <string>
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    "[,\s]+" "1, 2, 3,4,    5"
+    (1 2 3 4 5)
+
+=head2 lower
+
+=head3 Description
+
+Converts the given string to lower-case.
+
+=head3 Usage
+
+<string>
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    (lower "Foo Bar Baz")
+    "foo bar baz"
+
+=head2 upper
+
+=head3 Description
+
+Converts the given string to upper-case.
+
+=head3 Usage
+
+<string>
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    (lower "Foo Bar Baz")
+    "FOO BAR BAZ"
+
+=head2 print
+
+=head3 Description
+
+Prints input arguments. If one argument is given, it is echoed unaltered. If
+multiple arguments are given they are printed in array notation.
+
+=head3 Usage
+
+<value> [<value> ...]
+
+=head3 Examples
+
+    :emphasize-lines: 2,5
+
+    (print "foo")
+    "foo"
+
+    (print foo 123 "bar" 456)
+    ("foo" 123 "bar" 456)
+
+=head2 format
+
+=head3 Description
+
+Provides a printf-like string formatter. Placeholders follow the same rules as
+printf(1).
+
+=head3 Usage
+
+<format string> [<list>]
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    (format "Random number: %d" (random 100))
+    "Random number: 42"
+
+=head2 format-number
+
+=head3 Description
+
+Provides numeric formatting for thousands separators, fixed precisions, and
+trailing zeroes.
+
+By default, numbers are formatted only with thousands separators added. Any
+decimal places in the original number are preserved without any change in
+precision.
+
+By specifying a precision only, any decimal places will be truncated to that
+as a maximum precision. The decimal places will not, however, be padded out
+with zeroes unless a positive integer (anything > 0) is passed as the third
+operand.
+
+=head3 Usage
+
+<number> [<precision> [<trailing zeroes>]]
+
+=head3 Examples
+
+    :emphasize-lines: 2,5,8
+
+    (format-number 12398123)
+    "12,398,123"
+
+    (format-number 3.1459 2)
+    "3.14"
+
+    (format-number 5 4 1)
+    "5.0000"
+
+=head2 str
+
+=head3 Description
+
+Returns a single string, either a simple concatenation of all arguments, or an
+empty string when no argument are given.
+
+=head3 Usage
+
+[<list>]
+
+=head3 Examples
+
+    :emphasize-lines: 2,5,8
+
+    (str)
+    ""
+
+    (str "foo")
+    "foo"
+
+    (str foo 123 "bar" 456)
+    "foo123bar456"
+
+=cut
 
 has '+commands' => (
     default => sub {{

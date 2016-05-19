@@ -13,6 +13,13 @@ use List::Util qw( shuffle );
 
 extends 'RoboBot::Plugin';
 
+=head1 markov
+
+Analyzes channel messages and allows for creating markov chains based off chat
+history.
+
+=cut
+
 has '+name' => (
     default => 'Markov',
 );
@@ -24,6 +31,27 @@ has '+description' => (
 has '+before_hook' => (
     default => 'parse_message',
 );
+
+=head2 markov
+
+=head3 Description
+
+Creates a sentence using HMM heuristics, based on selected nick(s) chat
+history. Resulting grammar will be stilted, and the sentence will likely be
+nonsensical, but should roughly resemble the style of the chosen target. If no
+seed is chosen, a random one will be selected first from the chat history.
+
+If the supplied nick is an asterisk ``*`` then markov modeling from all channel
+participants will contribute to the final output.
+
+This function currently uses a very poorly implemented modeller and produces
+pretty awful output. Better implementations are welcome!
+
+=head3 Usage
+
+<nick | "*"> [<seed phrase>]
+
+=cut
 
 has '+commands' => (
     default => sub {{

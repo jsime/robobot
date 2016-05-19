@@ -12,6 +12,14 @@ use Try::Tiny;
 
 extends 'RoboBot::Plugin';
 
+=head1 skills
+
+Provides functions for managing skillsets and user proficiency levels. These
+proficiencies can then be queried by other users on the same network to find
+help or advice.
+
+=cut
+
 has '+name' => (
     default => 'Skills',
 );
@@ -19,6 +27,165 @@ has '+name' => (
 has '+description' => (
     default => 'Provides functions for managing skillsets and user proficiency levels.',
 );
+
+=head2 iknow
+
+Assigns or displays skill proficiency levels for the current user.
+
+=head3 Description
+
+Assigns a proficiency level to yourself for the named skill. If no skill is
+named, shows a list of all skills you possess (grouped by proficiency levels).
+
+Skills which do not already exist will be automatically created. As such, it is
+recommended that users attempt to follow local naming conventions whenever
+possible.
+
+=head3 Usage
+
+[<skill name> [<proficiency level>]]
+
+=head3 Examples
+
+    (iknow Perl novice)
+
+=head2 theyknow
+
+Displays all of the registered skills of the named person. You cannot modify
+another user's skills or proficiencies.
+
+=head3 Usage
+
+<nick>
+
+=head3 Examples
+
+    (theyknow Beauford)
+
+=head2 idontknow
+
+=head3 Description
+
+Unregisters your proficiency in the named skill.
+
+=head3 Usage
+
+<skill name>
+
+=head3 Examples
+
+    (idontknow Perl)
+
+=head2 whoknows
+
+=head3 Description
+
+For the named skill, displays all the users who have registered a proficiency.
+Users are grouped together by proficiency level and displayed in order. If the
+skill has a description or any related skills, those are listed as well.
+
+If multiple skills are provided as arguments, then the intersection of users
+having registered proficiencies in them will be displayed.
+
+=head3 Usage
+
+<skill name> [<skill name> ...]
+
+=head3 Examples
+
+    (whoknows Perl)
+    (whoknows Perl Apache PostgreSQL)
+
+=head2 skills
+
+=head3 Description
+
+Displays the list of all skills currently registered by at least one person on
+the current network, if called with no arguments. Each skill in the list will
+also be shown with the number of people who claim to have some proficiency.
+
+If called with a string argument, that value will be used to display only those
+skills which contain the value as a substring. Searching is case-insensitive.
+
+=head3 Usage
+
+[<search string>]
+
+=head3 Examples
+
+    (skills)
+    (skills sql)
+
+=head2 skill-add
+
+=head3 Description
+
+Adds a new entry to the skills database, without registering any proficiency
+level on your behalf. If the skill already exists, nothing is done.
+
+Note that only skills with at least one registered user on the current network
+will be displayed when someone searches or displays the skill list.
+
+=head3 Usage
+
+<skill name>
+
+=head3 Examples
+
+    (skill-add Perl)
+
+=head2 skill-levels
+
+=head3 Description
+
+Displays the list of proficiency levels available for use when registering your
+knowledge of a given skill. The proficiency levels are displayed in increasing
+order with brief descriptions of each one.
+
+=head3 Examples
+
+    (skill-levels)
+
+=head2 describe-skill
+
+=head3 Description
+
+Permits the addition of a description to a skill. Descriptions are free-form
+strings, limited only by the current network's message length limits and
+formatting options. Because these descriptions are displayed every single time
+someone looks up the skill, it's recommended to keep them brief and to the
+point.
+
+=head3 Usage
+
+<skill name> <description>
+
+=head3 Examples
+
+    (describe-skill PostgreSQL "An object-relational database management system.")
+
+=head2 relate-skills
+
+=head3 Description
+
+Relating two skills causes the related skill to be shown whenever the other is
+displayed. Related skills are not displayed with their registered users, but
+simply referenced as potentially interesting additional skills for the querier
+to investigate.
+
+Multiple related skills may be listed and they will all, in turn, be connected
+to the original skill.
+
+=head3 Usage
+
+<skill name> <related skill name> [<related skill name> ...]
+
+=head3 Examples
+
+    (relate-skills PostgreSQL SQL)
+    (relate-skills Puppet CM Python)
+
+=cut
 
 has '+commands' => (
     default => sub {{

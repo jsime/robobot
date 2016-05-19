@@ -16,6 +16,17 @@ use RoboBot::Response;
 
 extends 'RoboBot::Plugin';
 
+=head1 alarm
+
+Exports functions for setting and modifying alarms, which can trigger messages
+at specified times or intervals.
+
+In addition to the exported functions, this module maintains a collection of
+persistent AnyEvent timer objects which are used to fire the alarm messages
+asynchronously from any regular message processing.
+
+=cut
+
 has '+name' => (
     default => 'Alarm',
 );
@@ -23,6 +34,117 @@ has '+name' => (
 has '+description' => (
     default => 'Exports functions for setting and modifying alarms, which can trigger messages at specified times or intervals.',
 );
+
+=head2 set-alarm
+
+=head3 Description
+
+Creates a new alarm in the current channel. The only required parameters are an
+alarm name and its first occurrence. An optional message may be included, which
+will be echoed whenever the alarm fires. Its length and formatting are limited
+only by the features of the network on which the alarm was set (e.g. IRC will
+generally be a couple hundred characters or less of plain text, whereas Slack
+would allow several KB of text with formatting).
+
+The initial date and time of the alarm, specified with ``:first`` must be a
+valid ISO8601 formatted timestamp. The timezone is optional and will default to
+that of the server on which the bot is running if omitted. It must also be a
+date and time in the future.
+
+Alarms may be set to recur by specifying an interval with ``:recurring``. The
+format of the interval (shockingly!) matches that of the interval type in
+PostgreSQL. Before the alarm is created, a test is performed to ensure that the
+alarm will not fire too often, as a small measure to prevent abuse. The alarm
+creation will be rejected if it will emit messages more than a few times an
+hour.
+
+An exclusion pattern may also be specified with ``:exclude``. Any timestamps
+from the recurrence interval that match the exclusion patterns will be skipped.
+The format of the is a comma-separated list of ``<field>=<regular expression>``
+and may use any of the PostgreSQL ``to_char(...)`` formatting fields.
+
+=head3 Usage
+
+<alarm name> :first <ISO8601> [:recurring <interval>] [:exclude <pattern>] [<message>]
+
+=head3 Examples
+
+    (set-alarm daily-standup
+      :first     "2016-04-25 10:00:00 US/Eastern"
+      :recurring "1 day"
+      :exclude   "Day=(Saturday|Sunday)"
+      "Daily Standup time! Meet in the large conference room.")
+
+=head2 delete-alarm
+
+=head3 Description
+
+Permanently removes the named alarm from the current channel. The alarm must be
+recreated from scratch if you wish to use it again.
+
+=head3 Usage
+
+<alarm name>
+
+=head3 Examples
+
+    (delete-alarm daily-standup)
+
+=head2 show-alarm
+
+=head3 Description
+
+Displays the named alarm and its current settings.
+
+=head3 Usage
+
+<alarm name>
+
+=head3 Examples
+
+    (show-alarm daily-standup)
+
+=head2 list-alarms
+
+=head3 Description
+
+Displays all of the alarms for the current channel, as well as their current
+state (active or suspended) and their next triggering time. If the alarms are
+recurring that is noted with the recurrence interval.
+
+=head2 suspend-alarm
+
+=head3 Description
+
+Temporarily suspends the named alarm.
+
+=head3 Usage
+
+<alarm name>
+
+=head3 Examples
+
+    (suspend-alarm daily-standup)
+
+=head2 resume-alarm
+
+=head3 Description
+
+Resumes a suspended alarm. Does nothing to alarms which are not currently
+suspended. A non-recurring alarm which had been suspended during the time at
+which it should have triggered is effectively deleted by resuming it. Recurring
+alarms will simply skip past any triggering intervals which passed during their
+suspension.
+
+=head3 Usage
+
+<alarm name>
+
+=head3 Examples
+
+    (resume-alarm daily-standup)
+
+=cut
 
 has '+commands' => (
     default => sub {{

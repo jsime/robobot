@@ -9,6 +9,12 @@ use MooseX::SetOnce;
 
 extends 'RoboBot::Plugin';
 
+=head1 regexp
+
+Regular expression matching and substitution functions.
+
+=cut
+
 has '+name' => (
     default => 'Regexp',
 );
@@ -16,6 +22,44 @@ has '+name' => (
 has '+description' => (
     default => 'Regular expression matching and substitution functions.',
 );
+
+=head2 match
+
+=head3 Description
+
+Returns a list of matches from the given text for the supplied pattern. PCRE
+modifiers ``/ig`` are implied.
+
+=head3 Usage
+
+<pattern> <text>
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    (match "\d+" "The year 2014 saw precisely 10 things happen.")
+    ("2014" "10")
+
+=head2 replace
+
+=head3 Description
+
+Replaces any matches of pattern in the given text with the given string. PCRE
+modifiers ``/ig`` are implied.
+
+=head3 Usage
+
+<pattern> <replacement> <text>
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    (replace "hundred" "billion" "You have won a hundred dollars!")
+    "You have won a billion dollars!"
+
+=cut
 
 has '+commands' => (
     default => sub {{
