@@ -127,6 +127,10 @@ has '+commands' => (
                           description => 'Tags the specified thinge with the given list of tags.',
                           usage       => '<type> <id> "<tag>" ["<tag 2>" ... "<tag N>"]' },
 
+        'thinge-untag' => { method      => 'untag_thinge',
+                          description => 'Untags the specified thinge with the given list of tags.',
+                          usage       => '<type> <id> "<tag>" ["<tag 2>" ... "<tag N>"]' },
+
         'thinge-types' => { method      => "show_types",
                             description => 'Lists the current types of thinges which have collections.',
                             usage       => '' },
@@ -397,6 +401,46 @@ sub tag_thinge {
     }
 
     $message->response->push(sprintf('%s%s has been tagged with %s.', uc(substr($type, 0, 1)), substr($type, 1),
+        join(', ', map { "\#$_" } @tags)));
+
+    return;
+}
+
+sub untag_thinge {
+    my ($self, $message, $command, $rpl, $type, $id, @tags) = @_;
+
+    my $type_id = $self->get_type_id($message, $type) || return;
+
+    # TODO: This is an ugly hack to get around the way &rest arguments in macros
+    #       are joined (which is, itself, a hack to get around another problem).
+    #       Whenever that macro problem is fixed, this should be undone.
+    ($id, @tags) = grep { defined $_ } (split(/\s+/, $id), @tags);
+
+    my $res = $self->bot->config->db->do(q{
+        select id
+        from thinge_thinges
+        where type_id = ? and network_id = ? and thinge_num = ?
+    }, $type_id, $message->network->id, $id);
+
+    unless ($res && $res->next) {
+        $message->response->raise('There is no such %s with an ID %d.', $type, $id);
+        return;
+    }
+
+    my $thinge_id = $res->{'id'};
+
+    my ($tag_id);
+
+    foreach my $tag (@tags) {
+        if (($tag_id, $tag) = $self->get_tag_id($message, $tag)) {
+            $self->bot->config->db->do(q{
+                delete from thinge_thinge_tags
+                where thinge_id = ? and tag_id = ?
+            }, $thinge_id, $tag_id);
+        }
+    }
+
+    $message->response->push(sprintf('%s%s has been untagged from %s.', uc(substr($type, 0, 1)), substr($type, 1),
         join(', ', map { "\#$_" } @tags)));
 
     return;
