@@ -154,6 +154,11 @@ sub validate_networks {
     foreach my $network_name (keys %{$self->config->{'network'}}) {
         my $net_cfg = $self->config->{'network'}{$network_name};
 
+        # Do not load (and eventually connect to) the network if the 'enabled'
+        # property exists and is set to a falsey value.
+        next if exists $self->config->{'network'}{$network_name}{'enabled'}
+            && !$self->config->{'network'}{$network_name}{'enabled'};
+
         push(@networks, $nfactory->create($network_name, $net_cfg));
 
         my @network_channels;
