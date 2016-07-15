@@ -522,7 +522,7 @@ sub skill_whoknows {
     }
 
     if (@skill_names > 1) {
-        return $self->skill_whoknows_intersect($message, $command, @skill_names);
+        return $self->skill_whoknows_intersect($message, $command, $rpl, @skill_names);
     }
 
     my $skill_name = shift @skill_names;
