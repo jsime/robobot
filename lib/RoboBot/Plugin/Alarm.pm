@@ -149,6 +149,7 @@ suspension.
 has '+commands' => (
     default => sub {{
         'set-alarm' => { method      => 'set_alarm',
+                         keyed_args  => 1,
                          description => 'Creates a new alarm to emit the given message in the current channel, according to the :first and :recurring options. If an alarm by the same name already exists, its settings are replaced. Alarms that have no :recurring option will be deleted after they occur.',
                          usage       => '<alarm name> :first "<ISO8601 datetime>" [:recurring "<interval specification>"] [:exclude "<date pattern exclusions>"] [<message>]',
                          example     => '"Morning Dev Standup" :first "2015-07-06 10:30 EDT" :recurring "1 day" :exclude "Day=(Saturday|Sunday)" "Meet in the large conference room."', },
@@ -200,7 +201,7 @@ sub init {
 }
 
 sub set_alarm {
-    my ($self, $message, $command, $rpl, $name, @args) = @_;
+    my ($self, $message, $command, $rpl, $keyed, $name, @args) = @_;
 
     return unless $message->has_channel;
 
@@ -208,9 +209,6 @@ sub set_alarm {
         $message->response->raise('Every alarm must have a name. Please try again.');
         return;
     }
-
-    my $keyed;
-    ($keyed, @args) = $self->extract_keyed_args(@args);
 
     unless (exists $keyed->{'first'}) {
         $message->response->raise('You must provide the first occurrence of the alarm, using the :first option, in ISO8601 format.');

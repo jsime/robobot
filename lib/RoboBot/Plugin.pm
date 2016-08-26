@@ -80,6 +80,14 @@ sub process {
         return $message->response->raise('You are not permitted to call the function (%s).', $command);
     }
 
+    # If the function takes "keyed" arguments (e.g. a Symbol followed by an
+    # expression or value) extract those now into a hash that will be passed
+    # to the function's implementation separately from any remainder arguments.
+    my $keyed = {};
+    if ($self->commands->{$command}{'keyed_args'}) {
+        ($keyed, @args) = $self->extract_keyed_args($message, $rpl, @args);
+    }
+
     # By default, we pre-process all arguments, but some plugins can opt out
     # of this to handle things like conditional evaluations or loops
     unless (exists $self->commands->{$command}{'preprocess_args'} && $self->commands->{$command}{'preprocess_args'} == 0) {
@@ -105,7 +113,11 @@ sub process {
         @args = @new_args;
     }
 
-    return $self->$method($message, $command, $rpl, @args);
+    if ($self->commands->{$command}{'keyed_args'}) {
+        return $self->$method($message, $command, $rpl, $keyed, @args);
+    } else {
+        return $self->$method($message, $command, $rpl, @args);
+    }
 }
 
 sub hook_before {
@@ -127,17 +139,17 @@ sub hook_after {
 }
 
 sub extract_keyed_args {
-    my ($self, @args) = @_;
+    my ($self, $message, $rpl, @args) = @_;
 
     my %keyed = ();
     my @remaining;
 
     while (@args) {
         my $k = shift(@args);
-        if (substr($k, 0, 1) eq ':') {
-            $keyed{substr($k, 1)}
-                = @args && substr($args[0], 0, 1) ne ':'
-                ? shift(@args)
+        if ($k->type eq 'Symbol') {
+            $keyed{$k->value}
+                = @args && $args[0]->type ne 'Symbol'
+                ? shift(@args)->evaluate($message, $rpl)
                 : 1;
         } else {
             push(@remaining, $k);
