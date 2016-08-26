@@ -71,7 +71,7 @@ may be included by adding the ``:include-expressions`` symbol.
 =head3 Description
 
 Reports the last time the given nick was observed saying something in any
-channel
+channel that has logging enabled.
 
 =head3 Usage
 
@@ -231,6 +231,7 @@ sub last_seen {
                 join channels c on (c.id = l.channel_id)
                 join networks nt on (nt.id = c.network_id)
             where l.nick_id = ?
+                and c.log_enabled
             order by l.posted_at desc
             limit 1
         }, $res->{'id'});
