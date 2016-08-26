@@ -395,4 +395,37 @@ create table locations (
     created_at  timestamp with time zone not null default now()
 );
 
+--
+-- VOTING
+--
+create table voting_polls (
+    poll_id     serial not null primary key,
+    channel_id  integer not null references channels (id) on update cascade on delete restrict,
+    name        text not null,
+    can_writein boolean not null default false,
+    created_by  integer not null references nicks (id) on update cascade on delete restrict,
+    created_at  timestamp with time zone not null default now(),
+    closed_at   timestamp with time zone
+);
+
+create table voting_poll_choices (
+    choice_id   serial not null primary key,
+    poll_id     integer not null references voting_polls (poll_id) on update cascade on delete cascade,
+    name        text not null,
+    is_writein  boolean not null default false,
+    writein_by  integer references nicks (id) on update cascade on delete restrict,
+    writein_at  timestamp with time zone
+);
+create unique index voting_poll_choices_poll_id_name_idx on voting_poll_choices (poll_id, name);
+create index voting_poll_choices_writein_by_idx on voting_poll_choices (writein_by);
+
+create table voting_votes (
+    vote_id     serial not null primary key,
+    choice_id   integer not null references voting_poll_choices (choice_id) on update cascade on delete cascade,
+    nick_id     integer not null references nicks (id) on update cascade on delete cascade,
+    voted_at    timestamp with time zone not null default now()
+);
+create index voting_votes_choice_id_idx on voting_votes (choice_id);
+create index voting_votes_nick_id_idx on voting_votes (nick_id);
+
 commit;
