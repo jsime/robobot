@@ -82,6 +82,12 @@ simply return the existing map.
 
 has '+commands' => (
     default => sub {{
+        'get' => { method      => 'map_get',
+                   description => 'Retrieves the value of the named key from the given map. An undefined value is returned if the key does not exist and no default value was provided.',
+                   usage       => '<map> <key name> [<default value>]',
+                   example     => '{ :foo "bar" } :baz 23',
+                   result      => '23' },
+
         'keys' => { method      => 'map_keys',
                     description => 'Returns a list of keys from the given map, in no guaranteed order.',
                     usage       => '<map>',
@@ -125,6 +131,24 @@ sub map_assoc {
     }
 
     return $map;
+}
+
+sub map_get {
+    my ($self, $message, $command, $rpl, $map, $key, $default) = @_;
+
+    unless (defined $map && ref($map) eq 'HASH') {
+        $message->response->raise('Must provide a valid map.');
+        return;
+    }
+
+    unless (defined $key) {
+        $message->response->raise('Must provide a key name whose value you wish to retrieve from the map.');
+        return;
+    }
+
+    return $map->{$key} if exists $map->{$key};
+    return $default if defined $default;
+    return;
 }
 
 sub map_keys {
