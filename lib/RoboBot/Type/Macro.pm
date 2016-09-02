@@ -23,8 +23,8 @@ has '+value' => (
 sub evaluate {
     my ($self, $message, $rpl, @args) = @_;
 
-    return unless exists $self->bot->macros->{$message->network->id}{$self->value};
-    return $self->bot->macros->{$message->network->id}{$self->value}->expand(
+    return unless exists $self->bot->macros->{$message->network->id}{lc($self->value)};
+    return $self->bot->macros->{$message->network->id}{lc($self->value)}->expand(
         $message,
         $rpl,
         map {

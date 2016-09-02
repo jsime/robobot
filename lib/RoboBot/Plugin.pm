@@ -69,6 +69,7 @@ sub process {
     if ($command =~ m{/(.*)$}) {
         $command = $1;
     }
+    $command = lc($command);
 
     return $message->response->raise("Invalid command processor executed.")
         unless exists $self->commands->{$command};

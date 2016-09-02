@@ -21,7 +21,7 @@ has '+value' => (
 sub evaluate {
     my ($self, $message, $rpl, @args) = @_;
 
-    return $self->bot->commands->{$self->value}->process(
+    return $self->bot->commands->{lc($self->value)}->process(
         $message,
         $self->value,
         $rpl,
