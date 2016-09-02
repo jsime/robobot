@@ -73,8 +73,10 @@ sub help {
             }
         } elsif (exists $self->bot->commands->{$section}) {
             $self->command_help($message, $section);
-        } elsif (exists $self->bot->macros->{$section}) {
+        } elsif (exists $self->bot->macros->{$message->network->id}{lc($section)}) {
             $self->macro_help($message, $section);
+        } elsif (grep { lc($section) eq $_->ns } @{$self->bot->plugins}) {
+            $self->plugin_help($message, $section);
         } else {
             $message->response->push(sprintf('Unknown help section: %s', $section));
         }
@@ -171,16 +173,17 @@ sub command_help {
 sub macro_help {
     my ($self, $message, $macro_name) = @_;
 
-    if (exists $self->bot->macros->{$macro_name}) {
+    if (exists $self->bot->macros->{$message->network->id}{lc($macro_name)}) {
         # TODO: Extend macros to support more useful/informative documentation,
         #       possibly through a docstring like syntax, and then make use of
         #       that here. For now about all we can do is show the signature.
-        my $macro = $self->bot->macros->{$macro_name};
+        my $macro = $self->bot->macros->{$message->network->id}{lc($macro_name)};
 
         $message->response->push(sprintf('(%s%s)',
             $macro->name,
             (length($macro->signature) > 0 ? ' ' . $macro->signature : '')
         ));
+        $message->response->push(sprintf('For the complete macro definition, use: (show-macro %s)', $macro->name));
     } else {
         $message->response->push(sprintf('Unknown macro: %s', $macro_name));
     }
