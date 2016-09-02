@@ -103,8 +103,6 @@ sub bool_binary {
 
     my $r;
     eval '$r = $args[0] ' . $op . ' $args[1];';
-
-    $message->response->raise('Operation failed: %s', $@) if $@;
     return $r ? 1 : 0;
 }
 
@@ -117,8 +115,6 @@ sub bool_unary {
 
     my $r;
     eval '$r = ' . $op . ' $args[0];';
-
-    $message->response->raise('Operation failed: %s', $@) if $@;
     return $r ? 1 : 0;
 }
 
