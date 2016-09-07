@@ -50,6 +50,26 @@ Translate API.
     (translate "en" "de" "Good Morning!")
     Guten Morgen!
 
+=head2 translate-party
+
+=head3 Description
+
+Repeatedly translates the given phrase back and forth between languages until
+equilibrium is found. A cap is placed on the maximum number of retranslations
+(so as to avoid exhausting translation API limits), in the event equilibrium
+does not occur naturally. When the cap is reached, whatever version of the
+phrase was last produced in the source language is returned.
+
+=head3 Usage
+
+<source language> <intermediary language> <text>
+
+=head3 Examples
+
+    :emphasize-lines: 2
+    (translate-party en es "")
+    
+
 =cut
 
 has '+commands' => (
@@ -59,6 +79,12 @@ has '+commands' => (
                          usage       => '<from> <to> <text>',
                          example     => 'en de "Good morning!"',
                          result      => '"Guten Morgen!"', },
+
+        'translate-party' => { method      => 'translate_party',
+                               description => 'Repeatedly translates the given phrase back and forth between languages until equilibrium is found.',
+                               usage       => '<from> <to> <text>',
+                               example     => '',
+                               result      => '', },
     }},
 );
 
@@ -155,6 +181,11 @@ sub translate_text {
         return;
     }
 
+    if (lc($from) eq lc($to)) {
+        $message->response->raise('Translate to the same language? What is the point in that?');
+        return;
+    }
+
     my $text = join(' ', @args);
 
     unless (defined $text && length($text) > 1) {
@@ -169,6 +200,59 @@ sub translate_text {
     $message->response->raise('Could not translate your phrase. Please check your source and destination languages.');
     $message->response->raise('Valid language codes are listed at https://msdn.microsoft.com/en-us/library/hh456380.aspx');
     return;
+}
+
+sub translate_party {
+    my ($self, $message, $command, $rpl, $from, $to, @args) = @_;
+
+    unless ($self->valid_config) {
+        $message->response->raise('This bot instance does not have a valid Microsoft Translate API configuration. No translations will be possible.');
+        return;
+    }
+
+    unless (defined $from && defined $to && length($from) > 1 && length($to) > 1) {
+        $message->response->raise('Must provide a source and destination language for translation.');
+        return;
+    }
+
+    if (lc($from) eq lc($to)) {
+        $message->response->raise('Translate to the same language? What is the point in that?');
+        return;
+    }
+
+    my $text = join(' ', @args);
+
+    unless (defined $text && length($text) > 1) {
+        $message->response->raise('Must provide text to translate.');
+        return;
+    }
+
+    my $equilibrium = $text;
+    my %seen = ( $from => { $text => 1 }, $to => {} );
+
+    # Cap attempts to find equilibrium at 6 round-trips between $from->$to->$from
+    for my $attempt (1..6) {
+        my $translation = $self->_do_translate($from, $to, $equilibrium);
+        last unless defined $translation;
+        last if exists $seen{$to}{$translation};
+        $seen{$to}{$translation} = 1;
+printf STDERR "** #%d %s -> %s\n", $attempt, $to, $translation;
+
+        $translation = $self->_do_translate($to, $from, $translation);
+        last unless defined $translation;
+        last if exists $seen{$from}{$translation};
+        $seen{$from}{$translation} = 1;
+printf STDERR "** #%d %s -> %s\n", $attempt, $from, $translation;
+
+        $equilibrium = $translation;
+    }
+
+    if (!defined $equilibrium || length($equilibrium) < 1 || $equilibrium eq $text) {
+        $message->response->raise('Could not get a party going with that phrase. Try again.');
+        return;
+    }
+
+    return $equilibrium;
 }
 
 sub _do_translate {
