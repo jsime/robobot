@@ -83,6 +83,13 @@ sub http_get {
         return;
     }
 
+    if ($self->_check_rate_limit($url)) {
+        $self->_log_http_request($url);
+    } else {
+        $message->response->raise('That site has been queried too much recently. Please wait a few minutes before requesting a page from it again.');
+        return;
+    }
+
     my $response = $self->ua->get($url);
 
     if ($response->is_success) {
@@ -98,6 +105,13 @@ sub http_headers {
 
     unless (defined $url && length($url) > 0) {
         $message->response->raise('Must provide a valid URL.');
+        return;
+    }
+
+    if ($self->_check_rate_limit($url)) {
+        $self->_log_http_request($url);
+    } else {
+        $message->response->raise('That site has been queried too much recently. Please wait a few minutes before requesting a page from it again.');
         return;
     }
 
@@ -137,6 +151,44 @@ sub http_query_string {
     }
 
     return $uri->query;
+}
+
+sub _check_rate_limit {
+    my ($self, $url) = @_;
+
+    my $uri = URI->new($url);
+
+    my $res = $self->bot->config->db->do(q{
+        select
+            sum(case when l.created_at >= now() - interval '60 seconds' then 1.0 else 0.0 end) / 60.0 as rate_1min,
+            sum(case when l.created_at >= now() - interval '300 seconds' then 1.0 else 0.0 end) / 300.0 as rate_5min,
+            sum(case when l.created_at >= now() - interval '1800 seconds' then 1.0 else 0.0 end) / 1800.0 as rate_30min
+        from net_http_log l
+        where lower(l.host) = lower(?)
+            and l.created_at > now() - interval '1800 seconds'
+    }, $uri->host);
+
+    # If we don't find previous usage, let the request go through.
+    # When we do find usage, use increasingly strict thresholds for larger time
+    # periods. This will let someone do a couple fetches side by side, but will
+    # keep people from hitting the same site in any sustained manner.
+    return 1 unless $res && $res->next;
+    return 1 if $res->{'rate_1min'} < 3 && $res->{'rate_5min'} < 10 && $res->{'rate_30min'} < 10;
+    return 0;
+}
+
+sub _log_http_request {
+    my ($self, $url) = @_;
+
+    my $uri = URI->new($url);
+
+    $self->bot->config->db->do(q{
+        insert into net_http_log ???
+    }, {
+        scheme => $uri->scheme,
+        host   => $uri->host,
+        path   => $uri->path,
+    });
 }
 
 __PACKAGE__->meta->make_immutable;

@@ -428,4 +428,14 @@ create table voting_votes (
 create index voting_votes_choice_id_idx on voting_votes (choice_id);
 create index voting_votes_nick_id_idx on voting_votes (nick_id);
 
+create table net_http_log (
+    id          serial not null primary key,
+    scheme      text not null,
+    host        text not null,
+    path        text,
+    created_at  timestamp with time zone not null default now()
+);
+create index net_http_log_host_idx on net_http_log (lower(host));
+create index net_http_log_created_at_idx on net_http_log (created_at);
+
 commit;
