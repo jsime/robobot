@@ -481,7 +481,7 @@ sub suspend_alarm {
 sub _get_alarm {
     my ($self, $bot, $alarm_id) = @_;
 
-    # We buffer the comparison of the current next_emit to now() by 5 minutes
+    # We buffer the comparison of the current next_emit to now() by a little bit
     # into the future to account for the possibility of timer drift, and any
     # other delays that may occur between when the timer is schedule to fire and
     # when our bot's single execution thread finally reaches this point. One
@@ -489,7 +489,10 @@ sub _get_alarm {
     # than a few times each hour anyway.
     my $res = $bot->config->db->do(q{
         select a.*,
-            case when a.next_emit <= (now() + interval '1 minute') then 1 else 0 end as do_recalc
+            case
+                when a.next_emit <= (now() + interval '1 minute') then 1
+                else 0
+            end as do_recalc
         from alarms_alarms a
         where a.id = ?
     }, $alarm_id);
@@ -522,7 +525,7 @@ sub _get_alarm {
             select date_trunc('seconds', s.new_emit) as new_emit
             from alarms_alarms a,
                 generate_series(a.next_emit, a.next_emit + (a.recurrence * 100), a.recurrence) s(new_emit)
-            where a.id = ? and not (} . join(' or ', @where) . q{)
+            where a.id = ? and a.recurrence is not null and not (} . join(' or ', @where) . q{)
                 and s.new_emit > (now() + (a.recurrence / 2))
             order by s.new_emit asc
             limit 1
@@ -550,13 +553,11 @@ sub _get_alarm {
         }
     } elsif ($res->{'do_recalc'}) {
         # The current value of next_emit is in the past, but we have a NULL
-        # recurrence, which means this alarm should be deleted and the called
-        # should get nothing back.
+        # recurrence, which means this alarm should be deleted so it doesn't
+        # ever fire again.
         $self->bot->config->db->do(q{
             delete from alarms_alarms where id = ?
         }, $res->{'id'});
-
-        return;
     }
 
     my %alarm = ( map { $_ => $res->{$_} } $res->columns );
