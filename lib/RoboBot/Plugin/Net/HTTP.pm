@@ -1,4 +1,4 @@
-package RoboBot::Plugin::Net::Http;
+package RoboBot::Plugin::Net::HTTP;
 
 use v5.20;
 
@@ -21,7 +21,7 @@ Exports a selection of functions for performing HTTP/HTTPS operations.
 =cut
 
 has '+name' => (
-    default => 'Net::Http',
+    default => 'Net::HTTP',
 );
 
 has '+description' => (
