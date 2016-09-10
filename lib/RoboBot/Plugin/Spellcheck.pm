@@ -95,7 +95,6 @@ sub check_spelling {
     return if $message->has_expression;
 
     # TODO move this into a configuration option
-    return; # don't od the annoying spelling thing for now
     return unless rand() <= 0.3;
 
     my @words = split(/\s+/o, $message->raw);
