@@ -287,10 +287,11 @@ create table alarms_alarms (
 -- FAKE QUOTES
 --
 create table fakequotes_people (
-    id   serial not null primary key,
-    name text not null
+    id          serial not null primary key,
+    name        text not null,
+    network_id  integer not null references networks (id) on update cascade on delete cascade
 );
-create unique index fakequotes_people_lower_name_idx on fakequotes_people (lower(name));
+create unique index fakequotes_people_name_network_id_idx on fakequotes_people (lower(name), network_id);
 
 create table fakequotes_phrases (
     id          serial not null primary key,

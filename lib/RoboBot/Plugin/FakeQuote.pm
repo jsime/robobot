@@ -132,15 +132,16 @@ sub fake_quote {
         $res = $self->bot->config->db->do(q{
             select id, name
             from fakequotes_people
-            where lower(name) = lower(?)
-        }, $personality);
+            where lower(name) = lower(?) and network_id = ?
+        }, $personality, $message->network->id);
     } else {
         $res = $self->bot->config->db->do(q{
             select id, name
             from fakequotes_people
+            where network_id = ?
             order by random() desc
             limit 1
-        });
+        }, $message->network->id);
     }
 
     unless ($res && $res->next) {
@@ -216,8 +217,8 @@ sub add_fake_person {
     my $res = $self->bot->config->db->do(q{
         select id
         from fakequotes_people
-        where lower(name) = lower(?)
-    }, $personality);
+        where lower(name) = lower(?) and network_id = ?
+    }, $personality, $message->network->id);
 
     if ($res && $res->next) {
         $message->response->push(sprintf('The personality %s already exists.', $personality))
@@ -226,8 +227,8 @@ sub add_fake_person {
     }
 
     $res = $self->bot->config->db->do(q{
-        insert into fakequotes_people (name) values (?) returning *
-    }, $personality);
+        insert into fakequotes_people (name, network_id) values (?,?) returning *
+    }, $personality, $message->network->id);
 
     unless ($res && $res->next) {
         $message->response->raise('Could not create the new personality %s. Please try again.', $personality);
@@ -253,11 +254,11 @@ sub add_fake_quote {
 
     my $res = $self->bot->config->db->do(q{
         insert into fakequotes_phrases (person_id, phrase) values (
-            (select id from fakequotes_people where lower(name) = lower(?)),
+            (select id from fakequotes_people where lower(name) = lower(?) and network_id = ?),
             ?
         )
         returning *
-    }, $personality, $phrase);
+    }, $personality, $message->network->id, $phrase);
 
     if ($res && $res->next) {
         $message->response->push('Fake quote phrase has been added.');
@@ -290,10 +291,10 @@ sub add_fake_term {
     foreach my $term (@terms) {
         $self->bot->config->db->do(q{
             insert into fakequotes_terms (person_id, term_type, term) values (
-                (select id from fakequotes_people where lower(name) = lower(?)),
+                (select id from fakequotes_people where lower(name) = lower(?) and network_id = ?),
                 ?,?
             )
-        }, $personality, $type, $term);
+        }, $personality, $message->network->id, $type, $term);
     }
 
     $message->response->push(sprintf('New Term%s added for %s.', (@terms == 1 ? '' : 's'), $personality));
