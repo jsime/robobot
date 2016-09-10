@@ -52,12 +52,22 @@ functions for that module.
     (help apply)
     (help :module types.map)
 
+=head2 help-all
+
+=head3 Description
+
+Displays a complete listing of all functions and macros available on the
+current network.
+
 =cut
 
 has '+commands' => (
     default => sub {{
         'help' => { method  => 'help',
                     usage   => '[:module <module name> | <function> | <macro>]' },
+
+        'help-all' => { method      => 'help_all',
+                        description => 'Displays a complete listing of all functions and macros available on the current network.', },
     }},
 );
 
@@ -87,6 +97,41 @@ sub help {
     return;
 }
 
+sub help_all {
+    my ($self, $message) = @_;
+
+    my @functions = sort { $a cmp $b } (
+        map { keys %{$_->commands} }
+        grep { ! exists $message->network->disabled_plugins->{lc($_->name)} }
+        @{$self->bot->plugins}
+    );
+
+    my @macros = sort { $a cmp $b } (
+        map { lc($_) }
+        keys %{$self->bot->macros->{$message->network->id}}
+    );
+
+    my $res = $self->bot->config->db->do(q{
+        select var_name
+        from global_vars
+        where network_id = ?
+        order by lower(var_name) asc
+    }, $message->network->id);
+
+    my @globals;
+    if ($res) {
+        while ($res->next) {
+            push(@globals, $res->{'var_name'});
+        }
+    }
+
+    $message->response->push(sprintf('*Functions*: %s', join(', ', @functions))) if @functions > 0;
+    $message->response->push(sprintf('*Macros*: %s', join(', ', @macros))) if @macros > 0;
+    $message->response->push(sprintf('*Globals*: %s', join(', ', @globals))) if @globals > 0;
+
+    return;
+}
+
 sub general_help {
     my ($self, $message) = @_;
 
@@ -98,7 +143,7 @@ sub general_help {
 
     $message->response->push(sprintf('RoboBot v%s', $self->bot->version));
     $message->response->push(sprintf('Documentation: https://robobot.automatomatromaton.com/'));
-    $message->response->push(sprintf('For additional help, use (help <function>) or (help :module "<name>").'));
+    $message->response->push(sprintf('For additional help, use (help <function>) or (help :module "<name>"). Use (help-all) to see a complete list of functions and macros available on the current network.'));
     $message->response->push(sprintf('Active modules: %s', join(', ', sort keys %plugins)));
 
     # Return before the function display for now.
