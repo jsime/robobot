@@ -20,6 +20,18 @@ has '+value' => (
     default   => sub { [] },
 );
 
+sub ast {
+    my ($self) = @_;
+
+    my $ast = [];
+
+    if ($self->has_value) {
+        push(@{$ast}, $_->ast) foreach @{$self->value};
+    }
+
+    return $self->type, $ast;
+}
+
 sub evaluate {
     my ($self, $message, $rpl) = @_;
 

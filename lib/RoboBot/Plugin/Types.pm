@@ -6,6 +6,8 @@ use namespace::autoclean;
 
 use Moose;
 
+use Scalar::Util qw( blessed );
+
 use RoboBot::Type::String;
 
 extends 'RoboBot::Plugin';
@@ -38,6 +40,13 @@ Returns a string containing the type name of ``value``.
 
 has '+commands' => (
     default => sub {{
+        'ast' => { method          => 'types_ast',
+                   preprocess_args => 0,
+                   description     => 'Returns a representation of the arguments\' Abstract Syntax Tree.',
+                   usage           => '<list>',
+                   example         => '[|1 2 3| { :foo "bar" }]',
+                   result          => '("Vector" ("Set" "Map"))', },
+
         'typeof' => { method      => 'types_typeof',
                       description => 'Returns a string containing the type name of <x>.',
                       usage       => '<x>',
@@ -46,7 +55,23 @@ has '+commands' => (
     }},
 );
 
-sub find_filter {
+sub types_ast {
+    my ($self, $message, $command, $rpl, @args) = @_;
+
+    my @asts;
+
+    foreach my $expr (@args) {
+        if (defined $expr && blessed($expr) && $expr->can('ast')) {
+            push(@asts, $expr->ast);
+        } else {
+            push(@asts, 'nil');
+        }
+    }
+
+    return @asts;
+}
+
+sub types_typeof {
     my ($self, $message, $command, $rpl, $var) = @_;
 
     return unless defined $var;
