@@ -10,8 +10,11 @@ use MooseX::SetOnce;
 use AnyEvent;
 use Data::Dumper;
 use JSON;
+use Scalar::Util qw( blessed );
 
 use RoboBot::Channel;
+use RoboBot::Message;
+use RoboBot::Parser;
 use RoboBot::Response;
 
 extends 'RoboBot::Plugin';
@@ -46,6 +49,18 @@ only by the features of the network on which the alarm was set (e.g. IRC will
 generally be a couple hundred characters or less of plain text, whereas Slack
 would allow several KB of text with formatting).
 
+Alternately, the message may be given as a quoted expression, which will be
+stored and evaluated anew with each occurrence of the alarm. These expressions
+will not receive any arguments, but they may interact with global variables
+defined within the same network on which the alarm is created. Because the
+alarms trigger in an anonymous context (i.e. they are not responses to an
+individual user's message), functions which assume a user will either fail or
+behave oddly.
+
+Unquoted expressions will be evaluated once at the time of alarm creation, and
+that result will simply be echoed each time the alarm triggers. You must quote
+the expression if you wish it to be evaluated on each alarm occurrence.
+
 The initial date and time of the alarm, specified with ``:first`` must be a
 valid ISO8601 formatted timestamp. The timezone is optional and will default to
 that of the server on which the bot is running if omitted. It must also be a
@@ -65,7 +80,7 @@ and may use any of the PostgreSQL ``to_char(...)`` formatting fields.
 
 =head3 Usage
 
-<alarm name> :first <ISO8601> [:recurring <interval>] [:exclude <pattern>] [<message>]
+<alarm name> :first <ISO8601> [:recurring <interval>] [:exclude <pattern>] [<message or quoted expression>]
 
 =head3 Examples
 
@@ -74,6 +89,14 @@ and may use any of the PostgreSQL ``to_char(...)`` formatting fields.
       :recurring "1 day"
       :exclude   "Day=(Saturday|Sunday)"
       "Daily Standup time! Meet in the large conference room.")
+
+    (set-alarm open-tickets
+      :first "2016-10-01 10:00:00 US/Eastern"
+      :recurring "1 day"
+      '(join "\n"
+        (jq "$.[*].ticket-summary"
+          (http-get (str "https://example.com/api/tickets?"
+                         (query-string { :status "open" :format "json" }))))))
 
 =head2 delete-alarm
 
@@ -149,6 +172,7 @@ suspension.
 has '+commands' => (
     default => sub {{
         'set-alarm' => { method      => 'set_alarm',
+                         preprocess_args => 0,
                          keyed_args  => 1,
                          description => 'Creates a new alarm to emit the given message in the current channel, according to the :first and :recurring options. If an alarm by the same name already exists, its settings are replaced. Alarms that have no :recurring option will be deleted after they occur.',
                          usage       => '<alarm name> :first "<ISO8601 datetime>" [:recurring "<interval specification>"] [:exclude "<date pattern exclusions>"] [<message>]',
@@ -205,6 +229,8 @@ sub set_alarm {
 
     return unless $message->has_channel;
 
+    $name = $name->evaluate($message, $rpl) if defined $name && blessed($name) && $name->can('evaluate');
+
     unless (defined $name && $name =~ m{\w+}) {
         $message->response->raise('Every alarm must have a name. Please try again.');
         return;
@@ -223,13 +249,24 @@ sub set_alarm {
     }
 
     my %alarm = (
-        channel_id   => $message->channel->id,
-        created_by   => $message->sender->id,
-        name         => $name,
-        next_emit    => $keyed->{'first'},
-        is_suspended => 'f',
-        message      => (@args ? join(' ', @args) : undef),
+        channel_id    => $message->channel->id,
+        created_by    => $message->sender->id,
+        name          => $name,
+        next_emit     => $keyed->{'first'},
+        is_suspended  => 'f',
+        is_expression => 'f',
     );
+
+    if (@args == 1 && blessed($args[0]) && $args[0]->type eq 'Expression') {
+        if ($args[0]->quoted) {
+            $alarm{'is_expression'} = 't';
+            $alarm{'message'} = $args[0]->flatten;
+        } else {
+            $alarm{'message'} = join(' ', $args[0]->evaluate($message, $rpl));
+        }
+    } elsif (@args > 0) {
+        $alarm{'message'} = join(' ', map { $_->evaluate($message, $rpl) } @args);
+    }
 
     if (exists $keyed->{'recurring'}) {
         $res = $self->bot->config->db->do(q{ select ?::interval }, $keyed->{'recurring'});
@@ -295,6 +332,18 @@ sub set_alarm {
     if ($res && $res->next) {
         $alarm{'id'} = $res->{'id'};
     } else {
+        # Enforce a limit on the number of alarms one user may create.
+        # TODO: Make this a configuration option, and allow exemptions for
+        #       specific users (or perhaps different limit tiers).
+        $res = $self->bot->config->db->do(q{
+            select count(*) from alarms_alarms where created_by = ?
+        }, $message->sender->id);
+
+        if ($res && $res->next && $res->[0] >= 10) {
+            $message->response->raise('You have already created the maximum number of alarms. Delete some, or allow non-recurring ones to expire first.');
+            return;
+        }
+
         $res = $self->bot->config->db->do(q{
             insert into alarms_alarms ??? returning id
         }, \%alarm);
@@ -581,8 +630,30 @@ sub _emit_alarm {
         bot     => $self->bot,
     );
 
+    my $message;
+    if ($alarm->{'is_expression'}) {
+        my $parser = RoboBot::Parser->new( bot => $self->bot );
+        # Parse the alarm's expression after dropping the leading expression quote
+        my $expr = $parser->parse(substr($alarm->{'message'}, 1));
+
+        if (defined $expr && blessed($expr) && $expr->can('evaluate')) {
+            # Need a dummy RoboBot::Message for expression evaluation.
+            my $msg = RoboBot::Message->new(
+                bot      => $self->bot,
+                raw      => "",
+                network  => $channel->network,
+                sender   => $channel->network->nick, # Consider replacing this with the ::Nick of the person who created the alarm
+                channel  => $channel,
+                response => $response
+            );
+            $message = $expr->evaluate($msg, {});
+        }
+    } elsif ($alarm->{'message'}) {
+        $message = $alarm->{'message'};
+    }
+
     $response->push(sprintf('*[alarm:%s]*', $alarm->{'name'}));
-    $response->push($alarm->{'message'}) if $alarm->{'message'} && $alarm->{'message'} =~ m{\w+};
+    $response->push($message) if defined $message && $message =~ m{\w+};
     $response->push(sprintf('_Next occurrence_: %s', $alarm->{'next_emit'})) if $alarm->{'recurrence'};
 
     $response->send;
