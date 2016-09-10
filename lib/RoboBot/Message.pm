@@ -84,6 +84,12 @@ sub BUILD {
 
     $self->response->channel($self->channel) if $self->has_channel;
 
+    # Short circuit if there's no actual message. This is not an error condition
+    # though, since internal/dummy Message objects get created in some plugins
+    # where expression evaluations are performed outside the context of a normal
+    # user-generated message.
+    return if length($self->raw) < 1;
+
     # If the message is nothing but "help" or "!help" then convert it to "(help)"
     if ($self->raw =~ m{^\s*\!?help\s*$}oi) {
         $self->raw("(help)");
