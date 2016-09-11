@@ -10,6 +10,7 @@ use MooseX::SetOnce;
 use AnyEvent;
 use AnyEvent::IRC::Client;
 use Data::Dumper;
+use Text::Wrap qw( wrap );
 use Time::HiRes qw( usleep );
 
 use RoboBot::Channel;
@@ -99,11 +100,12 @@ sub disconnect {
 sub send {
     my ($self, $response) = @_;
 
+    local $Text::Wrap::columns = 400;
+
     # Make sure that linebreaks are treated as separators for "line" output in IRC,
     # since that isn't always the case for every protocol.
-    # TODO: possibly re-wrap lines that exceed an irc-acceptable length
     my @output = ();
-    foreach my $l (@{$response->content}) {
+    foreach my $l (map { wrap('', '', $_) } @{$response->content}) {
         push(@output, grep { defined $_ && $_ =~ m{.+} } split(/\n/, $l));
     }
 
