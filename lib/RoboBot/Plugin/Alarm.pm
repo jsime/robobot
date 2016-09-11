@@ -652,10 +652,7 @@ sub _emit_alarm {
         $message = $alarm->{'message'};
     }
 
-    $response->push(sprintf('*[alarm:%s]*', $alarm->{'name'}));
     $response->push($message) if defined $message && $message =~ m{\w+};
-    $response->push(sprintf('_Next occurrence_: %s', $alarm->{'next_emit'})) if $alarm->{'recurrence'};
-
     $response->send;
 
     if ($alarm->{'next_emit'} && $alarm->{'recurrence'}) {
