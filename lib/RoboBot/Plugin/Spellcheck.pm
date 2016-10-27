@@ -122,7 +122,7 @@ sub check_spelling {
         @fixed = @fixed[0..6] if @fixed > 7; # limit number of corrections for people who are really terrible at spelling
     }
 
-    $message->response->push(sprintf('%s: %s', $message->sender->nick, join(', ', map { '*' . $_ } @fixed)));
+    $message->response->push(sprintf('%s: %s', $message->sender->name, join(', ', map { '*' . $_ } @fixed)));
 }
 
 sub clean_word {
