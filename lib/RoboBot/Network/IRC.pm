@@ -103,11 +103,13 @@ sub send {
     local $Text::Wrap::columns = 400;
 
     # Make sure that linebreaks are treated as separators for "line" output in IRC,
-    # since that isn't always the case for every protocol.
-    my @output = ();
-    foreach my $l (map { wrap('', '', $_) } @{$response->content}) {
-        push(@output, grep { defined $_ && $_ =~ m{.+} } split(/\n/, $l));
-    }
+    # since that isn't always the case for every protocol. And re-wrap any long
+    # lines.
+    my @output =
+        map { length($_) > 300 ? split(/\n/, wrap('', '', $_)) : $_ }
+        grep { defined $_ && $_ =~ m{\S+} }
+        map { split(/\n/, $_) }
+        @{$response->content};
 
     # TODO: Move maximum number of output lines into a config var for each IRC
     #       network (with a default).
@@ -130,7 +132,12 @@ sub send {
     for (my $i = 0; $i <= $#output; $i++) {
         my $line = $output[$i];
 
-        $self->client->send_srv( PRIVMSG => $recipient, $line);
+        if ($line =~ m{^/me\s+(.+)}) {
+            $self->client->send_long_message('utf8', 0, "PRIVMSG\001ACTION", $recipient, $1);
+        } else {
+            $self->client->send_long_message('utf8', 0, "PRIVMSG", $recipient, $line);
+            #$self->client->send_srv( PRIVMSG => $recipient, $line);
+        }
 
         # TODO: Move send rate to a config var which can be overridden per
         #       network.
