@@ -99,7 +99,10 @@ sub check_factoids {
 
     return if $message->has_expression;
 
-    return unless $message->raw =~ m{^\s*(?:what|who|where|when|why|how|is|are)\s+(.+)\?\s*$}i;
+    my $bot_name = $message->network->nick->name;
+    return unless defined $bot_name && $bot_name =~ m{\w+};
+
+    return unless $message->raw =~ m{^\s*${bot_name}[:,]?\s+(?:what|who|where|when|why|how|is|are)\s+(.+)\?\s*$}i;
 
     my $query = lc($1);
 
