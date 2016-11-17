@@ -103,7 +103,7 @@ sub figlet_convert {
         @figlet = map { substr($_, $shortest_ws) } @figlet;
     }
 
-    if (grep { length($_) > 80 } @figlet) {
+    if (grep { length($_) > 100 } @figlet) {
         $message->response->raise('Generated figlet is too wide. Please try a shorter string or a different font.');
         return;
     }
