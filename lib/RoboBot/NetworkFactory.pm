@@ -10,6 +10,7 @@ use Module::Loaded;
 
 use RoboBot::Nick;
 use RoboBot::Network::IRC;
+use RoboBot::Network::Mattermost;
 use RoboBot::Network::Slack;
 
 has 'bot' => (
@@ -49,6 +50,7 @@ sub create {
     }
 
     return $self->create_irc($name, $net_cfg) if $net_cfg->{'type'} eq 'irc';
+    return $self->create_mattermost($name, $net_cfg) if $net_cfg->{'type'} eq 'mattermost';
     return $self->create_slack($name, $net_cfg) if $net_cfg->{'type'} eq 'slack';
     die 'Invalid network type.';
 }
@@ -59,6 +61,19 @@ sub create_irc {
 #    eval 'use RoboBot::Network::IRC;' unless is_loaded('RoboBot::Network::IRC');
 
     return RoboBot::Network::IRC->new(
+        %{$net_cfg},
+        bot    => $self->bot,
+        name   => $name,
+        config => $self->config,
+    );
+}
+
+sub create_mattermost {
+    my ($self, $name, $net_cfg) = @_;
+
+#    eval 'use RoboBot::Network::Mattermost;' unless is_loaded('RoboBot::Network::Mattermost');
+
+    return RoboBot::Network::Mattermost->new(
         %{$net_cfg},
         bot    => $self->bot,
         name   => $name,
