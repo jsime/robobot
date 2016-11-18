@@ -1,7 +1,10 @@
 # RoboBot
 
 Pluggable chatbot written in Perl and using an S-Expression syntax for user
-interaction.
+interaction. It currently includes native support for IRC, Slack, and Mattermost.
+
+The official documentation site is https://robobot.automatomatromaton.com/ but
+is still a work in progress.
 
 ## Example
 
@@ -10,7 +13,9 @@ as the first argument to `(roll)` to indicate a die-size to be rolled `1000` tim
 and then nicely formats the resulting number with commas, decimals, etc. as
 necessary.
 
-> `(setvar die-size (first (shuffle 4 8 20))) (format-number (roll die-size 1000))`
+```
+(setvar die-size (first (shuffle 4 8 20))) (format-number (roll die-size 1000))
+```
 
 All of the functions in the example above are provided by plugins loaded by the
 bot upon startup, and are called via the standard S-Expression syntax.
@@ -35,7 +40,9 @@ calls. As a simple example, we can express the mathematical operations of "Add
 the numbers two and three together, then multiply their sum by five" by writing
 the following:
 
-> `(* (+ 2 3) 5)`
+```
+(* (+ 2 3) 5)
+```
 
 This syntax applies to all interactions with RoboBot, except in cases where a
 plugin hooks into the pre-evaluation phase and parses text from the raw incoming
@@ -57,9 +64,9 @@ number of networks a single instance of RoboBot may listen on.
 
 RoboBot is not strictly limited to IRC. Any text-based chat protocol can be
 supported via the network plugin interface. Out of the box, RoboBot supports
-standard IRC networks (with or without SSL) and the Slack RTM API. A single
-instance of RoboBot may mix and match connections to as many different chat
-protocols as you wish.
+standard IRC networks (with or without SSL), the Slack RTM API, and Mattermost
+WebSockets/Web Services APIs. A single instance of RoboBot may mix and match
+connections to as many different chat protocols as you wish.
 
 Other chat protocols, such as the various instant messaging platforms, could be
 added fairly easily, providing there is already a CPAN module (compatible with
@@ -91,9 +98,11 @@ authorized users to extend the functionality of RoboBot directly from channels
 without having to author a plugin. Macros can invoke functions or other macros.
 Macros can even define other macros.
 
-> `(defmacro add-one (n) '(+ n 1))`
-> `(add-one 5)`
-> `6`
+```
+(defmacro add-one [n] '(+ n 1))
+(add-one 5)
+6
+```
 
 ### Message Variables
 
@@ -140,11 +149,15 @@ expressions by simply prefacing the function or macro name with an exclamation
 mark. Arguments follow as they normally would in the list context, separated by
 whitespace (single multi-word arguments can still be double-quoted).
 
-> `!roll 20 2`
+```
+!roll 20 2
+```
 
 Is equivalent to:
 
-> `(roll 20 2)`
+```
+(roll 20 2)
+```
 
 This simplified syntax does not currently support passing return values to other
 functions or macros, however. For that, and more complicated usage, the full
@@ -171,7 +184,9 @@ The base RoboBot::Plugin class defines the following common metadata which every
 plugin is expected to override as necessary. This should be done at the
 beginning of your plugin by declaring:
 
-> `has '+<attribute>' => ( ... );`
+```
+has '+<attribute>' => ( ... );
+```
 
 #### name
 
@@ -264,8 +279,16 @@ though the last plugin to be loaded (which must be assumed to be a randomized
 order) will take precedence. All functions are also accessible by prefixing
 the plugin's namespace to the function name.
 
-The call `(list::last)` is the same as `(last)`, assuming that the List plugin is
-the only one exporting a function called last.
+The call `(list/last)` is the same as `(last)`, assuming that the List plugin is
+the only one exporting a function called last. Of course, in the stock RoboBot,
+this is not actually true. There's also a Logging plugin which provides a
+`(last)` function. Because of this naming conflict, using the namespace prefix
+is the only way to guarantee you will always invoke the right one:
+
+```
+(logging/last)
+(list/last)
+```
 
 ## Copyright and License
 
