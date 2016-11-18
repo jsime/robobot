@@ -28,3 +28,5 @@ etc/ddl/*
 
 bin/*
 !bin/robobot
+
+doc/_build/*
