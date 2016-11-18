@@ -61,6 +61,13 @@ yet, it is created automatically and a new ID sequence is started for it.
 
 <type> <text>
 
+=head2 thinge-counts
+
+=head3 Description
+
+Returns a map of thinges, where the keys are each thinge type's name and the
+value is how many are in that thinge's collection for the current network.
+
 =head2 thinge-delete
 
 =head3 Description
@@ -130,6 +137,10 @@ has '+commands' => (
         'thinge-untag' => { method      => 'untag_thinge',
                           description => 'Untags the specified thinge with the given list of tags.',
                           usage       => '<type> <id> "<tag>" ["<tag 2>" ... "<tag N>"]' },
+
+        'thinge-counts' => { method      => "show_type_counts",
+                             description => 'Returns a map of thinges, where the keys are each thinge type\'s name and the value is how many are in that thinge\'s collection for the current network.',
+                             usage       => '' },
 
         'thinge-types' => { method      => "show_types",
                             description => 'Lists the current types of thinges which have collections.',
@@ -468,6 +479,29 @@ sub show_types {
     }
 
     return;
+}
+
+sub show_type_counts {
+    my ($self, $message) = @_;
+
+    my $res = $self->bot->config->db->do(q{
+        select tt.name, count(*)
+        from thinge_types tt
+            join thinge_thinges t on (t.type_id = tt.id)
+        where t.network_id = ?
+        group by tt.name
+        order by lower(name) asc
+    }, $message->network->id);
+
+    my %types;
+
+    if ($res) {
+        while ($res->next) {
+            $types{$res->[0]} = $res->[1];
+        }
+    }
+
+    return \%types;
 }
 
 sub get_tag_id {
