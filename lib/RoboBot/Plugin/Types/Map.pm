@@ -22,6 +22,30 @@ has '+description' => (
     default => 'Provides functions for creating and manipulating unordered maps.',
 );
 
+=head2 get
+
+=head3 Description
+
+Returns the value for the given key name from the provided map. If a vector of
+key names are provided, all of their values are returned in the listed order.
+
+An optional default value may be provided which will be returned for any key
+which is not present in the map. Otherwise a nil is returned.
+
+=head3 Usage
+
+<map> <key name>|<vector of keys> [<default value>]
+
+=head3 Examples
+
+    :emphasize-lines: 2,5
+
+    (get { :first-name "Bobby" :last-name "Sue" } :last-name)
+    "Sue"
+
+    (get { :a 10 :b 20 :c 30 :d 40 } [:a :c :e] 0)
+    (10 30 0)
+
 =head2 keys
 
 =head3 Description
@@ -83,8 +107,8 @@ simply return the existing map.
 has '+commands' => (
     default => sub {{
         'get' => { method      => 'map_get',
-                   description => 'Retrieves the value of the named key from the given map. An undefined value is returned if the key does not exist and no default value was provided.',
-                   usage       => '<map> <key name> [<default value>]',
+                   description => 'Retrieves the value of the named key from the given map. An undefined value is returned if the key does not exist and no default value was provided. A vector of key names may be provided, in which case a list of their values, in the vector\'s order, will be returned.',
+                   usage       => '<map> <key name>|<vector of keys> [<default value>]',
                    example     => '{ :foo "bar" } :baz 23',
                    result      => '23' },
 
@@ -146,9 +170,29 @@ sub map_get {
         return;
     }
 
-    return $map->{$key} if exists $map->{$key};
-    return $default if defined $default;
-    return;
+    my @ret;
+
+    if (ref($key) eq 'ARRAY') {
+        foreach my $k (@{$key}) {
+            if (exists $map->{$k}) {
+                push(@ret, $map->{$k});
+            } elsif (defined $default) {
+                push(@ret, $default);
+            } else {
+                push(@ret, undef);
+            }
+        }
+    } else {
+        if (exists $map->{$key}) {
+            @ret = ($map->{$key});
+        } elsif (defined $default) {
+            @ret = ($default);
+        } else {
+            @ret = (undef);
+        }
+    }
+
+    return @ret;
 }
 
 sub map_keys {
