@@ -30,3 +30,6 @@ bin/*
 !bin/robobot
 
 doc/_build/*
+
+RoboBot-*.*/
+RoboBot-*.*.tar.gz
