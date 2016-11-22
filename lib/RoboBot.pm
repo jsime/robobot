@@ -20,8 +20,6 @@ use RoboBot::Plugin;
 
 use RoboBot::Doc;
 
-our $VERSION = '3.001001';
-
 has 'config_paths' => (
     is        => 'ro',
     isa       => 'ArrayRef[Str]',
@@ -138,7 +136,9 @@ sub run {
 sub version {
     my ($self) = @_;
 
-    return $VERSION;
+    use vars qw( $VERSION );
+
+    return $VERSION // "*-devel";
 }
 
 sub add_macro {

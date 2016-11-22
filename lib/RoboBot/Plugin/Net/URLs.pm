@@ -77,7 +77,7 @@ has 'ua' => (
     isa     => 'LWP::UserAgent',
     default => sub {
         LWP::UserAgent->new(
-            agent        => "RoboBot/v".$RoboBot::VERSION." ",
+            agent        => "RoboBot",
             timeout      => 3,
             max_redirect => 5,
             ssl_opts => {

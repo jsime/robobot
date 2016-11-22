@@ -78,7 +78,7 @@ has 'ua' => (
     isa     => 'LWP::UserAgent',
     default => sub {
         my $ua = LWP::UserAgent->new;
-        $ua->agent('RoboBot/'.$RoboBot::VERSION.' ');
+        $ua->agent('RoboBot');
         $ua->timeout(5);
         return $ua;
     },
