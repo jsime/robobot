@@ -62,23 +62,6 @@ Returns the first element of the given list, discarding all remaining elements.
     (first "James" "Alice" "Frank")
     "James"
 
-=head2 last
-
-=head3 Description
-
-Returns the last element of the list, discard all elements preceding it.
-
-=head3 Usage
-
-<list>
-
-=head3 Examples
-
-    :emphasize-lines: 2
-
-    (last "James" "Alice" "Frank" "Janet")
-    "Janet"
-
 =head2 shuffle
 
 =head3 Description
@@ -218,12 +201,6 @@ has '+commands' => (
                      usage       => '<... list ...>',
                      example     => '"James" "Alice" "Frank" "Janet"',
                      result      => 'James' },
-
-        'last' => { method      => 'list_last',
-                    description => 'Returns the last entry of a list, discarding all others.',
-                    usage       => '<... list ...>',
-                    example     => '"James" "Alice" "Frank" "Janet"',
-                    result      => 'Janet' },
 
         'shuffle' => { method      => 'list_shuffle',
                        description => 'Returns the list elements in a randomized order.',
@@ -404,12 +381,6 @@ sub list_first {
     my ($self, $message, $command, $rpl, @args) = @_;
 
     return $self->list_nth($message, $command, $rpl, 1, @args);
-}
-
-sub list_last {
-    my ($self, $message, $command, $rpl, @args) = @_;
-
-    return $self->list_nth($message, $command, $rpl, scalar(@args), @args);
 }
 
 sub list_shuffle {
