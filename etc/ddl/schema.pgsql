@@ -439,4 +439,16 @@ create table net_http_log (
 create index net_http_log_host_idx on net_http_log (lower(host));
 create index net_http_log_created_at_idx on net_http_log (created_at);
 
+create table autoreply_autoreplies (
+    id          serial not null primary key,
+    channel_id  integer not null references channels (id) on update cascade on delete cascade,
+    name        text not null,
+    condition   text not null,
+    response    text not null,
+    created_by  integer not null references nicks (id) on update cascade on delete cascade,
+    created_at  timestamp with time zone not null default now()
+);
+create index autoreply_autoreplies_channel_id_idx on autoreply_autoreplies (channel_id);
+create index autoreply_autoreplies_created_by_idx on autoreply_autoreplies (created_by);
+
 commit;
