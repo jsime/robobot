@@ -49,6 +49,10 @@ sub init {
     my ($self, $bot) = @_;
 }
 
+sub post_init {
+    my ($self, $bot) = @_;
+}
+
 sub ns {
     my ($self) = @_;
 

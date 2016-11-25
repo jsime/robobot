@@ -27,9 +27,10 @@ has 'config_paths' => (
 );
 
 has 'config' => (
-    is     => 'rw',
-    isa    => 'RoboBot::Config',
-    traits => [qw( SetOnce )],
+    is        => 'rw',
+    isa       => 'RoboBot::Config',
+    traits    => [qw( SetOnce )],
+    predicate => 'has_config',
 );
 
 has 'plugins' => (
@@ -111,6 +112,15 @@ sub BUILD {
         # Gather list of plugins which have before/after hooks.
         push(@{$self->before_hooks}, $plugin) if $plugin->has_before_hook;
         push(@{$self->after_hooks}, $plugin) if $plugin->has_after_hook;
+    }
+
+    # Two-phase plugin initialization's second phase now called, so that plugins
+    # which require knowledge of the existence of commands/macros/etc. can see
+    # that (it having been done already in the first phase). This is critical
+    # for plugins which use things like RoboBot::Parser to parse stored
+    # expressions.
+    foreach my $plugin (@{$self->plugins}) {
+        $plugin->post_init($self);
     }
 
     # Pre-load all saved macros
