@@ -65,6 +65,17 @@ has '+commands' => (
                          preprocess_args => 0,
                          description     => 'Creates an autoreplier with the given condition and response expressions.',
                          usage           => '<name> (<condition expression>) (<response expression>)' },
+
+        'autoreply-list' => { method      => 'autoreply_list',
+                              description => 'Returns a list of the autoreplies that exist in the current channel.', },
+
+        'autoreply-delete' => { method      => 'autoreply_delete',
+                                description => 'Deletes the named autoreply for the current channel.',
+                                usage       => '<name>', },
+
+        'autoreply-show' => { method      => 'autoreply_show',
+                              description => 'Displays the condition and response expressions for the named autoreply within the current channel.',
+                              usage       => '<name>', },
     }},
 );
 
@@ -177,7 +188,7 @@ sub autoreply_create {
             insert into autoreply_autoreplies ??? returning *
         }, {
             channel_id  => $message->channel->id,
-            name        => $name,
+            name        => lc($name),
             condition   => $condition->flatten,
             response    => $response->flatten,
             created_by  => $message->sender->id,
@@ -191,10 +202,95 @@ sub autoreply_create {
         }
     }
 
-    $self->reply_cache->{$message->channel->id}{$name} = {
+    $self->reply_cache->{$message->channel->id}{lc($name)} = {
         condition   => $condition,
         response    => $response,
     };
+
+    return;
+}
+
+sub autoreply_list {
+    my ($self, $message, $command, $rpl) = @_;
+
+    unless ($message->has_channel) {
+        $message->response->raise('Autoreplies may only be used in channels.');
+        return;
+    }
+
+    my $res = $self->bot->config->db->do(q{
+        select name from autoreply_autoreplies where channel_id = ? order by name asc
+    }, $message->channel->id);
+
+    my @replies;
+
+    if ($res) {
+        while ($res->next) {
+            push(@replies, $res->[0]);
+        }
+    }
+
+    if (@replies > 0) {
+        return @replies;
+    } else {
+        $message->response->raise('There are no autoreplies configured for this channel. Use (autoreply) to create one.');
+        return;
+    }
+}
+
+sub autoreply_delete {
+    my ($self, $message, $command, $rpl, $name) = @_;
+
+    unless (defined $name && $name =~ m{\w+}) {
+        $message->response->raise('Must provide the name of an autoreply to display.');
+        return;
+    }
+
+    unless ($message->has_channel) {
+        $message->response->raise('Autoreplies may only be used in channels.');
+        return;
+    }
+
+    my $res = $self->bot->config->db->do(q{
+        delete from autoreply_autoreplies where channel_id = ? and lower(name) = lower(?) returning *
+    }, $message->channel->id, $name);
+
+    if ($res && $res->next) {
+        $message->response->push(sprintf('The autoreply %s has been deleted from this channel.', $name));
+    } else {
+        $message->response->raise('There was no autoreply named %s configured for this channel for me to delete.', $name);
+    }
+
+    delete $self->reply_cache->{$message->channel->id}{lc($name)};
+
+    return;
+}
+
+sub autoreply_show {
+    my ($self, $message, $command, $rpl, $name) = @_;
+
+    unless (defined $name && $name =~ m{\w+}) {
+        $message->response->raise('Must provide the name of an autoreply to display.');
+        return;
+    }
+
+    unless ($message->has_channel) {
+        $message->response->raise('Autoreplies may only be used in channels.');
+        return;
+    }
+
+    my $res = $self->bot->config->db->do(q{
+        select * from autoreply_autoreplies where channel_id = ? and lower(name) = lower(?)
+    }, $message->channel->id, $name);
+
+    unless ($res && $res->next) {
+        $message->response->raise('There is no autoreply in this channel called %s. Please check the name and try again.', $name);
+        return;
+    }
+
+    $message->response->push(sprintf('Autoreply: *%s*', $res->{'name'}));
+    $message->response->push(sprintf('Condition: %s', $res->{'condition'}));
+    $message->response->push(sprintf('Response: %s', $res->{'response'}));
 
     return;
 }
