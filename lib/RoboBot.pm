@@ -11,7 +11,9 @@ use MooseX::ClassAttribute;
 use MooseX::SetOnce;
 
 use AnyEvent;
+use App::Sqitch;
 use Data::Dumper;
+use File::ShareDir qw( dist_dir );
 use Module::Pluggable::Object;
 
 use RoboBot::Config;
@@ -31,6 +33,12 @@ has 'config' => (
     isa       => 'RoboBot::Config',
     traits    => [qw( SetOnce )],
     predicate => 'has_config',
+);
+
+has 'raw_config' => (
+    is        => 'ro',
+    isa       => 'HashRef',
+    predicate => 'has_raw_config',
 );
 
 has 'plugins' => (
@@ -82,10 +90,14 @@ sub BUILD {
 
     $self->doc(RoboBot::Doc->new( bot => $self ));
 
-    if ($self->has_config_paths) {
-        $self->config(RoboBot::Config->new( bot => $self, config_paths => $self->config_paths ));
+    if ($self->has_raw_config) {
+        $self->config(RoboBot::Config->new( bot => $self, config => $self->raw_config ));
     } else {
-        $self->config(RoboBot::Config->new( bot => $self ));
+        if ($self->has_config_paths) {
+            $self->config(RoboBot::Config->new( bot => $self, config_paths => $self->config_paths ));
+        } else {
+            $self->config(RoboBot::Config->new( bot => $self ));
+        }
     }
 
     $self->config->load_config;
@@ -196,6 +208,38 @@ sub network_by_id {
 
     return undef unless defined $network_id && $network_id =~ m{^\d+$};
     return (grep { $_->id == $network_id } @{$self->networks})[0] || undef;
+}
+
+sub migrate_database {
+    my ($self) = @_;
+
+    my $migrations_dir = dist_dir('RoboBot') . '/migrations';
+    die "Could not locate database migrations (remember to use `dzil run` during development)!"
+        unless -d $migrations_dir;
+
+    my $cfg = $self->config->config->{'database'}{'primary'};
+
+    my $db_uri = 'db:pg://';
+    $db_uri .= $cfg->{'user'} . '@' if $cfg->{'user'};
+    $db_uri .= $cfg->{'host'} if $cfg->{'host'};
+    $db_uri .= ':' . $cfg->{'port'} if $cfg->{'port'};
+    $db_uri .= '/' . $cfg->{'database'} if $cfg->{'database'};
+
+    chdir($migrations_dir) or die "Could not chdir() $migrations_dir: $!";
+
+    open(my $status_fh, '-|', 'sqitch', 'status', $db_uri) or die "Could not check database status: $!";
+    while (my $l = <$status_fh>) {
+        return if $l =~ m{up-to-date};
+    }
+    close($status_fh);
+
+    open(my $deploy_fh, '-|', 'sqitch', 'deploy', '--verify', $db_uri) or die "Could not begin database migrations: $!";
+    while (my $l = <$deploy_fh>) {
+        if ($l =~ m{^\s*\+\s*(.+)\s+\.\.\s+(.*)$}) {
+            die "Failed during database migration $1.\n" if lc($2) ne 'ok';
+        }
+    }
+    close($deploy_fh);
 }
 
 __PACKAGE__->meta->make_immutable;

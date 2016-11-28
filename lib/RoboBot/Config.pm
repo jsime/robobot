@@ -8,9 +8,9 @@ use Moose;
 use MooseX::SetOnce;
 
 use Config::Any::Merge;
-use Data::Dumper;
-use DBIx::DataStore ( config => 'yaml' );
+use DBIx::DataStore;
 use File::HomeDir;
+use Try::Tiny;
 
 use RoboBot::NetworkFactory;
 use RoboBot::Channel;
@@ -30,8 +30,9 @@ has 'config_paths' => (
 );
 
 has 'config' => (
-    is  => 'rw',
-    isa => 'HashRef',
+    is        => 'rw',
+    isa       => 'HashRef',
+    predicate => 'has_config',
 );
 
 has 'networks' => (
@@ -59,10 +60,16 @@ has 'db' => (
 sub load_config {
     my ($self) = @_;
 
-    $self->locate_config unless $self->has_config_paths;
+    try {
+        unless ($self->has_config) {
+            $self->locate_config unless $self->has_config_paths;
 
-    if (my $cfg = Config::Any::Merge->load_files({ files => $self->config_paths, use_ext => 1, override => 1 })) {
-        $self->config($cfg);
+            if (my $cfg = Config::Any::Merge->load_files({ files => $self->config_paths, use_ext => 1, override => 1 })) {
+                $self->config($cfg);
+            } else {
+                die "Could not load configuration files: " . join(', ', @{$self->config_paths});
+            }
+        }
 
         $self->validate_database;
         $self->validate_globals;
@@ -70,9 +77,9 @@ sub load_config {
         $self->validate_plugins;
 
         $self->bot->networks([ values %{$self->networks} ]);
-    } else {
-        die "Could not load configuration files: " . join(', ', @{$self->config_paths});
-    }
+    } catch {
+        die "Could not load and validate configuration: $_";
+    };
 }
 
 sub locate_config {
@@ -136,7 +143,13 @@ sub validate_database {
         $self->config->{'database'}{$k} = $database{$k} unless exists $self->config->{'database'}{$k};
     }
 
-    $self->db(DBIx::DataStore->new($self->config->{'database'}{'name'})) or die "Could not validate database connection!";
+    if (exists $self->config->{'database'}{'primary'} && ref($self->config->{'database'}{'primary'}) eq 'HASH') {
+        $self->db(DBIx::DataStore->new({ config => $self->config->{'database'} })) or die "Could not validate explicit database connection!";
+    } else {
+        $self->db(DBIx::DataStore->new($self->config->{'database'}{'name'})) or die "Could not validate named database connection!";
+    }
+
+    $self->bot->migrate_database;
 }
 
 sub validate_networks {
