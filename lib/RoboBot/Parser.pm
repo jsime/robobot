@@ -277,8 +277,6 @@ sub _read_element {
     }
 
     if ($in_str) {
-        $self->err('Unexpected end of string');
-        warn $self->error;
         return;
     }
 
