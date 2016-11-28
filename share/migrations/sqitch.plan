@@ -1,0 +1,5 @@
+%syntax-version=1.0.0
+%project=robobot
+%uri=https://robobot.automatomatromaton.com/
+
+base 2016-11-28T01:32:01Z Jon Sime <jonsime@gmail.com> # Base tables for networks, channels, nicks metadata.
