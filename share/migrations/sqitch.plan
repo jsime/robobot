@@ -24,3 +24,4 @@ p-skills-20161128215019 [base] 2016-11-28T21:50:19Z Jon Sime <jonsime@gmail.com>
 p-thinge-20161128223332 [base] 2016-11-28T22:33:33Z Jon Sime <jonsime@gmail.com> # Plugin: Thinge base tables
 p-net-urls-20161128224203 [base] 2016-11-28T22:42:03Z Jon Sime <jonsime@gmail.com> # Plugin: net/urls title logging base table
 p-voting-20161128224521 [base] 2016-11-28T22:45:21Z Jon Sime <jonsime@gmail.com> # Plugin: Voting base tables
+p-skills-20161128231536 [p-skills-20161128215019] 2016-11-28T23:15:36Z Jon Sime <jonsime@gmail.com> # default selection of skill levels for Skills plugin
