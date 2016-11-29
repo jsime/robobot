@@ -78,7 +78,8 @@ sub mock_bot {
 sub mock_channel {
     my ($bot, $network) = @_;
 
-    die "must provide network for channel mockup" unless defined $network;
+    die "must provide network for channel mockup"
+        unless defined $network && ref($network) =~ m{^RoboBot::Network};
 
     my $channel = RoboBot::Channel->new(
         network => $network,
@@ -92,11 +93,10 @@ sub mock_channel {
 }
 
 sub mock_message {
-    my ($bot, $channel, $text);
+    my ($bot, $channel, $text) = @_;
 
     my $sender = RoboBot::Nick->new(
         name    => 'mockuser',
-        network => $channel->network,
         config  => $bot->config,
     );
 
@@ -117,7 +117,7 @@ sub mock_network {
     my $factory = RoboBot::NetworkFactory->new(
         bot    => $bot,
         config => $bot->config,
-        nick   => RoboBot::Nick->new( name => $config{'global'}{'nick'}, config => $bot->config ),
+        nick   => $config{'global'}{'nick'},
     );
 
     my $network = $factory->create(
