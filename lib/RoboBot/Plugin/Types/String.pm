@@ -130,7 +130,7 @@ sub str_index {
         push(@positions, $i) if substr($str, $i, length($match)) eq $match;
     }
 
-    return @positions;
+    return \@positions;
 }
 
 sub str_index_n {
@@ -141,10 +141,10 @@ sub str_index_n {
         return;
     }
 
-    my @matches = $self->str_index($message, $command, $str, $match);
+    my $matches = $self->str_index($message, $command, $rpl, $str, $match);
 
-    return unless @matches && @matches >= $n;
-    return $matches[$n - 1];
+    return unless defined $matches && ref($matches) eq 'ARRAY' && scalar(@{$matches}) >= $n;
+    return $matches->[$n - 1];
 }
 
 sub str_substring {
@@ -155,8 +155,8 @@ sub str_substring {
         return;
     }
 
-    unless ($pos =~ m{^\d+$}) {
-        $message->response->raise('Starting position must be a positive integer or 0.');
+    unless ($pos =~ m{^-?\d+$}) {
+        $message->response->raise('Starting position must be an integer.');
         return;
     }
 
