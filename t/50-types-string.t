@@ -1,24 +1,24 @@
 #!/usr/bin/env perl
 use Test::More;
 
-use RoboBot::Test::Mock;
+use App::RoboBot::Test::Mock;
 
 plan tests => 20;
-use_ok('RoboBot::Plugin::Types::String');
+use_ok('App::RoboBot::Plugin::Types::String');
 
 my ($bot, $net, $chn, $msg, $plg);
 my $rpl = {};
 
 SKIP: {
-    skip RoboBot::Test::Mock::envset_message(), 1 unless $ENV{'R_DBTEST'};
+    skip App::RoboBot::Test::Mock::envset_message(), 1 unless $ENV{'R_DBTEST'};
 
     ($bot, $net, $chn, $msg) = mock_all("foo");
     $plg = (grep { $_->name eq 'Types::String' } @{$bot->plugins})[0];
 
-    is(ref($plg), 'RoboBot::Plugin::Types::String', '...');
+    is(ref($plg), 'App::RoboBot::Plugin::Types::String', '...');
 }
 
-my @ret = RoboBot::Plugin::Types::String::str_substring(
+my @ret = App::RoboBot::Plugin::Types::String::str_substring(
     $plg, $msg, 'substring', $rpl, 'the quick brown fox', 16
 );
 
@@ -26,7 +26,7 @@ ok(scalar(@ret) == 1,   'substring unanchored single return value');
 ok(!ref($ret[0]),       'substring unanchored bare string return');
 ok($ret[0] eq 'fox',    'substring unanchored substring matches');
 
-@ret = RoboBot::Plugin::Types::String::str_substring(
+@ret = App::RoboBot::Plugin::Types::String::str_substring(
     $plg, $msg, 'substring', $rpl, 'the quick brown fox', 16, 2
 );
 
@@ -34,7 +34,7 @@ ok(scalar(@ret) == 1,   'substring anchored single return value');
 ok(!ref($ret[0]),       'substring anchored bare string return');
 ok($ret[0] eq 'fo',     'substring anchored substring matches');
 
-@ret = RoboBot::Plugin::Types::String::str_substring(
+@ret = App::RoboBot::Plugin::Types::String::str_substring(
     $plg, $msg, 'substring', $rpl, 'the quick brown fox', -9, 5
 );
 
@@ -42,7 +42,7 @@ ok(scalar(@ret) == 1,   'negative substring anchored single return value');
 ok(!ref($ret[0]),       'negative substring anchored bare string return');
 ok($ret[0] eq 'brown',  'negative substring anchored substring matches');
 
-@ret = RoboBot::Plugin::Types::String::str_index(
+@ret = App::RoboBot::Plugin::Types::String::str_index(
     $plg, $msg, 'index', $rpl, 'the quick brown fox', 'fox'
 );
 
@@ -51,7 +51,7 @@ ok(ref($ret[0]) eq 'ARRAY',     'index vector return');
 ok(scalar(@{$ret[0]}) == 1,     'index vector correct size');
 ok($ret[0][0] == 16,            'index position correct');
 
-@ret = RoboBot::Plugin::Types::String::str_index(
+@ret = App::RoboBot::Plugin::Types::String::str_index(
     $plg, $msg, 'index', $rpl, 'the quick brown fox', 'o'
 );
 
@@ -59,9 +59,9 @@ ok(scalar(@{$ret[0]}) == 2,                 'multimatch index vector correct siz
 ok($ret[0][0] == 12 && $ret[0][1] == 17,    'multimatch index positions correct');
 
 SKIP: {
-    skip RoboBot::Test::Mock::envset_message(), 3 unless $ENV{'R_DBTEST'};
+    skip App::RoboBot::Test::Mock::envset_message(), 3 unless $ENV{'R_DBTEST'};
 
-    @ret = RoboBot::Plugin::Types::String::str_index_n(
+    @ret = App::RoboBot::Plugin::Types::String::str_index_n(
         $plg, $msg, 'index-n', $rpl, 'the quick brown fox', 'o', 2
     );
 

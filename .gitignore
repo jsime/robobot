@@ -23,13 +23,10 @@ Session.vim
 *~
 Makefile.PL
 
-etc/ddl/*
-!etc/ddl/schema.pgsql
-
 bin/*
 !bin/robobot
 
 doc/_build/*
 
-RoboBot-*.*/
-RoboBot-*.*.tar.gz
+App-RoboBot-*.*/
+App-RoboBot-*.*.tar.gz
