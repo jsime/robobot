@@ -1,4 +1,4 @@
-package RoboBot::Plugin::Alarm;
+package RoboBot::Plugin::Bot::Alarm;
 
 use v5.20;
 
@@ -19,7 +19,7 @@ use RoboBot::Response;
 
 extends 'RoboBot::Plugin';
 
-=head1 alarm
+=head1 bot.alarm
 
 Exports functions for setting and modifying alarms, which can trigger messages
 at specified times or intervals.
@@ -31,7 +31,7 @@ asynchronously from any regular message processing.
 =cut
 
 has '+name' => (
-    default => 'Alarm',
+    default => 'Bot::Alarm',
 );
 
 has '+description' => (
