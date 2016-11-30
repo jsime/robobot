@@ -15,7 +15,7 @@ SKIP: {
     ($bot, $net, $chn, $msg) = mock_all("foo");
     $plg = (grep { $_->name eq 'Types::String' } @{$bot->plugins})[0];
 
-    is(ref($plg), 'App::RoboBot::Plugin::Types::String', '...');
+    is(ref($plg), 'App::RoboBot::Plugin::Types::String', 'plugin class correct');
 }
 
 my @ret = App::RoboBot::Plugin::Types::String::str_substring(

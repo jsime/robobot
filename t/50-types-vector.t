@@ -15,7 +15,7 @@ SKIP: {
     ($bot, $net, $chn, $msg) = mock_all("foo");
     $plg = (grep { $_->name eq 'Types::Vector' } @{$bot->plugins})[0];
 
-    is(ref($plg), 'App::RoboBot::Plugin::Types::Vector', '...');
+    is(ref($plg), 'App::RoboBot::Plugin::Types::Vector', 'plugin class correct');
 }
 
 my @ret = App::RoboBot::Plugin::Types::Vector::vec_vec(
