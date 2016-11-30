@@ -28,6 +28,12 @@ has 'config_paths' => (
     predicate => 'has_config_paths',
 );
 
+has 'do_migrations' => (
+    is      => 'ro',
+    isa     => 'Bool',
+    default => 0,
+);
+
 has 'config' => (
     is        => 'rw',
     isa       => 'App::RoboBot::Config',
@@ -232,6 +238,9 @@ sub migrate_database {
         return if $l =~ m{up-to-date};
     }
     close($status_fh);
+
+    die "Database schema is out of date, but --migrate was not specified so we cannot upgrade.\n"
+        unless $self->do_migrations;
 
     open(my $deploy_fh, '-|', 'sqitch', 'deploy', '--verify', $db_uri) or die "Could not begin database migrations: $!";
     while (my $l = <$deploy_fh>) {

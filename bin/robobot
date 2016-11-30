@@ -7,15 +7,20 @@ use EV;
 use AnyEvent;
 
 use App::RoboBot;
+use Getopt::Long::Descriptive;
 
-if (@ARGV && @ARGV > 0) {
-    if (scalar(grep { ! -f $_ } @ARGV) == 0) {
-        App::RoboBot->new( config_paths => \@ARGV )->run;
-    } else {
-        die "All arguments should be paths to configuration files.\n"
-          . "With no arguments, I will attempt to find configuration data in common locations.\n";
-    }
-} else {
-    App::RoboBot->new->run;
-}
+my ($opt, $usage) = describe_options(
+    'robobot %o',
+    [ 'config|c=s', 'Path to configuration file. Required.', { required => 1 } ],
+    [ 'migrate|m',  'Perform database migrations as necessary. If not specified and database schema is out of date, program will exit.' ],
+
+    [ 'help|h', 'Display this message and exit.' ],
+);
+
+print($usage->text), exit if $opt->help;
+
+die "Invalid configuration file path: " . $opt->config
+    unless -f $opt->config && -r _;
+
+App::RoboBot->new( config_paths => [$opt->config], do_migrations => $opt->migrate || 0 )->run;
 
