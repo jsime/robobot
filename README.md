@@ -20,6 +20,41 @@ necessary.
 All of the functions in the example above are provided by plugins loaded by the
 bot upon startup, and are called via the standard S-Expression syntax.
 
+## Installing Development Versions
+
+RoboBot has not yet been officially released to CPAN. A formal, public release
+is forthcoming, but there's still cleanup to be done. In the meantime, if you
+just can't wait, here's how to get up and running.
+
+You need a modern Perl (5.20+) and CPAN-Minus (`cpanm`). You'll also need a
+GCC toolchain and a handful of libraries (libaspell, libssl, libxml2, libcurl,
+and libev). Lastly (as if! there's always more!) you will need a PostgreSQL
+server up and running (9.4+ recommended), with a blank database created and
+configured to allow access from wherever you will be running RoboBot.
+
+Once those basic requirements are out of the way, follow these basic steps:
+
+- Install Dist::Zilla via CPAN: `cpanm Dist::Zilla`.
+
+- Clone this repository and cd to its base directory (where the dist.ini file
+  is located): `git clone https://github.com/jsime/robobot.git && cd robobot`.
+
+- Use Dist::Zilla to install a few of its plugins: `dzil authordeps | cpanm`.
+
+- Install all of RoboBot's CPAN dependencies: `dzil listdeps | cpanm`. This
+  will take a long time on a fresh system.
+
+- Create a RoboBot configuration file to define what networks you wish it to
+  connect to, how to access its database, etc. This distribution ships with a
+  sample configuration, `robobot.conf.sample`, which you will find installed
+  on your system as well as in the share/ directory of this repository.
+
+- At this point, you can run RoboBot in-place from your Git clone  without
+  having to fully install it: `dzil run bin/robobot -c <config file path> -m`.
+  This is currently recommended, just in case there are any further significant
+  changes to the distribution before its formal release, just so you don't have
+  an outdated, pre-release version cluttering up your system.
+
 ## Main Features
 
 ### S-Expression Syntax
