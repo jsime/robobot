@@ -358,7 +358,7 @@ sub list_any {
 sub list_nth {
     my ($self, $message, $command, $rpl, $nth, @args) = @_;
 
-    if (defined $nth && $nth =~ m{^\d+$}o) {
+    if (defined $nth && $nth =~ m{^-?\d+$}o) {
         if ($nth < 0) {
             if (($nth * -1) > scalar(@args)) {
                 $message->response->raise(sprintf('List out-of-bounds error. Attempted to access entry %d of %d member list.', $nth, scalar(@args)));
@@ -375,6 +375,8 @@ sub list_nth {
     } else {
         $message->response->raise('Position nth must be provided as an integer.');
     }
+
+    return;
 }
 
 sub list_first {
