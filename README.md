@@ -6,31 +6,45 @@ interaction. It currently includes native support for IRC, Slack, and Mattermost
 The official documentation site is https://robobot.automatomatromaton.com/ but
 is still a work in progress.
 
-## Example
+## Installation
 
-The following expression randomly selects one of `4`, `8`, or `20`, passes that
-as the first argument to `(roll)` to indicate a die-size to be rolled `1000` times,
-and then nicely formats the resulting number with commas, decimals, etc. as
-necessary.
+RoboBot is available through CPAN. You will need a modern Perl (5.20+) and a
+working instance of PostgreSQL (9.4+), as well as a few system libraries for
+its various dependencies, to install and run this program.
+
+To get started, install RoboBot itself (this will also install all Perl
+dependencies and may take quite a while on a fresh system):
 
 ```
-(setvar die-size (first (shuffle 4 8 20))) (format-number (roll die-size 1000))
+cpanm App::RoboBot
 ```
 
-All of the functions in the example above are provided by plugins loaded by the
-bot upon startup, and are called via the standard S-Expression syntax.
+Once RoboBot is installed, refer to the `robobot.conf.sample` configuration
+example to get started configuring your bot instance for database access and
+connecting to your preferred chat services. Note that you must create the
+empty database in PostgreSQL, but RoboBot will take care of setting up the
+entire schema for you once it is able to connect.
+
+Once configured, you can run RoboBot with the following command:
+
+```
+robobot -c <path to your robobot.conf> -m
+```
+
+Note that the `-m` argument is required the first time you run the program
+against a newly created database, as it enables the running of database
+migrations. Since your DB will be empty, these migrations must be run for the
+bot to work. On subsequent runs you can omit this flag if you don't want
+unplanned upgrades to occur.
 
 ## Installing Development Versions
 
-RoboBot has not yet been officially released to CPAN. A formal, public release
-is forthcoming, but there's still cleanup to be done. In the meantime, if you
-just can't wait, here's how to get up and running.
-
-You need a modern Perl (5.20+) and CPAN-Minus (`cpanm`). You'll also need a
-GCC toolchain and a handful of libraries (libaspell, libssl, libxml2, libcurl,
-and libev). Lastly (as if! there's always more!) you will need a PostgreSQL
-server up and running (9.4+ recommended), with a blank database created and
-configured to allow access from wherever you will be running RoboBot.
+You will need a modern Perl (5.20+) and CPAN-Minus (`cpanm`). You'll also need
+a GCC toolchain and a handful of libraries (libaspell, libssl, libxml2,
+libcurl, and libev). Lastly (as if! there's always more!) you will need a
+PostgreSQL server up and running (9.4+ recommended), with a blank database
+created and configured to allow access from wherever you will be running
+RoboBot.
 
 Once those basic requirements are out of the way, follow these basic steps:
 
