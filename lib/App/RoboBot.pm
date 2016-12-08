@@ -2,6 +2,106 @@ package App::RoboBot;
 
 # ABSTRACT: Extensible multi-protocol S-Expression chatbot.
 
+=head1 NAME
+
+App::Robobot - Extensible multi-protocol S-Expression chatbot
+
+=head1 SYNOPSIS
+
+    use AnyEvent;
+    use App::RoboBot;
+    App::RoboBot->new()->run;
+
+=head1 DESCRIPTION
+
+App::RoboBot provides an event-driven, multi-protocol, multi-network,
+user-programmable, plugin-based, S-Expression chatbot. Any text-based chat
+service could be supported, with plugins currently for IRC, Slack, and
+Mattermost included.
+
+Major features include:
+
+=over 4
+
+=item * S-Expression Syntax
+
+Chatbot commands are issued via an S-Expression syntax (spiritual guidance from
+Clojure on some of the sugar for non-list structures). This language, while no
+match for a full-blown, general purpose programming environment, is flexible
+enough when combined with the macro and plugin support to allow users on your
+chat service of choice to dynamically extend the functionality of the bot on
+the fly.
+
+=item * Multi-protocol
+
+App::RoboBot currently includes support for IRC, Slack, and Mattermost out of
+the box. Additional service plugins would be easy to add, as long as there is
+an AnyEvent compatible library for them on CPAN or you are willing to write
+one. Network protocol plugins need only implement a small number of methods
+for core actions like connection/disconnecting from a network service, parsing
+incoming messages, and sending messages.
+
+=item * Multi-network
+
+Bot instances created with App::RoboBot may connect to multiple networks
+simultaneously (critical for some plugins like ChannelLink which let you create
+your own bridges between disparate networks), even across different protocols.
+The only practical limits are memory and bandwidth for the host running your
+bot.
+
+=item * Macros
+
+User-defined macros are core to App::RoboBot's operation and allow authorized
+users on your chat services to define new functionality for the bot on the fly
+using a Lisp-like (emphasis on the "like") language. Macros can invoke
+functions, other macros, and even create more macros. Macros use the exact same
+S-Expression language as everything else in the bot, and have access to the
+full functionality.
+
+=item * Plugins
+
+Nearly all App::RoboBot functionality is provided through the plugin system.
+The distribution ships with many plugins already included, from interfaces to
+external programs like fortune and filters, all the way through to HTTP clients
+and XML parsing and XPath queries. New plugins may be submitted to the core
+App::RoboBot project, or distributed separately.
+
+=back
+
+=head1 SEE ALSO
+
+The full documentation for App::RoboBot is available at the following site:
+
+    https://robobot.automatomatromaton.com/
+
+Instructions for installing, configuring, and operating bots with this module
+are provided.
+
+=head1 AUTHOR
+
+Jon Sime <jonsime@gmail.com>
+
+=head1 CONTRIBUTORS
+
+=over 4
+
+=item * Lukas Eklund
+
+=item * Mohammad S. Anwar
+
+=item * Shawn Delysse
+
+=back
+
+=head1 LICENSE AND COPYRIGHT
+
+This software is copyright (c) 2016 by Jon Sime.
+
+This is free software; you can redistribute it and/or modify it under the same
+terms as the Perl 5 programming language system itself.
+
+=cut
+
 use v5.18;
 
 use namespace::autoclean;
