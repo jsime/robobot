@@ -156,7 +156,7 @@ EOS
 
             if ($has_examples) {
                 my $lbreaks = $func->{'examples'}[0] =~ m{^\s*:} ? "\n" : "\n\n";
-                print $fh "*Examples:*\n\n.. code-block:: clojure$lbreaks" . join("\n", @{$func->{'examples'}}) . "\n\n";
+                print $fh "*Examples:*\n\n.. code-block:: none$lbreaks" . join("\n", @{$func->{'examples'}}) . "\n\n";
             }
 
             if ($has_desc) {
