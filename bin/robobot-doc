@@ -1,0 +1,190 @@
+#!/usr/bin/env perl
+
+use v5.20;
+
+use strict;
+use warnings;
+
+use App::RoboBot;
+use Data::Dumper;
+use File::Find;
+use File::Path qw( make_path );
+
+die "Must supply a valid target path for document generation.\n"
+    unless @ARGV && defined $ARGV[0] && -d $ARGV[0];
+
+# TODO: Check one directory level up from $ARGV[0] tp make sure it looks right
+#       (i.e. it contains a few expected RST files) as an extra safety measure.
+
+my $bot = App::RoboBot->new( do_migrations => 1 );
+my $doc = $bot->doc;
+
+open(my $fh, '>', "$ARGV[0]/index.rst");
+print $fh <<EOF;
+:tocdepth: 2
+
+.. _ch-modules:
+
+Modules
+*******
+
+.. toctree::
+   :glob:
+
+   */index
+EOF
+close($fh);
+
+my %mods;
+foreach my $module ($doc->list_modules) {
+    my $data = $doc->module($module) // {};
+
+    $data->{'namespace'}  = $module;
+    $data->{'submodules'} = {};
+    $data->{'hooks'}      = {};
+    $data->{'functions'}  = get_module_functions($module);
+    delete $data->{'methods'};
+
+    save_module($data);
+}
+
+write_module_doc($_) for values %mods;
+
+sub get_module_functions {
+    my ($module) = @_;
+
+    my %functions;
+
+    foreach my $function (sort $doc->list_module_functions($module)) {
+        $functions{$function} = $doc->function($module, $function) // {};
+    }
+
+    return \%functions;
+}
+
+sub save_module {
+    my ($mod) = @_;
+
+    my @path = split(/\./, $mod->{'namespace'});
+
+    if (@path == 1) {
+        my $name = shift @path;
+
+        # Preserve the existing submodules list if it's already present.
+        $mod->{'submodules'} = $mods{$name}{'submodules'} if exists $mods{$name};
+        $mods{$name} = $mod;
+    } else {
+        my $name = shift @path;
+        my $node = exists $mods{$name}
+            ? $mods{$name}
+            : ($mods{$name} = { namespace => $name, submodules => {} });
+
+        while ($name = shift @path) {
+            if (@path == 0) {
+                $mod->{'submodules'} = $node->{'submodules'}{$name}{'submodules'}
+                    if exists $node->{'submodules'}{$name}{'submodules'};
+                $node->{'submodules'}{$name} = $mod;
+            }
+
+            $node = $node->{'submodules'}{$name};
+        }
+    }
+}
+
+sub write_module_doc {
+    my ($mod) = @_;
+
+    my $docdir = $mod->{'namespace'};
+    $docdir =~ s{\.}{/}g;
+    $docdir = "$ARGV[0]/$docdir";
+
+    my $has_desc    = exists $mod->{'description'}
+                      && ref($mod->{'description'}) eq 'ARRAY'
+                      && @{$mod->{'description'}} > 0;
+    my $has_submods = keys %{$mod->{'submodules'}} > 0;
+    my $has_funcs   = keys %{$mod->{'functions'}} > 0;
+
+    make_path($docdir);
+
+    open(my $fh, '>', "$docdir/index.rst")
+        or die sprintf("Could not open %s module file for writing: %s", $mod->{'namespace'}, $!);
+
+    printf $fh ":tocdepth: %d\n\n.. _module-%s:\n\n%s\n%s\n\n",
+        2, ref_name($mod->{'namespace'}), $mod->{'namespace'}, ('*' x length($mod->{'namespace'}));
+
+    if ($has_desc) {
+        printf $fh "%s\n\n", $_ for @{$mod->{'description'}};
+    }
+
+    if ($has_submods) {
+        print $fh <<EOS;
+.. toctree::
+   :glob:
+
+   */index
+
+EOS
+    }
+
+    if ($has_funcs) {
+        FUNCTION:
+        foreach my $fname (sort keys %{$mod->{'functions'}}) {
+            my $func = $mod->{'functions'}{$fname};
+
+            my $f_title = $fname;
+            $f_title =~ s{([*=+-])}{\\$1}g;
+
+            printf $fh ".. _function-%s:\n\n%s\n%s\n\n",
+                ref_name($mod->{'namespace'}, $fname),
+                $f_title, ('-' x length($f_title));
+
+            unless (ref($func) eq 'HASH') {
+                print $fh "This function is not yet documented.\n\n";
+                next FUNCTION;
+            }
+
+            my $has_summary  = exists $func->{'summary'}     && ref($func->{'summary'}) eq 'ARRAY';
+            my $has_desc     = exists $func->{'description'} && ref($func->{'description'}) eq 'ARRAY';
+            my $has_usage    = exists $func->{'usage'}       && ref($func->{'usage'}) eq 'ARRAY';
+            my $has_examples = exists $func->{'examples'}    && ref($func->{'examples'}) eq 'ARRAY';
+
+            if ($has_usage) {
+                print $fh ".. code-block:: none\n\n    ($fname " . $func->{'usage'}[0] . ")\n\n";
+            } else {
+                print $fh ".. code-block:: none\n\n    ($fname)\n\n";
+            }
+
+            if ($has_examples) {
+                my $lbreaks = $func->{'examples'}[0] =~ m{^\s*:} ? "\n" : "\n\n";
+                print $fh "*Examples:*\n\n.. code-block:: clojure$lbreaks" . join("\n", @{$func->{'examples'}}) . "\n\n";
+            }
+
+            if ($has_desc) {
+                print $fh join("\n\n", @{$func->{'description'}}) . "\n\n";
+            } elsif ($has_summary) {
+                print $fh join("\n\n", @{$func->{'summary'}}) . "\n\n";
+            } else {
+                print $fh "This function is not yet properly documented.\n\n";
+            }
+        }
+    }
+
+    close($fh);
+
+    # Don't do this as part of the earlier has_submods check, because who knows
+    # how many concurrently open filehandles we could end up with.
+    if ($has_submods) {
+        write_module_doc($_) for values %{$mod->{'submodules'}};
+    }
+}
+
+sub ref_name {
+    my $name = lc(join('-', @_));
+
+    $name =~ s{[^a-z0-9]+}{-}g;
+    $name =~ s{-+}{-}g;
+    $name =~ s{(^-|-$)}{}gs;
+
+    return $name;
+}
+

@@ -25,6 +25,7 @@ Makefile.PL
 
 bin/*
 !bin/robobot
+!bin/robobot-doc
 
 doc/_build/*
 doc/modules/*
