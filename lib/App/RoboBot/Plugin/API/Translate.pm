@@ -67,8 +67,9 @@ phrase was last produced in the source language is returned.
 =head3 Examples
 
     :emphasize-lines: 2
-    (translate-party en es "")
-    
+
+    (translate-party en es "taco night gets weird")
+    "taco night is rare"
 
 =cut
 
