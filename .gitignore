@@ -27,6 +27,8 @@ bin/*
 !bin/robobot
 
 doc/_build/*
+doc/modules/*
+!doc/modules/.gitkeep
 
 App-RoboBot-*.*/
 App-RoboBot-*.*.tar.gz
