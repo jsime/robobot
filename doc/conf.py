@@ -118,7 +118,7 @@ html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-  'globaltoc_depth': 3,
+  'globaltoc_depth': 2,
   'source_link_position': "none",
   'bootswatch_theme': "yeti",
   'navbar_sidebarrel': False,
