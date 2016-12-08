@@ -14,6 +14,9 @@ into the following top-level sections:
     Overview of the bot, its most notable features, basic interactions, and how
     to help contribute to the project (or receive help).
 
+:ref:`ch-install`
+    Instructions on installing |A-RB| and all of its dependencies.
+
 :ref:`ch-config`
     Detailed setup and configuration instructions for those wishing to operate
     an instance of the bot.
@@ -27,13 +30,14 @@ into the following top-level sections:
     own features).
 
 If you run into any problems, or wish to contribute to the software, please
-don't hesitate to check out the project `on GitHub <https://github.com/jsime/robobot>`_.
+don't hesitate to check out the project at |GH|.
 
 .. toctree::
    :maxdepth: 2
    :hidden:
 
    intro/index
+   install/index
    config/index
    lang/index
    modules/index

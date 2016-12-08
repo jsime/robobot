@@ -23,7 +23,8 @@ Programmability
 
 Multi-Protocol
     Support for multiple chat protocols is baked in. |RB| currently comes with
-    IRC and Slack support, but additional protocols can be added quite easily.
+    IRC, Slack, and Mattermost support, but additional protocols can be added
+    quite easily.
 
 Multi-Network
     There are no built-in limits to the number of networks and channels to
