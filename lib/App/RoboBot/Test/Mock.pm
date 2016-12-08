@@ -1,5 +1,8 @@
 package App::RoboBot::Test::Mock;
 
+use strict;
+use warnings;
+
 use App::RoboBot;
 
 use App::RoboBot::Channel;
