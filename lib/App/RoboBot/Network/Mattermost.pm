@@ -149,6 +149,10 @@ sub handle_message {
 
     return unless defined $nick && defined $channel;
 
+    # Ignore our own messages (everything we post comes back over the wire as
+    # a regular message.
+    return if lc($nick->name) eq lc($self->nick->name);
+
     my $raw_msg = exists $post->{'message'} && defined $post->{'message'} ? $post->{'message'} : '';
 
     # Unescape a couple things
