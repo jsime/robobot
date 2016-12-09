@@ -6,6 +6,12 @@ RoboBot
 Welcome to |RB|, the extensible multi-protocol bot that communicates with a
 pronounced lisp.
 
+.. figure:: /_static/robobot-whoknows-sample.png
+   :align: center
+   :alt: sample screenshot of robobot interaction
+
+   *Using RoboBot to find coworkers who might be able to answer a question.*
+
 In the following pages you will find the software's operation, design, and
 rough edges discussed in (hopefully thorough) detail. This guide is broken down
 into the following top-level sections:

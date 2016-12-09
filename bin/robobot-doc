@@ -134,8 +134,8 @@ EOS
             my $f_title = $fname;
             $f_title =~ s{([*=+-])}{\\$1}g;
 
-            printf $fh ".. _function-%s:\n\n%s\n%s\n\n",
-                ref_name($mod->{'namespace'}, $fname),
+            printf $fh ".. index:: %s\n\n.. _function-%s:\n\n%s\n%s\n\n",
+                $fname, ref_name($mod->{'namespace'}, $fname),
                 $f_title, ('-' x length($f_title));
 
             unless (ref($func) eq 'HASH') {
@@ -181,9 +181,32 @@ EOS
 sub ref_name {
     my $name = lc(join('-', @_));
 
-    $name =~ s{[^a-z0-9]+}{-}g;
-    $name =~ s{-+}{-}g;
-    $name =~ s{(^-|-$)}{}gs;
+    # A lot of these are hacky and very specific to known functions, all for
+    # the purpose of avoiding broken or duplicate reference targets. Allowed
+    # characters in a reference name are limited, and just stripping the bad
+    # characters out results in a lot of duplicate/ambiguous reference names.
+
+    $name =~ s{--}{-decrement-}g;
+    $name =~ s{\+\+}{-increment-}g;
+    $name =~ s{-}{^^^}g;
+
+    my %reps = (
+        '\\+'   => 'num-plus',
+        '\\-'   => 'num-minus',
+        '\\/'   => 'num-divide',
+        '\\*'   => 'num-times',
+        '\\%'   => 'num-modulo',
+        '!='    => 'num-ne',
+        '=='    => 'num-eq',
+        '>'     => 'num-gt',
+        '<'     => 'num-lt',
+    );
+
+    $name =~ s{$_}{-$reps{$_}-}g for keys %reps;
+
+    $name =~ s{[^a-z0-9]+}{-}og;
+    $name =~ s{-+}{-}og;
+    $name =~ s{(^-|-$)}{}ogs;
 
     return $name;
 }
