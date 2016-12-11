@@ -8,6 +8,7 @@ use Moose;
 use MooseX::SetOnce;
 
 use Config::Any::Merge;
+use DBD::Pg;
 use DBIx::DataStore;
 use File::HomeDir;
 use Try::Tiny;
