@@ -43,12 +43,12 @@ data, follow the steps outlined here before running any newer version.
 #. Drop or rename the current database from your older |RB| instance, and
    create a new, blank |RB| database with appropriate access permissions.
 
-#. Install version 4.001 of |RB|. Do not install any later versions yet. It is
+#. Install version 4.002 of |RB|. Do not install any later versions yet. It is
    critical that you install this exact version first so that you can restore
    your existing data into the initial Sqitch-managed schema. If you are using
    the recommended |CPANM| installation process, you would issue the command::
 
-       cpanm JSIME/App-RoboBot-4.001.tar.gz
+       cpanm JSIME/App-RoboBot-4.002.tar.gz
 
 #. Update the ``<database>`` section of your configuration file to match the
    post-4.0 format. The settings are described in the :ref:`config-database`
