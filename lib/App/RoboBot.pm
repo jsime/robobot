@@ -111,7 +111,6 @@ use MooseX::ClassAttribute;
 use MooseX::SetOnce;
 
 use AnyEvent;
-use App::Sqitch;
 use Data::Dumper;
 use File::ShareDir qw( dist_dir );
 use Module::Pluggable::Object;
