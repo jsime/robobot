@@ -30,6 +30,7 @@ Modules
 
 .. toctree::
    :glob:
+   :titlesonly:
 
    */index
 EOF
@@ -118,8 +119,11 @@ sub write_module_doc {
 
     if ($has_submods) {
         print $fh <<EOS;
+
 .. toctree::
+   :caption: Submodules
    :glob:
+   :titlesonly:
 
    */index
 
@@ -127,6 +131,11 @@ EOS
     }
 
     if ($has_funcs) {
+print $fh <<EOFU;
+Exported Functions
+==================
+EOFU
+
         FUNCTION:
         foreach my $fname (sort keys %{$mod->{'functions'}}) {
             my $func = $mod->{'functions'}{$fname};

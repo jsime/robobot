@@ -23,6 +23,9 @@ into the following top-level sections:
 :ref:`ch-install`
     Instructions on installing |A-RB| and all of its dependencies.
 
+:ref:`ch-upgrade`
+    Instructions and advice for upgrading between releases of |RB|..
+
 :ref:`ch-config`
     Detailed setup and configuration instructions for those wishing to operate
     an instance of the bot.
@@ -35,15 +38,20 @@ into the following top-level sections:
     the bot's functionality out of the box (before users start macroing their
     own features).
 
+:ref:`genindex`
+    Documentation index, including references to complete listing of all plugin
+    functions and other notable topics.
+
 If you run into any problems, or wish to contribute to the software, please
 don't hesitate to check out the project at |GH|.
 
+
 .. toctree::
-   :maxdepth: 2
    :hidden:
 
    intro/index
    install/index
+   upgrade/index
    config/index
    lang/index
    modules/index

@@ -33,6 +33,8 @@ Example
         nick    mybot
     </global>
 
+.. _config-database:
+
 Database
 ========
 

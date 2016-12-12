@@ -33,3 +33,7 @@
 .. |Mattermost| replace:: `Mattermost`_
 
 .. _Mattermost: https://about.mattermost.com/
+
+.. |Sqitch| replace:: `Sqitch`_
+
+.. _Sqitch: http://sqitch.org/
