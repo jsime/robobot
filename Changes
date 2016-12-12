@@ -1,4 +1,11 @@
 Revision history for App-RoboBot
 
+4.002     2016-12-11
+  - Corrected a dependency mistake that prevented installation for many
+    common environments.
+  - Added a sample Vagrantfile to the distribution's share/ directory.
+  - Significant additions to documentation.
+  - Strict/warnings pragmas added to test mocking. <Mohammad S. Anwar>
+
 4.001     2016-12-01
   - Initial public CPAN release.
