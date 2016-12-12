@@ -33,3 +33,6 @@ doc/modules/*
 
 App-RoboBot-*.*/
 App-RoboBot-*.*.tar.gz
+
+share/.vagrant/
+share/*.log
