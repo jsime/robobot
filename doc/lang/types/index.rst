@@ -5,19 +5,43 @@ Types
 
 |RB| supports the concept of distinct data types, beyond just free-form strings
 and various functions may expect, or only operate on, a given type. There is no
-type system in |RB|, certainly not one that allows for type signatures on
-functions and macros, so all type checking is loosely performed at run-time.
+strong type system in |RB|, certainly not one that allows for type signatures
+on functions and macros, so all type checking is loosely performed at run-time.
 
 It is entirely possible to write a macro, for instance, that is provably wrong.
 But the proof won't be provided until the macro blows up when you try to use it.
+Perhaps future versions of |RB| will formalize this.
 
 Functions
 =========
 
+Functions are provided by plugins installed with your instance of |RB| and not
+explicitly disabled in your configuration file. Functions may not be modified
+by users, nor may new ones be created without writing a plugin to export them.
 
+Functions are invoked by using them as the leading atom of a list (thus making
+that list an expression), as so::
+
+    (my-cool-function "foo")
+    "I just did something with foo!"
+
+Which invokes the ``my-cool-function`` function, providing it with a single
+string argument of ``foo``. Some functions take functions as their arguments
 
 Macros
 ======
+
+Macros bear striking resemblance in their operation to functions, with the most
+distinguishing feature being that macros are user-defined by anyone on your
+connected chat networks with access to the :ref:`function-core-macro-defmacro`
+function. They exist within the :ref:`lang-scope-network`, and may be updated
+and invoked at will using the same, fundamental S-expression syntax used
+everywhere else. For example::
+
+    (defmacro my-cool-macro [input-string]
+        '(format "I just did something with %s!" input-string))
+    (my-cool-macro "foo")
+    "I just did something with foo!"
 
 Numerics
 ========
@@ -29,6 +53,8 @@ Strings
 
 Symbols
 =======
+
+
 
 .. _types-vector:
 

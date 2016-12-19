@@ -37,3 +37,7 @@
 .. |Sqitch| replace:: `Sqitch`_
 
 .. _Sqitch: http://sqitch.org/
+
+.. |Vagrant| replace:: `Vagrant`_
+
+.. _Vagrant: https://www.vagrantup.com/

@@ -200,18 +200,18 @@ sub ref_name {
     $name =~ s{-}{^^^}g;
 
     my %reps = (
-        '\\+'   => 'num-plus',
-        '\\-'   => 'num-minus',
-        '\\/'   => 'num-divide',
-        '\\*'   => 'num-times',
-        '\\%'   => 'num-modulo',
-        '!='    => 'num-ne',
-        '=='    => 'num-eq',
-        '>'     => 'num-gt',
-        '<'     => 'num-lt',
+        '\\+'   => 'num^^^plus',
+        '\\-'   => 'num^^^minus',
+        '\\/'   => 'num^^^divide',
+        '\\*'   => 'num^^^times',
+        '\\%'   => 'num^^^modulo',
+        '!='    => 'num^^^ne',
+        '=='    => 'num^^^eq',
+        '>'     => 'num^^^gt',
+        '<'     => 'num^^^lt',
     );
 
-    $name =~ s{$_}{-$reps{$_}-}g for keys %reps;
+    $name =~ s{$_}{^^^$reps{$_}^^^}g for keys %reps;
 
     $name =~ s{[^a-z0-9]+}{-}og;
     $name =~ s{-+}{-}og;

@@ -175,3 +175,20 @@ If you do wish to perform a full install of |RB|, |DZIL| will again be used::
 This will build, test, and install the package locally on your system, with the
 end result looking the same as if |RB| had been installed from CPAN.
 
+Testing the Waters With Vagrant
+===============================
+
+|A-RB| ships with a sample Vagrantfile in its ``share/`` directory for spinning
+up an environment suitable for trying out |RB| with |Vagrant|. This Vagrantfile
+will create an Ubuntu virtual machine (64-bit 16.04 LTS, aka Xenial), though
+you are welcome to modify the contents of the file before running it.
+
+Included in the Vagrantfile are the necessary Apt commands, issued through the
+inline shell provisioner, to install all the necessary dependencies for |RB|,
+including |PG|. No |RB| configuration is provided, and no database setup or
+access permissions are configured for |PG|. Those are still left as an exercise
+for the user, but once the |Vagrant| provisioning has completed, all necessary
+software will be installed and ready to configure and use.
+
+.. literalinclude:: ../../share/Vagrantfile
+   :language: ruby

@@ -38,6 +38,10 @@ into the following top-level sections:
     the bot's functionality out of the box (before users start macroing their
     own features).
 
+:ref:`ch-cookbook`
+    Provides a collection of examples of using built-in |RB| features via
+    custom macros to dynamically extend the functionality of your bot instance.
+
 :ref:`genindex`
     Documentation index, including references to complete listing of all plugin
     functions and other notable topics.
@@ -55,4 +59,5 @@ don't hesitate to check out the project at |GH|.
    config/index
    lang/index
    modules/index
+   cookbook/index
 
