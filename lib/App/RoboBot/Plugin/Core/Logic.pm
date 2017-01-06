@@ -7,6 +7,8 @@ use namespace::autoclean;
 use Moose;
 use MooseX::SetOnce;
 
+use Scalar::Util qw( blessed );
+
 extends 'App::RoboBot::Plugin';
 
 =head1 core.logic
@@ -27,11 +29,14 @@ has '+description' => (
 
 =head3 Description
 
-Returns a true value only if all expressions are also true.
+Returns a true value only if all expressions are also true. This function will
+short-circuit as soon as a falsey expression is encountered, and will not
+evaluate any of the subsequent expressions. This includes any potential side
+effects of those expressions.
 
 =head3 Usage
 
-<expression> [<expression> ...]
+<expression 1> [... <expression N>]
 
 =head3 Examples
 
@@ -41,11 +46,14 @@ Returns a true value only if all expressions are also true.
 
 =head3 Description
 
-Returns a true value if at least one expression is true.
+Returns a true value if at least one expression is true. This function will
+short-circuit as soon as a truthy expression is encountered, and will not
+evaluate any of the subsequent expressions. This includes any potential side
+effects of those expressions.
 
 =head3 Usage
 
-<expression> [<expression> ...]
+<expression 1> [... <expression N>]
 
 =head3 Examples
 
@@ -69,17 +77,19 @@ Returns the logical negation of the value provided.
 
 has '+commands' => (
     default => sub {{
-        'and' => { method      => 'bool_binary',
-                   description => 'Returns a true value only if both expressions are also true. Currently does not short-circuit.',
-                   usage       => '(<expression>) (<expression>)',
-                   example     => '(> 20 1) (> 1 20)',
-                   result      => '0' },
+        'and' => { method          => 'bool_and',
+                   preprocess_args => 0,
+                   description     => 'Returns a true value only if both expressions are also true. Short-circuits as soon as an expression evaluates falsey, eliminating the evaluation of all subsequent expressions (including any of their potential side-effects).',
+                   usage           => '(<expression>) (<expression>)',
+                   example         => '(> 20 1) (> 1 20)',
+                   result          => '0' },
 
-        'or' => { method      => 'bool_binary',
-                  description => 'Returns a true value if either expression is true. Currently does not short-circuit.',
-                  usage       => '(<expression>) (<expression>)',
-                  example     => '(> 20 1) (> 1 20)',
-                  result      => '1' },
+        'or' => { method          => 'bool_or',
+                  preprocess_args => 0,
+                  description     => 'Returns a true value if either expression is true. Short-circuits as soon as an expression evauates truthy, eliminating the evaluation of all subsequent expressions (including any of their potential side-effects).',
+                  usage           => '(<expression>) (<expression>)',
+                  example         => '(> 20 1) (> 1 20)',
+                  result          => '1' },
 
         'not' => { method      => 'bool_unary',
                    description => 'Returns the logical negation of the value provided.',
@@ -90,20 +100,36 @@ has '+commands' => (
     }},
 );
 
-sub bool_binary {
-    my ($self, $message, $op, $rpl, @args) = @_;
+sub bool_and {
+    my ($self, $message, $cmd, $rpl, @args) = @_;
 
-    # TODO make these short-circuit, which will require separating method handlers out since short-circuiting
-    # conditions vary
+    return 0 unless @args && @args > 0;
 
-    return unless $self->has_two_values($message, @args);
+    foreach my $arg (@args) {
+        if (blessed($arg) && $arg->can('evaluate')) {
+            return 0 unless $arg->evaluate($message, $rpl);
+        } else {
+            return 0 unless $arg;
+        }
+    }
 
-    $op = '&&' if lc($op) eq 'and';
-    $op = '||' if lc($op) eq 'or';
+    return 1;
+}
 
-    my $r;
-    eval '$r = $args[0] ' . $op . ' $args[1];';
-    return $r ? 1 : 0;
+sub bool_or {
+    my ($self, $message, $cmd, $rpl, @args) = @_;
+
+    return 0 unless @args && @args > 0;
+
+    foreach my $arg (@args) {
+        if (blessed($arg) && $arg->can('evaluate')) {
+            return 1 if $arg->evaluate($message, $rpl);
+        } else {
+            return 1 if $arg;
+        }
+    }
+
+    return 0;
 }
 
 sub bool_unary {
