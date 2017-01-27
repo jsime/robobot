@@ -1,5 +1,13 @@
 Revision history for App-RoboBot
 
+4.003     2017-01-27
+  - Introduction of Log4perl logging abstraction and a plethora of logging
+    statements sprinkled throughout codebase.
+  - Updated example configuration with Log4Perl sample.
+  - Additional command line options for bin/robobot (version and location of
+    application share/ directory).
+  - Documentation additions.
+
 4.002     2016-12-11
   - Corrected a dependency mistake that prevented installation for many
     common environments.
