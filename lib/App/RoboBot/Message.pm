@@ -5,10 +5,9 @@ use v5.20;
 use namespace::autoclean;
 
 use Moose;
+use MooseX::ClassAttribute;
 use MooseX::SetOnce;
 
-use Data::Dumper;
-use Data::Dump qw( dumpf );
 use DateTime;
 
 use App::RoboBot::Parser;
@@ -43,7 +42,7 @@ has 'channel' => (
 
 has 'network' => (
     is       => 'rw',
-    isa      => 'App::RoboBot::Network',
+    isa      => 'Object',
     traits   => [qw( SetOnce )],
     required => 1,
 );
@@ -73,14 +72,25 @@ has 'bot' => (
     required => 1,
 );
 
+class_has 'log' => (
+    is          => 'rw',
+    predicate   => 'has_logger',
+);
+
 sub BUILD {
     my ($self) = @_;
+
+    $self->log($self->bot->logger('core.message')) unless $self->has_logger;
+
+    $self->log->debug(sprintf('Constructing new message object on network %s.', $self->network->name));
 
     $self->response(App::RoboBot::Response->new(
         bot     => $self->bot,
         network => $self->network,
         nick    => $self->sender,
     ));
+
+    $self->log->debug('Empty response for message initialized.');
 
     $self->response->channel($self->channel) if $self->has_channel;
 
@@ -89,6 +99,8 @@ sub BUILD {
     # where expression evaluations are performed outside the context of a normal
     # user-generated message.
     return if length($self->raw) < 1;
+
+    $self->log->debug(sprintf('Message length greater than 0 (%d). Proceeded with message processing.', length($self->raw)));
 
     # If the message is nothing but "help" or "!help" then convert it to "(help)"
     if ($self->raw =~ m{^\s*\!?help\s*$}oi) {
@@ -101,6 +113,8 @@ sub BUILD {
     # to interact with the bot using the older "!command arg arg arg" syntax.
     if (substr($self->raw, 0, 1) eq '!') {
         if ($self->raw =~ m{^\!+((\S+).*)}) {
+            $self->log->debug(sprintf('Legacy bang syntax detected in message on network %s. Rewriting as an expression.', $self->network->name));
+
             my ($no_excl, $maybe_cmd) = ($1, $2);
 
             # If there is at least one pipe character followed by what looks to
@@ -124,12 +138,16 @@ sub BUILD {
                 || exists $self->bot->macros->{$self->network->id}{lc($maybe_cmd)};
         }
     } elsif ($self->raw =~ m{ ^ $self->bot->nick->name : \s* (.+) }ixs) {
+        $self->log->debug(sprintf('Incoming message on network %s was addressed to the bot. Stripping bot name and treating as expression.', $self->network->name));
+
         # It looks like someone said something to us directly, so strip off our
         # nick from the front, and treat the reast as if it were a command.
         $self->raw('('.$1.')');
     }
 
     if ($self->raw =~ m{^\s*\(\S+}o) {
+        $self->log->debug(sprintf('Incoming message on network %s looks like an expression. Attempting to parse.', $self->network->name));
+
         my $parser = App::RoboBot::Parser->new( bot => $self->bot );
         my $expr;
 
@@ -137,15 +155,22 @@ sub BUILD {
             $expr = $parser->parse($self->raw);
         };
 
-        return if $@;
+        if ($@) {
+            $self->log->warn(sprintf('Parsing resulted in a suppressable error: %s', $@));
+            return;
+        }
 
         if (defined $expr && ref($expr) =~ m{^App::RoboBot::Type::}) {
+            $self->log->debug('Message expression parsed successfully. Storing for later evaluation.');
+
             # To prevent unnecessary echoing of parenthetical remarks, make sure
             # that the top-level form is either an Expression or a List with its
             # own first member being an Expression.
             if ($expr->type eq 'Expression') {
                 $self->expression($expr);
             } elsif ($expr->type eq 'List' && defined $expr->value->[0] && $expr->value->[0]->type eq 'Expression') {
+                $self->log->debug('Parse resulted in outer layer as List with an Expression as the first element. Stripping outer List.');
+
                 $self->expression($expr);
             }
         }
@@ -155,9 +180,15 @@ sub BUILD {
 sub process {
     my ($self) = @_;
 
+    $self->log->debug(sprintf('Preparing to process incoming message on network %s.', $self->network->name));
+
     # Process any before-hooks first
     if ($self->bot->run_before_hooks) {
+        $self->log->debug('Processing before_hooks.');
+
         foreach my $plugin (@{$self->bot->before_hooks}) {
+            $self->log->debug(sprintf('Hook from plugin %s being processed.', $plugin->name));
+
             # Skip hook if plugin is disabled for the current network.
             next if exists $self->network->disabled_plugins->{lc($plugin->name)};
 
@@ -168,19 +199,27 @@ sub process {
     # Process the message itself (unless the network on which it was received is
     # marked as "passive" - only hooks will run, not functions or macros).
     if ($self->has_expression && ! $self->network->passive) {
+        $self->log->debug(sprintf('Preparing to evaluate expression (Network %s is non-passive).', $self->network->name));
+
         my @r = $self->expression->evaluate($self);
 
         # TODO: Restore pre-type functionality of only adding the implicit
         #       (print ...) call if the last function evaluated wasn't already
         #       an explicit print call.
         if (@r && @r > 0) {
+            $self->log->debug('Adding implicit (print) call, as data was returned by outermost expression.');
+
             $self->bot->commands->{'print'}->process($self, 'print', {}, @r);
         }
     }
 
     # Process any after-hooks before sending response
     if ($self->bot->run_after_hooks) {
+        $self->log->debug('Processing after_hooks.');
+
         foreach my $plugin (@{$self->bot->after_hooks}) {
+            $self->log->debug(sprintf('Hook from plugin %s being processed.', $plugin->name));
+
             # Skip hook if plugin is disabled for the current network.
             next if exists $self->network->disabled_plugins->{lc($plugin->name)};
 
@@ -189,6 +228,7 @@ sub process {
     }
 
     # Deliver the response
+    $self->log->debug('Issuing response send.');
     $self->response->send;
 }
 

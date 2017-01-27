@@ -67,8 +67,17 @@ class_has 'macros' => (
     default => sub { {} },
 );
 
+class_has 'log' => (
+    is        => 'rw',
+    predicate => 'has_logger',
+);
+
 sub BUILD {
     my ($self) = @_;
+
+    $self->log($self->bot->logger('core.parser')) unless $self->has_logger;
+
+    $self->log->debug('Initialized parser type factory.');
 
     $self->tf(App::RoboBot::TypeFactory->new( bot => $self->bot ));
 }
@@ -76,16 +85,22 @@ sub BUILD {
 sub parse {
     my ($self, $text) = @_;
 
+    $self->log->debug(sprintf('Received parse request (%d bytes).', length($text)));
+
     return unless defined $text && !ref($text);
     return unless $text =~ m{^\s*\(.+\)\s*$}s;
 
     # Refresh the lookup table of all known macro names for symbol resolution.
+    $self->log->debug('Refreshing lookup cross-network table of macros.');
+
     $self->macros({});
     foreach my $nid (keys %{$self->bot->macros}) {
         foreach my $macro (keys %{$self->bot->macros->{$nid}}) {
             $self->macros->{lc($macro)} = 1;
         }
     }
+
+    $self->log->debug('Resetting parser cursor and state.');
 
     $self->clear_err;
     $self->text($text);
@@ -136,6 +151,8 @@ sub _read_list {
 
     $terminator //= ')';
 
+    $self->log->debug(sprintf('Beginning list read with terminator %s.', $terminator));
+
     my $l = [];
 
     while (defined (my $c = $self->_read_char)) {
@@ -168,6 +185,8 @@ sub _read_list {
     }
 
     return $l if @{$l} > 0;
+
+    $self->log->debug('List read did not locate child elements.');
     return;
 }
 
@@ -175,6 +194,8 @@ sub _read_map {
     my ($self) = @_;
 
     my $list = $self->_read_list('}');
+
+    $self->log->debug(sprintf('Read a Map with %d elements.', scalar(@{$list})));
 
     return $self->tf->build('Map', $list);
 }
@@ -184,6 +205,8 @@ sub _read_set {
 
     my $list = $self->_read_list('|');
 
+    $self->log->debug(sprintf('Read a Set with %d elements.', scalar(@{$list})));
+
     return $self->tf->build('Set', $list);
 }
 
@@ -192,6 +215,8 @@ sub _read_vec {
 
     my $list = $self->_read_list(']');
 
+    $self->log->debug(sprintf('Read a Vector with %d elements.', scalar(@{$list})));
+
     return $self->tf->build('Vector', $list);
 }
 
@@ -199,6 +224,8 @@ sub _read_element {
     my ($self, $terminator) = @_;
 
     $terminator ||= ')';
+
+    $self->log->debug(sprintf('Reading non-list element, using terminator %s.', $terminator));
 
     my $el = '';
 
@@ -282,17 +309,23 @@ sub _read_element {
 
     if (defined $el && length($el) > 0) {
         if (substr($el, 0, 1) eq ':') {
+            $self->log->debug(sprintf('Treating non-list element "%s" as Symbol.', $el));
             return $self->tf->build('Symbol', $el);
         } elsif (looks_like_number($el)) {
+            $self->log->debug(sprintf('Treating non-list element "%s" as Number.', $el));
             return $self->tf->build('Number', $el);
         } elsif (exists $self->bot->commands->{lc($el)}) {
+            $self->log->debug(sprintf('Treating non-list element "%s" as Function.', $el));
             return $self->tf->build('Function', $el);
         } elsif (exists $self->macros->{lc($el)}) {
+            $self->log->debug(sprintf('Treating non-list element "%s" as Macro.', $el));
             return $self->tf->build('Macro', $el);
         } else {
+            $self->log->debug(sprintf('Treating non-list element "%s" as String.', $el));
             return $self->tf->build('String', $el);
         }
     } else {
+        $self->log->debug('Expected an element, but there turned out to be nothing to read.');
         return undef;
     }
 }

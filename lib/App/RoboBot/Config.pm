@@ -11,6 +11,8 @@ use Config::Any::Merge;
 use DBD::Pg;
 use DBIx::DataStore;
 use File::HomeDir;
+use Log::Log4perl;
+use Log::Log4perl::Appender::Screen;
 use Try::Tiny;
 
 use App::RoboBot::NetworkFactory;
@@ -61,6 +63,8 @@ has 'db' => (
 sub load_config {
     my ($self) = @_;
 
+    my ($logger);
+
     try {
         unless ($self->has_config) {
             $self->locate_config unless $self->has_config_paths;
@@ -72,15 +76,28 @@ sub load_config {
             }
         }
 
+        $self->init_logging;
+
+        $logger = $self->bot->logger('core.config');
+
         $self->validate_database;
+        $logger->debug('Database configuration initialized.');
+
         $self->validate_globals;
+        $logger->debug('Global settings initialized.');
+
         $self->validate_networks;
+        $logger->debug('Network configurations initialized.');
+
         $self->validate_plugins;
+        $logger->debug('Plugin configurations initialized.');
 
         $self->bot->networks([ values %{$self->networks} ]);
     } catch {
         die "Could not load and validate configuration: $_";
     };
+
+    $logger->debug('All configuration data loaded.');
 }
 
 sub locate_config {
@@ -112,8 +129,25 @@ sub locate_config {
     die "Unable to locate a configuration file!" unless $self->has_config_paths;
 }
 
+sub init_logging {
+    my ($self) = @_;
+
+    my $log_cfg = $self->config->{'logging'} // {
+        'log4j.rootLogger'              => 'INFO, stdout',
+        'log4j.appender.stdout'         => 'org.apache.log4j.ConsoleAppender',
+        'log4j.appender.stdout.layout'  => 'org.apache.log4j.PatternLayout',
+        'log4j.appender.stdout.layout.ConversionPattern' => '%d %5p [%c] %m%n',
+    };
+
+    my $config_str = join("\n", map { sprintf('%s=%s', $_, $log_cfg->{$_}) } sort keys %{$log_cfg});
+
+    Log::Log4perl::init( \$config_str );
+}
+
 sub validate_globals {
     my ($self) = @_;
+
+    my $logger = $self->bot->logger('core.config.globals');
 
     my %global = (
         nick => 'lispy',
@@ -125,6 +159,9 @@ sub validate_globals {
         $self->config->{'global'}{$k} = $global{$k} unless exists $self->config->{'global'}{$k};
     }
 
+    $logger->debug(sprintf('Global setting %s = %s.', $_, $self->config->{'global'}{$_}))
+        for sort keys %{$self->config->{'global'}};
+
     $self->config->{'global'}{'nick'} = App::RoboBot::Nick->new(
         config => $self,
         name   => $self->config->{'global'}{'nick'}
@@ -133,6 +170,8 @@ sub validate_globals {
 
 sub validate_database {
     my ($self) = @_;
+
+    my $logger = $self->bot->logger('core.config.database');
 
     my %database = (
         name => 'robobot',
@@ -145,8 +184,10 @@ sub validate_database {
     }
 
     if (exists $self->config->{'database'}{'primary'} && ref($self->config->{'database'}{'primary'}) eq 'HASH') {
+        $logger->debug('Establishing database connection using explicit configuration hash.');
         $self->db(DBIx::DataStore->new({ config => $self->config->{'database'} })) or die "Could not validate explicit database connection!";
     } else {
+        $logger->debug('Establishing database connection using named DataStore definition.');
         $self->db(DBIx::DataStore->new($self->config->{'database'}{'name'})) or die "Could not validate named database connection!";
     }
 
@@ -156,8 +197,12 @@ sub validate_database {
 sub validate_networks {
     my ($self) = @_;
 
+    my $logger = $self->bot->logger('core.config.networks');
+
     my @networks;
     my @channels;
+
+    $logger->debug('Creating network factory.');
 
     my $nfactory = App::RoboBot::NetworkFactory->new(
         bot    => $self->bot,
@@ -166,6 +211,7 @@ sub validate_networks {
     );
 
     foreach my $network_name (keys %{$self->config->{'network'}}) {
+        $logger->debug(sprintf('Getting configuration data for network %s.', $network_name));
         my $net_cfg = $self->config->{'network'}{$network_name};
 
         # Do not load (and eventually connect to) the network if the 'enabled'
@@ -173,6 +219,7 @@ sub validate_networks {
         next if exists $self->config->{'network'}{$network_name}{'enabled'}
             && !$self->config->{'network'}{$network_name}{'enabled'};
 
+        $logger->debug(sprintf('Using factory to create network entry for %s.', $network_name));
         push(@networks, $nfactory->create($network_name, $net_cfg));
 
         my @network_channels;
@@ -183,6 +230,7 @@ sub validate_networks {
         $net_cfg->{'channel'} = [$net_cfg->{'channel'}] if ref($net_cfg->{'channel'}) ne 'ARRAY';
 
         foreach my $chan_name (@{$net_cfg->{'channel'}}) {
+            $logger->debug(sprintf('Adding %s to channel list for network %s.', $chan_name, $network_name));
             push(@network_channels, App::RoboBot::Channel->new( config => $self, network => $networks[-1], name => $chan_name));
             push(@channels, $network_channels[-1]);
         }
@@ -190,6 +238,7 @@ sub validate_networks {
         $networks[-1]->channels([@network_channels]);
     }
 
+    $logger->debug('Assigning networks list to bot.');
     $self->networks({ map { $_->name => $_ } @networks });
     $self->channels(\@channels);
 }
@@ -197,7 +246,10 @@ sub validate_networks {
 sub validate_plugins {
     my ($self) = @_;
 
+    my $logger = $self->bot->logger('core.config.plugins');
+
     foreach my $plugin_name (keys %{$self->config->{'plugin'}}) {
+        $logger->debug(sprintf('Collecting configuration data for %s plugin.', $plugin_name));
         $self->plugins->{lc($plugin_name)} = $self->config->{'plugin'}{$plugin_name};
     }
 }

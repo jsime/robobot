@@ -31,8 +31,22 @@ has 'quoted' => (
     default => 0,
 );
 
+has 'log' => (
+    is        => 'rw',
+    predicate => 'has_logger',
+);
+
+sub BUILD {
+    my ($self) = @_;
+
+    my $logger_name = 'core.type.' . lc($self->type);
+    $self->log($self->bot->logger($logger_name)) unless $self->has_logger;
+}
+
 sub ast {
     my ($self) = @_;
+
+    $self->log->debug(sprintf('Generating AST for type %s.', $self->type));
 
     return $self->type;
 }
@@ -95,9 +109,15 @@ sub cmp {
 sub evaluate {
     my ($self, $message, $rpl) = @_;
 
+    $self->log->debug(sprintf('Testing for value before evaluating %s type contents.', $self->type));
+
     return unless $self->has_value;
 
+    $self->log->debug(sprintf('Value exists, proceeding with %s type evaluation.', $self->type));
+
     if (defined $rpl && ref($rpl) eq 'HASH' && exists $rpl->{$self->value}) {
+        $self->log->debug(sprintf('Stack contains variable by the same name (%s). Evaluating stack variable.', $self->value));
+
         my $r = $rpl->{$self->value};
 
         if (defined $r && blessed($r) && $r->can('evaluate')) {
@@ -112,6 +132,8 @@ sub evaluate {
 
 sub flatten {
     my ($self, $rpl) = @_;
+
+    $self->log->debug(sprintf('Flattening type %s.', $self->type));
 
     return 'nil' unless $self->has_value;
     return $self->evaluate(undef, $rpl);

@@ -145,6 +145,9 @@ has '+commands' => (
 sub log_disable {
     my ($self, $message, $command, $rpl) = @_;
 
+    $self->log->info(sprintf('%s has requested logging be disabled on %s for network %s.',
+        $message->sender->name, ($message->has_channel ? $message->channel->name : '-'), $message->network->name));
+
     if ($message->channel->log_enabled) {
         if ($message->channel->disable_logging) {
             $message->response->push('Logging has now been disabled for this channel. No messages will be saved and any functions which interact with logging features will fail.');
@@ -161,12 +164,20 @@ sub log_disable {
 sub log_enable {
     my ($self, $message, $command, $rpl) = @_;
 
+    $self->log->info(sprintf('%s has requested logging be enabled on %s for network %s.',
+        $message->sender->name, ($message->has_channel ? $message->channel->name : '-'), $message->network->name));
+
+    return unless $message->has_channel;
+
     if ($message->channel->log_enabled) {
+        $self->log->warn(sprintf('Logging already enabled for %s on network %s.', $message->channel->name, $message->network->name));
         $message->response->push('This channel is already being logged. No changes made.');
     } else {
         if ($message->channel->enable_logging) {
+            $self->log->debug(sprintf('Logging for %s on network %s now enabled.', $message->channel->name, $message->network->name));
             $message->response->push('Logging has now been enabled for this channel.');
         } else {
+            $self->log->error(sprintf('Logging could not be enabled for %s on network %s.', $message->channel->name, $message->network->name));
             $message->response->raise('Logging could not be enabled. Please try again.');
         }
     }
@@ -177,7 +188,11 @@ sub log_enable {
 sub log_search {
     my ($self, $message, $command, $rpl, $pattern) = @_;
 
+    return unless $message->has_channel;
+
     if ( ! $message->channel->log_enabled) {
+        $self->log->warn(sprintf('Log search attempted for %s on network %s, but logging is disabled. Rejecting search request.',
+            $message->channel->name, $message->network->name));
         $message->response->raise('This channel is unlogged. You cannot retrieve channel history here.');
         return;
     }
@@ -211,7 +226,11 @@ sub log_search {
 sub last_seen {
     my ($self, $message, $command, $rpl, $nick) = @_;
 
+    return unless $message->has_channel;
+
     if ( ! $message->channel->log_enabled) {
+        $self->log->warn(sprintf('Last-seen lookup attempted for %s on network %s for nick %s, but logging is disabled. Rejecting request.',
+            $message->channel->name, $message->network->name, $nick));
         $message->response->raise('This channel is unlogged. You cannot retrieve channel history here.');
         return;
     }
@@ -325,7 +344,10 @@ sub log_incoming {
         });
     }
 
-    $self->log_to_terminal($message);
+    my $msg_logger = $self->bot->logger('msg.rx');
+    $msg_logger->info(sprintf('(%s/%s) <%s> %s', $message->network->name,
+        ($message->has_channel ? $message->channel->name : '-'),
+        $message->sender->name, $message->raw));
 }
 
 sub log_outgoing {
@@ -339,37 +361,13 @@ sub log_outgoing {
             nick_id    => $message->network->nick->id,
             message    => $_,
         }} @{$message->response->content}] );
-    }
 
-    $self->log_to_terminal($message->response);
-}
+        my $msg_logger = $self->bot->logger('msg.tx');
 
-sub log_to_terminal {
-    my ($self, $msg) = @_;
-
-    binmode STDOUT, ":encoding(UTF-8)";
-
-    if ($msg->isa('App::RoboBot::Message')) {
-        my $where = $msg->has_channel ? '#' . $msg->channel->name : $msg->sender->name;
-
-        printf("%s [%s] <%s> %s\n",
-            fg('seagreen1', sprintf('%s %s', $msg->timestamp->ymd, $msg->timestamp->hms)),
-            bold(fg('darkorange1', $where)),
-            bold(fg('magenta8', $msg->sender->name)),
-            $msg->raw
-        );
-    } elsif ($msg->isa('App::RoboBot::Response') && $msg->has_content) {
-        my $response = $msg; # for readability
-        my $where = $response->has_channel ? '#' . $response->channel->name : $response->nick->name;
-        my $when = DateTime->now();
-
-        foreach my $line (@{$response->content}) {
-            printf("%s [%s] <%s> %s\n",
-                fg('seagreen1', sprintf('%s %s', $when->ymd, $when->hms)),
-                bold(fg('darkorange1', $where)),
-                bold(fg('magenta8', $response->network->nick->name)),
-                $line
-            );
+        foreach my $line (@{$message->response->content}) {
+            $msg_logger->info(sprintf('(%s/%s) <%s> %s', $message->network->name,
+                ($message->response->has_channel ? $message->response->channel->name : '-'),
+                $message->network->nick->name, $line));
         }
     }
 }

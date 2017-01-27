@@ -82,6 +82,8 @@ has '+commands' => (
 sub post_init {
     my ($self, $bot) = @_;
 
+    $self->log->info('Initializing autorepliers.');
+
     $self->parser( App::RoboBot::Parser->new( bot => $bot ) );
 
     my $res = $bot->config->db->do(q{
@@ -90,13 +92,15 @@ sub post_init {
     });
 
     while ($res->next) {
+        $self->log->debug(sprintf('Caching %s autoreply data for channel ID %s.', $res->{'name'}, $res->{'channel_id'}));
+
         try {
             $self->reply_cache->{$res->{'channel_id'}}{$res->{'name'}} = {
                 condition   => $self->parser->parse($res->{'condition'}),
                 response    => $self->parser->parse($res->{'response'}),
             };
         } catch {
-            warn sprintf("Could not initialize autoreply %s: %s", $res->{'name'}, $_);
+            $self->log->error(sprintf("Could not initialize autoreply %s: %s", $res->{'name'}, $_));
         }
     }
 }
@@ -109,6 +113,9 @@ sub autoreply_check {
     return unless $message->has_channel;
     return unless exists $self->reply_cache->{$message->channel->id};
 
+    $self->log->debug(sprintf('Checking autoreplies against message in %s on network %s.',
+        $message->channel->name, $message->network->name));
+
     my $raw_text = $message->raw;
 
     my $check_message = App::RoboBot::Message->new(
@@ -120,6 +127,8 @@ sub autoreply_check {
     );
 
     foreach my $name (sort keys %{$self->reply_cache->{$message->channel->id}}) {
+        $self->log->debug(sprintf('Checking autoreply %s.', $name));
+
         my $reply = $self->reply_cache->{$message->channel->id}{$name};
 
         $check_message->raw($raw_text);
@@ -128,6 +137,8 @@ sub autoreply_check {
         my $ret = $reply->{'condition'}->evaluate($check_message, {});
 
         if ($ret) {
+            $self->log->debug(sprintf('Autoreply %s matched. Evaluating reply function.', $name));
+
             $message->response->push(
                 $reply->{'response'}->evaluate($check_message, {})
             );
@@ -172,6 +183,9 @@ sub autoreply_create {
     $condition->quoted(0);
     $response->quoted(0);
 
+    $self->log->debug(sprintf('Attempting to update autoreplier with name %s in %s on network %s.',
+        $name, $message->channel->name, $message->network->name));
+
     my $res = $self->bot->config->db->do(q{
         update autoreply_autoreplies set ??? where channel_id = ? and name = ? returning *
     }, {
@@ -182,8 +196,12 @@ sub autoreply_create {
     }, $message->channel->id, $name);
 
     if ($res && $res->next) {
+        $self->log->debug('Autoreplier update successful.');
+
         $message->response->push(sprintf('Autoreply %s has been updated.', $name));
     } else {
+        $self->log->debug(sprintf('No existing autoreplier to update. Creating new record.'));
+
         $res = $self->bot->config->db->do(q{
             insert into autoreply_autoreplies ??? returning *
         }, {
@@ -197,10 +215,14 @@ sub autoreply_create {
         if ($res && $res->next) {
             $message->response->push(sprintf('Autoreply %s has been added.', $name));
         } else {
+            $self->log->error(sprintf('Could not create autoreplier record: %s', $res->error));
+
             $message->response->raise('Could not create the autoresponse. Please check your arguments and try again.');
             return;
         }
     }
+
+    $self->log->debug(sprintf('Caching new/updated autoreplier %s.', $name));
 
     $self->reply_cache->{$message->channel->id}{lc($name)} = {
         condition   => $condition,

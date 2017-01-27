@@ -113,6 +113,7 @@ use MooseX::SetOnce;
 use AnyEvent;
 use Data::Dumper;
 use File::ShareDir qw( dist_dir );
+use Log::Log4perl;
 use Module::Pluggable::Object;
 
 use App::RoboBot::Config;
@@ -207,19 +208,27 @@ sub BUILD {
 
     $self->config->load_config;
 
+    my $logger = $self->logger('core.init');
+    $logger->info('Configuration loaded.');
+
     # Gather list of supported plugin commands (naming conflicts are considered
     # warnable offenses, not fatal errors).
+    $logger->info('Loading plugins.');
     my $finder = Module::Pluggable::Object->new( search_path => 'App::RoboBot::Plugin', instantiate => 'new' );
 
     foreach my $plugin ($finder->plugins) {
+        $logger->debug(sprintf('Loading %s plugin.', $plugin->name));
         push(@{$self->plugins}, $plugin);
         $plugin->bot($self);
         $plugin->init($self);
+        $logger->debug(sprintf('Initialized %s plugin.', $plugin->name));
 
         foreach my $command (keys %{$plugin->commands}) {
-            warn sprintf("Command name collision: %s/%s superseded by %s/%s",
-                         $self->commands->{$command}->ns, $command, $plugin->ns, $command)
+            $logger->warn(sprintf('Command name collision: %s/%s superseded by %s/%s',
+                                    $self->commands->{$command}->ns, $command,
+                                    $plugin->ns, $command))
                 if exists $self->commands->{$command};
+            $logger->debug(sprintf('Plugin command %s loaded.', $command));
 
             # Offer both plain and namespaced access to individual functions
             $self->commands->{$command} = $plugin;
@@ -240,6 +249,8 @@ sub BUILD {
         $plugin->post_init($self);
     }
 
+    $logger->debug('Plugin post-initialization hooks finished.');
+
     # Pre-load all saved macros
     $self->macros({ App::RoboBot::Macro->load_all($self) });
     # TODO: This is an awful hack around the fact that nested macros get parsed incorrectly
@@ -249,15 +260,23 @@ sub BUILD {
     #       we can just load them a second time. All their names will be available for the
     #       Parser and we'll just overwrite their definitions with the correct versions.
     $self->macros({ App::RoboBot::Macro->load_all($self) });
+
+    $logger->debug('Macro initializations finished.');
 }
 
 sub run {
     my ($self) = @_;
 
+    my $logger = $self->logger('core.run');
+
+    $logger->info('Bot starting.');
+
     my $c = AnyEvent->condvar;
     $_->connect for @{$self->networks};
     $c->recv;
     $_->disconnect for @{$self->networks};
+
+    $logger->info('Bot disconnected from all networks and preparing to stop.');
 }
 
 sub version {
@@ -268,10 +287,23 @@ sub version {
     return $VERSION // "*-devel";
 }
 
+sub logger {
+    my ($self, $category) = @_;
+
+    $category = defined $category ? lc($category) : 'core';
+
+    return Log::Log4perl::get_logger($category);
+}
+
 sub add_macro {
     my ($self, $network, $nick, $macro_name, $args, $body) = @_;
 
+    my $logger = $self->logger('core.macro');
+
+    $logger->debug(sprintf('Adding macro %s for %s on %s network.', $macro_name, $nick->name, $network->name));
+
     if (exists $self->macros->{$network->id}{$macro_name}) {
+        $logger->debug('Macro already exists. Overwriting definition.');
         $self->macros->{$network->id}{$macro_name}->name($macro_name);
         $self->macros->{$network->id}{$macro_name}->arguments($args);
         $self->macros->{$network->id}{$macro_name}->definition($body);
@@ -279,6 +311,7 @@ sub add_macro {
 
         return unless $self->macros->{$network->id}{$macro_name}->save;
     } else {
+        $logger->debug('Creating as new macro and saving definition.');
         my $macro = App::RoboBot::Macro->new(
             bot        => $self,
             network    => $network,
@@ -289,6 +322,7 @@ sub add_macro {
         );
 
         return unless $macro->save;
+        $logger->debug('Macro saved successfully. Caching definition for future use.');
 
         $self->macros->{$network->id} = {} unless exists $self->macros->{$network->id};
         $self->macros->{$network->id}{$macro->name} = $macro;
@@ -300,10 +334,16 @@ sub add_macro {
 sub remove_macro {
     my ($self, $network, $macro_name) = @_;
 
+    my $logger = $self->logger('core.macro');
+
+    $logger->debug(sprintf('Removing macro %s on %s network.', $macro_name, $network->name));
+
     return unless exists $self->macros->{$network->id}{$macro_name};
 
     $self->macros->{$network->id}{$macro_name}->delete;
     delete $self->macros->{$network->id}{$macro_name};
+
+    $logger->debug('Macro successfully removed.');
 
     return 1;
 }
@@ -318,6 +358,10 @@ sub network_by_id {
 sub migrate_database {
     my ($self) = @_;
 
+    my $logger = $self->logger('core.migrate');
+
+    $logger->info('Checking database migration status.');
+
     my $migrations_dir = dist_dir('App-RoboBot') . '/migrations';
     die "Could not locate database migrations (remember to use `dzil run` during development)!"
         unless -d $migrations_dir;
@@ -330,16 +374,23 @@ sub migrate_database {
     $db_uri .= ':' . $cfg->{'port'} if $cfg->{'port'};
     $db_uri .= '/' . $cfg->{'database'} if $cfg->{'database'};
 
+    $logger->debug(sprintf('Using database URI %s for migration status check.', $db_uri));
+
     chdir($migrations_dir) or die "Could not chdir() $migrations_dir: $!";
 
     open(my $status_fh, '-|', 'sqitch', 'status', $db_uri) or die "Could not check database status: $!";
     while (my $l = <$status_fh>) {
-        return if $l =~ m{up-to-date};
+        if ($l =~ m{up-to-date}) {
+            $logger->info('Database schema up to date. No migrations run.');
+            return;
+        }
     }
     close($status_fh);
 
     die "Database schema is out of date, but --migrate was not specified so we cannot upgrade.\n"
         unless $self->do_migrations;
+
+    $logger->info('Migration necessary. Running with verification enabled.');
 
     open(my $deploy_fh, '-|', 'sqitch', 'deploy', '--verify', $db_uri) or die "Could not begin database migrations: $!";
     while (my $l = <$deploy_fh>) {
@@ -348,6 +399,8 @@ sub migrate_database {
         }
     }
     close($deploy_fh);
+
+    $logger->info('Database migration completed successfully.');
 }
 
 __PACKAGE__->meta->make_immutable;

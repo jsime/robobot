@@ -72,6 +72,8 @@ sub BUILD {
 sub connect {
     my ($self) = @_;
 
+    $self->log->info(sprintf('Connecting to IRC server at %s:%s.', $self->host, $self->port));
+
     $self->client->reg_cb( registered => sub {
         my ($con) = @_;
 
@@ -89,6 +91,9 @@ sub connect {
     });
 
     $self->client->connect($self->host, $self->port, { nick => $self->nick->name });
+
+    $self->log->info('Connected.');
+
     $_->join for @{$self->channels};
 }
 
@@ -189,6 +194,8 @@ sub handle_message {
 
 sub join_channel {
     my ($self, $channel) = @_;
+
+    $self->log->info(sprintf('Joining channel #%s.', $channel->name));
 
     $self->client->send_srv( JOIN => '#' . $channel->name );
 }

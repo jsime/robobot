@@ -15,6 +15,7 @@ use JSON;
 use LWP::Simple;
 
 use App::RoboBot::Channel;
+use App::RoboBot::Message;
 use App::RoboBot::Nick;
 
 extends 'App::RoboBot::Network';
@@ -87,6 +88,8 @@ sub BUILD {
 sub connect {
     my ($self) = @_;
 
+    $self->log->info(sprintf('Connecting to Slack network %s.', $self->name));
+
     # Build our channel list so that things like channel linking will work.
     my $res = $self->bot->config->db->do(q{
         select id, name
@@ -107,9 +110,13 @@ sub connect {
 
     $self->channels(\@channels);
 
+    $self->log->debug('Channels loaded.');
+
     # Callbacks should be registered already in the BUILD method, so we just
     # need to start the client and have it connect to the Slack WebSocket API.
     $self->client->start;
+
+    $self->log->debug('SlackRTM client started.');
 }
 
 sub disconnect {
@@ -161,13 +168,19 @@ sub send {
 sub handle_message {
     my ($self, $msg) = @_;
 
+    $self->log->debug('Received incoming message.');
+
     return unless exists $msg->{'ts'};
     return if int($msg->{'ts'}) <= $self->start_ts + 5;
+
+    $self->log->debug('Message passed startup timestamp check.');
 
     # Short circuit if this isn't a 'message' type message.
     return unless defined $msg && ref($msg) eq 'HASH'
         && exists $msg->{'type'} && $msg->{'type'} eq 'message'
         && exists $msg->{'text'} && $msg->{'text'} =~ m{\w+};
+
+    $self->log->debug('Message payload appears valid.');
 
     # Ignore messages which are hidden or have a subtype (these are generall
     # message edits or similar events).
@@ -177,7 +190,12 @@ sub handle_message {
     return if exists $msg->{'subtype'} && $msg->{'subtype'} =~ m{\w+};
     return if exists $msg->{'hidden'} && $msg->{'hidden'} == 1;
 
+    $self->log->debug('Message has no subtype and is not hidden.');
+
+    $self->log->debug(sprintf('Resolving nick for Slack ID %s.', $msg->{'user'}));
     my $nick    = $self->resolve_nick($msg->{'user'});
+
+    $self->log->debug(sprintf('Resolving channel for Slack ID %s.', $msg->{'channel'}));
     my $channel = $self->resolve_channel($msg->{'channel'});
 
     return unless defined $nick && defined $channel;
@@ -193,13 +211,23 @@ sub handle_message {
     $raw_msg =~ s{\&lt;}{<}g;
     $raw_msg =~ s{\&gt;}{>}g;
 
-    my $message = App::RoboBot::Message->new(
-        bot     => $self->bot,
-        raw     => $raw_msg,
-        network => $self,
-        sender  => $nick,
-        channel => $channel,
-    );
+    $self->log->debug('Raw message stripped of markup.');
+
+    my ($message);
+
+    eval {
+        $message = App::RoboBot::Message->new(
+            bot     => $self->bot,
+            raw     => $raw_msg,
+            network => $self,
+            sender  => $nick,
+            channel => $channel,
+        );
+    };
+
+    return $self->log->fatal($@) if $@;
+
+    $self->log->debug('Message object constructed, preparing to process.');
 
     $message->process;
 }

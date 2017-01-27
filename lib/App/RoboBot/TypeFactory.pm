@@ -5,6 +5,7 @@ use v5.20;
 use namespace::autoclean;
 
 use Moose;
+use MooseX::ClassAttribute;
 
 use Module::Loaded;
 
@@ -25,13 +26,26 @@ has 'bot' => (
     required => 1,
 );
 
+class_has 'log' => (
+    is        => 'rw',
+    predicate => 'has_logger',
+);
+
+sub BUILD {
+    my ($self) = @_;
+
+    $self->log($self->bot->logger('core.type.factory')) unless $self->has_logger;
+}
+
 sub build {
     my ($self, $type, $val) = @_;
+
+    $self->log->debug(sprintf('Request to build type %s with value %s.', $type, $val));
 
     my $type_class = 'App::RoboBot::Type::' . $type;
 
     unless (is_loaded($type_class)) {
-        warn sprintf('Invalid type "%s" requested.', $type);
+        $self->log->error(sprintf('Invalid type "%s" requested.', $type));
         return;
     }
 

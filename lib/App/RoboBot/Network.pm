@@ -61,8 +61,17 @@ has 'disabled_plugins' => (
     default => sub { {} },
 );
 
+has 'log' => (
+    is        => 'rw',
+    predicate => 'has_logger',
+);
+
 sub BUILD {
     my ($self, $args) = @_;
+
+    $self->log($self->bot->logger('network.' . lc($self->type) . '.' . lc($self->name))) unless $self->has_logger;
+
+    $self->log->debug('Attempting to retrieve network record.');
 
     my $res = $self->config->db->do(q{
         select id, name
@@ -71,21 +80,29 @@ sub BUILD {
     }, $self->name);
 
     if ($res && $res->next) {
+        $self->log->debug(sprintf('Located record for ID %d.', $res->{'id'}));
+
         $self->id($res->{'id'});
     } else {
+        $self->log->debug('No existing record. Creating new network record.');
+
         $res = $self->config->db->do(q{
             insert into networks ??? returning id
         }, { name => $self->name });
 
         if ($res && $res->next) {
+            $self->log->debug(sprintf('New network record (ID %d) created.', $res->{'id'}));
+
             $self->id($res->{'id'});
         } else {
-            die "Could not generate a new network ID.";
+            die $self->log->fatal('Could not generate a new network ID.');
         }
     }
 
     # downcase all disabled plugin names for easier matching during message processing
     if (scalar(keys(%{$self->disabled_plugins})) > 0) {
+        $self->log->debug(sprintf('Network %s has disabled plugins. Normalizing names for easier lookup later.', $self->name));
+
         $self->disabled_plugins({
             map { lc($_) => 1 }
             grep { $self->disabled_plugins->{$_} =~ m{(yes|on|true|1|disabled)}i }

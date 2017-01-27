@@ -237,13 +237,11 @@ sub translate_party {
         last unless defined $translation;
         last if exists $seen{$to}{$translation};
         $seen{$to}{$translation} = 1;
-printf STDERR "** #%d %s -> %s\n", $attempt, $to, $translation;
 
         $translation = $self->_do_translate($to, $from, $translation);
         last unless defined $translation;
         last if exists $seen{$from}{$translation};
         $seen{$from}{$translation} = 1;
-printf STDERR "** #%d %s -> %s\n", $attempt, $from, $translation;
 
         $equilibrium = $translation;
     }

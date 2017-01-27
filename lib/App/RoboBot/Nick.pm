@@ -5,6 +5,7 @@ use v5.20;
 use namespace::autoclean;
 
 use Moose;
+use MooseX::ClassAttribute;
 use MooseX::SetOnce;
 
 has 'id' => (
@@ -45,11 +46,20 @@ has 'network' => (
     predicate => 'has_network',
 );
 
+class_has 'log' => (
+    is        => 'rw',
+    predicate => 'has_logger',
+);
+
 sub BUILD {
     my ($self) = @_;
 
+    $self->log($self->config->bot->logger('core.nick')) unless $self->has_logger;
+
+    $self->log->debug('Nick object construction requested.');
+
     unless ($self->has_id) {
-        die "Invalid nick creation" unless $self->has_name;
+        die $self->log->fatal('Invalid nick object creation (missing both ID and name).') unless $self->has_name;
 
         my $res = $self->config->db->do(q{
             select id
@@ -58,6 +68,8 @@ sub BUILD {
         }, $self->name);
 
         if ($res && $res->next) {
+            $self->log->debug(sprintf('Nick object creation for %s located existing ID (%d).', $self->name, $res->{'id'}));
+
             $self->id($res->{'id'});
         } else {
             $res = $self->config->db->do(q{
@@ -65,11 +77,13 @@ sub BUILD {
             }, { name => $self->name });
 
             if ($res && $res->next) {
+                $self->log->debug(sprintf('New nick record created for %s with ID %d.', $self->name, $res->{'id'}));
+
                 $self->id($res->{'id'});
             }
         }
 
-        die "Could not generate nick ID" unless $self->has_id;
+        die $self->log->fatal('Could not generate nick ID.') unless $self->has_id;
     }
 
     # TODO basic normalization of nicks (removing trailing underscores and single
@@ -81,8 +95,12 @@ sub BUILD {
 sub update_permissions {
     my ($self) = @_;
 
+    $self->log->debug(sprintf('Permissions update request for nick %s.', $self->name));
+
     # TODO: Restore old functionality of per-server permissions. Pre-AnyEvent
     #       the information to do so was missing, but now we have it back.
+
+    $self->log->debug('Collecting default permissions.');
 
     my %denied;
 
@@ -98,6 +116,8 @@ sub update_permissions {
         }
     }
 
+    $self->log->debug('Collecting nick-specific permissions.');
+
     $res = $self->config->db->do(q{
         select command, granted_by, state
         from auth_permissions
@@ -112,6 +132,12 @@ sub update_permissions {
                 $denied{$res->{'command'}} = $res->{'granted_by'};
             }
         }
+    }
+
+    if (scalar(keys(%denied)) > 0) {
+        $self->log->debug(sprintf('Setting denied functions for %s to: %s', $self->name, (join(', ', sort keys %denied))));
+    } else {
+        $self->log->debug(sprintf('Nick %s has no defined functions.', $self->name));
     }
 
     $self->_set_denied_functions(\%denied);

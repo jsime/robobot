@@ -5,6 +5,7 @@ use v5.20;
 use namespace::autoclean;
 
 use Moose;
+use MooseX::ClassAttribute;
 use MooseX::SetOnce;
 
 use JSON;
@@ -48,8 +49,17 @@ has 'config' => (
     required => 1,
 );
 
+class_has 'log' => (
+    is        => 'rw',
+    predicate => 'has_logger',
+);
+
 sub find_by_id {
     my ($class, $bot, $id) = @_;
+
+    my $logger = $bot->logger('core.channel');
+
+    $logger->debug(sprintf('Attempting to locate channel by ID %d.', $id));
 
     my $res = $bot->config->db->do(q{
         select c.id, c.name, c.extradata, c.log_enabled, n.name as network
@@ -59,6 +69,8 @@ sub find_by_id {
     }, $id);
 
     return unless $res && $res->next;
+
+    $logger->debug(sprintf('Found channel %s on network %s (ID %d).', $res->{'name'}, $res->{'network'}, $res->{'id'}));
 
     return $class->new(
         id          => $res->{'id'},
@@ -73,7 +85,12 @@ sub find_by_id {
 sub BUILD {
     my ($self) = @_;
 
+    $self->log($self->config->bot->logger('core.channel')) unless $self->has_logger;
+
+    $self->log->debug('Building new channel object.');
+
     unless ($self->has_id) {
+        $self->log->debug('Channel object does not already have ID. Preparing to store new channel record.');
         die "Invalid channel creation" unless $self->has_name && $self->has_network;
 
         my $res = $self->config->db->do(q{
@@ -83,9 +100,13 @@ sub BUILD {
         }, $self->network->id, $self->name);
 
         if ($res && $res->next) {
+            $self->log->debug(sprintf('Located existing record (ID %d).', $res->{'id'}));
+
             $self->id($res->{'id'});
             $self->log_enabled($res->{'log_enabled'});
         } else {
+            $self->log->debug('Creating new channel record.');
+
             $res = $self->config->db->do(q{
                 insert into channels ??? returning id
             }, {
@@ -95,16 +116,22 @@ sub BUILD {
             });
 
             if ($res && $res->next) {
+                $self->log->debug(sprintf('Channel %s has received new ID %d.', $self->name, $res->{'id'}));
+
                 $self->id($res->{'id'});
             }
         }
 
         die "Could not generate channel ID" unless $self->has_id;
     }
+
+    $self->log->debug('Finished building new channel object.');
 }
 
 sub join {
     my ($self) = @_;
+
+    $self->log->debug(sprintf('Channel join request for %s on network %s.', $self->name, $self->network->name));
 
     $self->network->join_channel($self);
 }
@@ -112,11 +139,15 @@ sub join {
 sub part {
     my ($self, $irc) = @_;
 
+    $self->log->debug(sprintf('Channel part request for %s on network %s.', $self->name, $self->network->name));
+
     # TODO switch to AnyEvent and perform part appropriate to network's type
 }
 
 sub disable_logging {
     my ($self) = @_;
+
+    $self->log->debug(sprintf('Channel logging disable for %s on network %s.', $self->name, $self->network->name));
 
     return 1 unless $self->log_enabled;
 
@@ -134,6 +165,8 @@ sub disable_logging {
 
 sub enable_logging {
     my ($self) = @_;
+
+    $self->log->debug(sprintf('Channel logging enable for %s on network %s.', $self->name, $self->network->name));
 
     return 1 if $self->log_enabled;
 

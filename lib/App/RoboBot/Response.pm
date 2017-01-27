@@ -5,6 +5,7 @@ use v5.20;
 use namespace::autoclean;
 
 use Moose;
+use MooseX::ClassAttribute;
 use MooseX::SetOnce;
 
 has 'content' => (
@@ -53,6 +54,17 @@ has 'bot' => (
     isa => 'App::RoboBot',
 );
 
+class_has 'log' => (
+    is        => 'rw',
+    predicate => 'has_logger',
+);
+
+sub BUILD {
+    my ($self) = @_;
+
+    $self->log($self->bot->logger('core.response')) unless $self->has_logger;
+}
+
 sub raise {
     my ($self, $format, @args) = @_;
 
@@ -63,12 +75,16 @@ sub raise {
         $self->error($format);
     }
 
+    $self->log->error(sprintf('Raising error: %s', $self->error));
+
     $self->push("Error: " . $self->error);
     $self->send;
 }
 
 sub send {
     my ($self) = @_;
+
+    $self->log->debug('Preparing to send response.');
 
     return unless $self->has_content;
 
@@ -91,10 +107,14 @@ sub push {
         # one or more of their own arguments in the push(), still blessed as a
         # Data::SExpression object.
         if ($self->has_content) {
+            $self->log->debug('Appending response push data to existing content.');
             push(@{$self->content}, map { "$_" } @args);
         } else {
+            $self->log->debug('Initializing response content list with new response push data.');
             $self->content([map { "$_" } @args]);
         }
+    } else {
+        $self->log->warn('Receiving response push request with no data.');
     }
 }
 

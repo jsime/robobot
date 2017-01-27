@@ -5,6 +5,7 @@ use v5.20;
 use namespace::autoclean;
 
 use Moose;
+use MooseX::ClassAttribute;
 use MooseX::SetOnce;
 
 use App::RoboBot::Nick;
@@ -93,10 +94,21 @@ has 'expression' => (
     writer => '_set_expression',
 );
 
+class_has 'log' => (
+    is        => 'rw',
+    predicate => 'has_logger',
+);
+
 sub BUILD {
     my ($self) = @_;
 
+    $self->log($self->bot->logger('core.macro')) unless $self->has_logger;
+
+    $self->log->debug(sprintf('Creating new macro object for %s on network %s.', $self->name, $self->network->name));
+
     $self->_generate_expression($self->definition) if defined $self->definition;
+
+    $self->log->debug(sprintf('Macro expression generated from definition for %s.', $self->name));
 }
 
 around 'definition' => sub {
@@ -107,6 +119,8 @@ around 'definition' => sub {
 
     my $def = shift;
 
+    $self->log->debug(sprintf('Macro definition updating for %s on network %s.', $self->name, $self->network->name));
+
     $self->_generate_expression($def);
     return $self->$orig($def);
 };
@@ -114,19 +128,31 @@ around 'definition' => sub {
 sub _generate_expression {
     my ($self, $def) = @_;
 
+    $self->log->debug(sprintf('Generating expression from %s macro definition.', $self->name));
+
     unless (defined $def) {
+        $self->log->debug('No definition body available. Setting empty expression.');
+
         $self->_set_expression([]);
         return;
     }
 
+    $self->log->debug('Creating expression parser.');
+
     my $parser = App::RoboBot::Parser->new( bot => $self->bot );
     my $expr = $parser->parse($def);
 
+    $self->log->debug('Macro definition body parsed.');
+
     unless (defined $expr && blessed($expr) =~ m{^App::RoboBot::Type}) {
+        $self->log->debug('Parse results yielded invalid expression. Marking macro as invalid.');
+
         $self->_set_valid(0);
         $self->_set_error("Macro definition body must be a valid expression or list.");
         return;
     }
+
+    $self->log->debug('Valid expression generated. Marking macro valid and setting internal expression.');
 
     $self->_set_valid(1);
     $self->_set_expression($expr);
@@ -134,6 +160,10 @@ sub _generate_expression {
 
 sub load_all {
     my ($class, $bot) = @_;
+
+    my $logger = $bot->logger('core.macro');
+
+    $logger->debug('Macro load_all() request.');
 
     my $res = $bot->config->db->do(q{
         select m.macro_id, m.network_id, m.name, m.arguments, m.definition,
@@ -150,6 +180,8 @@ sub load_all {
         my $network = $bot->network_by_id($res->{'network_id'});
         next unless defined $network;
 
+        $logger->debug(sprintf('Loading macro %s for network %s.', $res->{'name'}, $network->name));
+
         $macros{$network->id} = {} unless exists $macros{$network->id};
 
         $macros{$network->id}{$res->{'name'}} = $class->new(
@@ -165,15 +197,21 @@ sub load_all {
         );
     }
 
+    $logger->debug('All macros loaded. Returning collection.');
+
     return %macros;
 }
 
 sub save {
     my ($self) = @_;
 
+    $self->log->debug(sprintf('Save request for macro %s on network %s.', $self->name, $self->network->name));
+
     my $res;
 
     if ($self->has_id) {
+        $self->log->debug(sprintf('Macro %s already has ID (%d). Updating existing record.', $self->name, $self->id));
+
         $res = $self->bot->config->db->do(q{
             update macros set ??? where macro_id = ?
         }, {
@@ -185,8 +223,10 @@ sub save {
 
         return 1 if $res;
     } else {
+        $self->log->debug(sprintf('Macro %s does not have ID. Creating new record.', $self->name));
+
         unless ($self->has_definer) {
-            warn sprintf("Attempted to save macro '%s' without a definer attribute.\n", $self->name);
+            $self->log->error(sprintf('Attempted to save macro %s on network %s without a definer attribute.', $self->name, $self->network->name));
             return 0;
         }
 
@@ -203,29 +243,40 @@ sub save {
         });
 
         if ($res && $res->next) {
+            $self->log->debug(sprintf('New macro record created for %s on network %s (ID %d).', $self->name, $self->network->name, $res->{'macro_id'}));
+
             $self->id($res->{'macro_id'});
             return 1;
         }
     }
 
+    $self->log->error(sprintf('Save for macro %s on network %s failed.', $self->name, $self->network->name));
     return 0;
 }
 
 sub delete {
     my ($self) = @_;
 
+    $self->log->debug(sprintf('Macro delete request for %s on network %s.', $self->name, $self->network->name));
+
     return 0 unless $self->has_id;
+
+    $self->log->debug(sprintf('Removing macro record for ID %d.', $self->id));
 
     my $res = $self->bot->config->db->do(q{
         delete from macros where macro_id = ?
     }, $self->id);
 
     return 0 unless $res;
+
+    $self->log->debug('Record deletion successful.');
     return 1;
 }
 
 sub lock {
     my ($self) = @_;
+
+    $self->log->debug(sprintf('Macro lock request for %s on network %s.', $self->name, $self->network->name));
 
     return 0 if $self->is_locked;
 
@@ -236,6 +287,8 @@ sub lock {
 sub unlock {
     my ($self) = @_;
 
+    $self->log->debug(sprintf('Macro unlock request for %s on network %s.', $self->name, $self->network->name));
+
     return 0 if ! $self->is_locked;
 
     $self->is_locked(0);
@@ -245,10 +298,16 @@ sub unlock {
 sub expand {
     my ($self, $message, $rpl, @args) = @_;
 
+    $self->log->debug(sprintf('Macro expansion for %s on network %s (%d arguments).', $self->name, $self->network->name, scalar(@args)));
+
     my $expr = clone($self->expression);
+
+    $self->log->debug('Macro expression cloned.');
 
     my $req_count = scalar( grep { $_->{'optional'} != 1 } @{$self->arguments->{'positional'}} ) // 0;
     if ($req_count > 0 && scalar(@args) < $req_count) {
+        $self->log->error(sprintf('Macro expansion received incorrect number of arguments (expected %d, got %d).', $req_count, scalar(@args)));
+
         $message->response->raise('Macro %s expects at least %d arguments, but you provided %d.', $self->name, $req_count, scalar(@args));
         return;
     }
@@ -270,11 +329,15 @@ sub expand {
         $rpl->{ $self->arguments->{'rest'} } = join(' ', @args);
     }
 
+    $self->log->debug('Macro arguments constructed. Preparing to evaluate.');
+
     return $expr->evaluate($message, $rpl);
 }
 
 sub signature {
     my ($self) = @_;
+
+    $self->log->debug(sprintf('Generating macro signature for %s on network %s.', $self->name, $self->network->name));
 
     my @arg_list = ();
 
