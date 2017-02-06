@@ -13,6 +13,7 @@ use DateTime;
 use HTTP::Request;
 use JSON;
 use LWP::UserAgent;
+use LWP::Protocol::https;
 use URI;
 
 use App::RoboBot::Channel;
