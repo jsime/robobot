@@ -90,6 +90,13 @@ The explicit function call version of decrementing the named person's karma.
 Displays the highest reputation users on the current network. Any ties are
 sorted alphabetically.
 
+=head2 karma-losers
+
+=head3 Description
+
+Displays the lowest reputation users on the current network. Any ties are
+sorted alphabetically.
+
 =cut
 
 has '+commands' => (
@@ -108,6 +115,9 @@ has '+commands' => (
 
         'karma-leaders' => { method      => 'karma_leaders',
                              description => 'Displays the nicks on your current network with the highest current karma.', },
+
+        'karma-losers' => { method      => 'karma_losers',
+                            description => 'Displays the nicks on your current network with the lowest current karma.', },
     }},
 );
 
@@ -246,6 +256,37 @@ sub karma_leaders {
                           group by n.id)
         group by t.nicks, n.name
         order by 2 desc, n.name asc
+        limit 5
+    }, $message->network->id);
+
+    if ($res) {
+        while ($res->next) {
+            $message->response->push(sprintf('*%s*: %s', $res->nick, $self->nf->format_number($res->{'karma'} || 0, 4, 1)));
+        }
+    }
+
+    return;
+}
+
+sub karma_losers {
+    my ($self, $message, $command, $rpl) = @_;
+
+    my $res = $self->bot->config->db->do(q{
+        with t as (select count(*) as nicks from nicks)
+        select n.name as nick,
+            coalesce(sum(k.karma)::real * (count(distinct(k.from_nick_id))::real / t.nicks), 0) * 100 as karma
+        from karma_karma k
+            join nicks n on (n.id = k.nick_id),
+            t
+        where length(n.name) > 0
+            and n.id in ( select n.id
+                          from nicks n
+                              join logger_log l on (l.nick_id = n.id)
+                              join channels c on (c.id = l.channel_id)
+                          where c.network_id = ?
+                          group by n.id)
+        group by t.nicks, n.name
+        order by 2 asc, n.name asc
         limit 5
     }, $message->network->id);
 
