@@ -353,7 +353,9 @@ sub log_incoming {
 sub log_outgoing {
     my ($self, $message) = @_;
 
-    if ($message->response->has_channel && $message->response->has_content && $message->channel->log_enabled) {
+    return unless $message->response->has_content;
+
+    if ($message->response->has_channel && $message->channel->log_enabled) {
         $self->bot->config->db->do(q{
             insert into logger_log ???
         }, [map {{
@@ -361,14 +363,14 @@ sub log_outgoing {
             nick_id    => $message->network->nick->id,
             message    => $_,
         }} @{$message->response->content}] );
+    }
 
-        my $msg_logger = $self->bot->logger('msg.tx');
+    my $msg_logger = $self->bot->logger('msg.tx');
 
-        foreach my $line (@{$message->response->content}) {
-            $msg_logger->info(sprintf('(%s/%s) <%s> %s', $message->network->name,
-                ($message->response->has_channel ? $message->response->channel->name : '-'),
-                $message->network->nick->name, $line));
-        }
+    foreach my $line (@{$message->response->content}) {
+        $msg_logger->info(sprintf('(%s/%s) <%s> %s', $message->network->name,
+            ($message->response->has_channel ? $message->response->channel->name : '-'),
+            $message->network->nick->name, $line));
     }
 }
 
