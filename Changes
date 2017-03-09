@@ -1,12 +1,15 @@
 Revision history for App-RoboBot
 
-4.004     2017-02-XX
+4.004     2017-03-XX
   - Added karma-losers to social.karma module.
   - Fix bot.logging to properly log outgoing messages even for non-channel
     messages or when channel logging is disabled (a slight misnomer here, since
     channel logging refers to whether chat history is available to members of
     the channel, as opposed to whether Log4Perl facilities receive the events).
   - Fix a couple missing dependencies by manually listing them in dist.ini.
+  - Added clear-skills function to social.skills module.
+  - Added bot.irc module with irc-kick and irc-mode functions.
+  - Removed api.taskman module.
 
 4.003     2017-01-27
   - Introduction of Log4perl logging abstraction and a plethora of logging
