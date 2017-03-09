@@ -102,6 +102,19 @@ sub disconnect {
     #       call client->disconnect
 }
 
+sub kick {
+    my ($self, $response, $nick, $message) = @_;
+
+    return unless $response->has_channel;
+    my $channel = '#' . $response->channel->name;
+
+    return unless defined $nick && defined $message && $nick =~ m{\w+} && $message =~ m{\w+};
+
+    $self->client->send_long_message('utf8', 0, "KICK", $channel, $nick, $message);
+
+    return;
+}
+
 sub send {
     my ($self, $response) = @_;
 
