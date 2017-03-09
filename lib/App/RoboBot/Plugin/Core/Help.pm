@@ -188,24 +188,26 @@ sub command_help {
 
     if (exists $self->bot->commands->{$command_name}) {
         my $plugin = $self->bot->commands->{$command_name};
-        my $metadata = $plugin->commands->{$command_name};
+        my $doc = $self->bot->doc->function($plugin->ns, $command_name);
 
-        if (exists $metadata->{'usage'} && $metadata->{'usage'} =~ m{\w+}o) {
-            $message->response->push(sprintf('(%s %s)', $command_name, $metadata->{'usage'}));
+        if (exists $doc->{'usage'} && ref($doc->{'usage'}) eq 'ARRAY' && $doc->{'usage'}[0] =~ m{\w+}o) {
+            $message->response->push(sprintf('(%s/%s %s)', $plugin->ns, $command_name, $doc->{'usage'}[0]));
         } else {
-            $message->response->push(sprintf('(%s)', $command_name));
+            $message->response->push(sprintf('(%s/%s)', $plugin->ns, $command_name));
         }
 
-        $message->response->push($metadata->{'description'}) if exists $metadata->{'description'};
-
-        if (exists $metadata->{'example'} && exists $metadata->{'result'}) {
-            $message->response->push(sprintf('Example: (%s %s) -> %s', $command_name, $metadata->{'example'}, $metadata->{'result'}));
-        } elsif (exists $metadata->{'example'}) {
-            $message->response->push(sprintf('Example: (%s %s)', $command_name, $metadata->{'example'}));
+        if (exists $doc->{'description'} && ref($doc->{'description'}) eq 'ARRAY') {
+            $message->response->push($_) for @{$doc->{'description'}};
         }
 
-        $message->response->push(sprintf('See also: %s', join(', ', @{$metadata->{'see_also'}})))
-            if exists $metadata->{'see_also'};
+        if (exists $doc->{'example'} && exists $doc->{'result'}) {
+            $message->response->push(sprintf('Example: (%s %s) -> %s', $command_name, $doc->{'example'}, $doc->{'result'}));
+        } elsif (exists $doc->{'example'}) {
+            $message->response->push(sprintf('Example: (%s %s)', $command_name, $doc->{'example'}));
+        }
+
+        $message->response->push(sprintf('See also: %s', join(', ', @{$doc->{'see_also'}})))
+            if exists $doc->{'see_also'};
 
         $message->response->push(sprintf('Documentation: https://robobot.automatomatromaton.com/modules/%s/index.html#%s', $plugin->ns, $command_name));
     } else {
