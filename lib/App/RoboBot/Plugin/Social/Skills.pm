@@ -185,6 +185,17 @@ to the original skill.
     (relate-skills PostgreSQL SQL)
     (relate-skills Puppet CM Python)
 
+=head2 clear-skills
+
+=head3 Description
+
+Clears the skills list for the given user. It would be wise for most instances
+of this software to restrict access to this function via (auth-deny).
+
+=head3 Usage
+
+<nick>
+
 =cut
 
 has '+commands' => (
@@ -225,8 +236,34 @@ has '+commands' => (
                              description => 'Creates a relationship between multiple skills. Related skills will show up in the output of (whoknows). Note that this function creates one-way relationships, since they are more often relevant than assuming a two-way relationship. In other words, (relate-skills Oracle SQL) to indicate SQL is related to Oracle is more relevant than (relate-skills SQL Oracle) implying that the product Oracle is relevant to general questions about SQL.',
                              usage       => '<parent skill name> <related skill name>',
                              example     => 'NodeJS Javascript' },
+
+        'clear-skills' => { method      => 'clear_skills',
+                            description => 'Clears the skills list for the given user.',
+                            usage       => '<nick>' },
     }},
 );
+
+sub clear_skills {
+    my ($self, $message, $command, $rpl, $nick) = @_;
+
+    unless (defined $nick && $nick =~ m{\w+}o) {
+        $message->response->raise('Must provide a nick whose skills you wish to remove.');
+        return;
+    }
+
+    my $res = $self->bot->config->db->do(q{
+        delete from skills_nicks
+        where nick_id = (select id from nicks where lower(name) = lower(?))
+    }, $nick);
+
+    unless ($res) {
+        $self->log->error(sprintf('Failed to delete nick skills: %s', $res->error));
+        $message->response->raise('Could not remove skills for nick %s.', $nick);
+        return;
+    }
+
+    $message->response->push(sprintf('Removed %d skills for nick %s.', $res->count(), $nick));
+}
 
 sub relate_skills {
     my ($self, $message, $command, $rpl, $skill, @skills) = @_;
