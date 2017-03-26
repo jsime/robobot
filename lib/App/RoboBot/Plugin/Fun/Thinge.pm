@@ -114,41 +114,15 @@ Search patterns are unanchored, case-insensitive regular expressions.
 
 has '+commands' => (
     default => sub {{
-        'thinge' => { method      => 'thinge',
-                      description => 'Returns a specific thinge (when the <id> is given), a random thinge with a particular tag (when <tag> is given), or a random thinge of <type> from the collection (when only <type> is provided).',
-                      usage       => '<type> [<id> | <tag>]' },
-
-        'thinge-find' => { method      => 'find_thinge',
-                           description => 'Searches through the thinges of a given type for any containing the pattern <pattern>. Patterns may be simple strings or regular expressions.',
-                           usage       => '<type> <pattern>', },
-
-        'thinge-add' => { method      => 'save_thinge',
-                          description => 'Saves a thinge to the collection and reports its ID.',
-                          usage       => '<type> "<text>"' },
-
-        'thinge-delete' => { method      => 'delete_thinge',
-                             description => 'Removes the specified thinge from the collection.',
-                             usage       => '<type> <id>' },
-
-        'thinge-tag' => { method      => 'tag_thinge',
-                          description => 'Tags the specified thinge with the given list of tags.',
-                          usage       => '<type> <id> "<tag>" ["<tag 2>" ... "<tag N>"]' },
-
-        'thinge-untag' => { method      => 'untag_thinge',
-                          description => 'Untags the specified thinge with the given list of tags.',
-                          usage       => '<type> <id> "<tag>" ["<tag 2>" ... "<tag N>"]' },
-
-        'thinge-counts' => { method      => "show_type_counts",
-                             description => 'Returns a map of thinges, where the keys are each thinge type\'s name and the value is how many are in that thinge\'s collection for the current network.',
-                             usage       => '' },
-
-        'thinge-types' => { method      => "show_types",
-                            description => 'Lists the current types of thinges which have collections.',
-                            usage       => '' },
-
-        'thinge-search' => { method      => 'search_thinges',
-                             description => 'Like (thinge-find), will search through the type of thinges specified, but unlike -find this function returns a summary of multiple matches. The <limit> argument may be used to change the number of matches shown (10 by default). Search patterns are unanchored, case-insensitive regular expressions.',
-                             usage       => '<type> <pattern> [<limit>]' },
+        'thinge'        => { method => 'thinge' },
+        'thinge-find'   => { method => 'find_thinge' },
+        'thinge-add'    => { method => 'save_thinge' },
+        'thinge-delete' => { method => 'delete_thinge' },
+        'thinge-tag'    => { method => 'tag_thinge' },
+        'thinge-untag'  => { method => 'untag_thinge' },
+        'thinge-counts' => { method => 'show_type_counts' },
+        'thinge-types'  => { method => 'show_types' },
+        'thinge-search' => { method => 'search_thinges' },
     }},
 );
 

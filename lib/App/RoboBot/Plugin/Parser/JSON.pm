@@ -49,11 +49,7 @@ JSON document. JSONPath is described at http://goessner.net/articles/JsonPath/.
 
 has '+commands' => (
     default => sub {{
-        'jq' => { method      => 'json_jq',
-                  description => 'Performs an JSONPath query against the given JSON document.',
-                  usage       => '<jsonpath query> <document string>',
-                  example     => '"$.name" "{\"name\": \"Robert\", \"age\": 70 }"',
-                  result      => '"Robert"' },
+        'jq' => { method => 'json_jq' },
     }},
 );
 

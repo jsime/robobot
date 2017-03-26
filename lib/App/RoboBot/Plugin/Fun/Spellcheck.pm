@@ -65,13 +65,8 @@ system dictionary.
 
 has '+commands' => (
     default => sub {{
-        'remember' => { method      => 'remember_words',
-                        description => 'Add words to the local dictionary to avoid correcting their spelling in future messages.',
-                        usage       => '<word> [<word 2> ... <word N>]' },
-
-        'forget' => { method      => 'forget_words',
-                      description => 'Remove words from the local dictionary. Does not affect words in the global system dictionary.',
-                      usage       => '<word> [<word 2> ... <word N>]' },
+        'remember' => { method => 'remember_words' },
+        'forget'   => { method => 'forget_words' },
     }},
 );
 

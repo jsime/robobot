@@ -63,11 +63,8 @@ current network.
 
 has '+commands' => (
     default => sub {{
-        'help' => { method  => 'help',
-                    usage   => '[:module <module name> | <function> | <macro>]' },
-
-        'help-all' => { method      => 'help_all',
-                        description => 'Displays a complete listing of all functions and macros available on the current network.', },
+        'help'     => { method => 'help' },
+        'help-all' => { method => 'help_all' },
     }},
 );
 
@@ -209,7 +206,10 @@ sub command_help {
         $message->response->push(sprintf('See also: %s', join(', ', @{$doc->{'see_also'}})))
             if exists $doc->{'see_also'};
 
-        $message->response->push(sprintf('Documentation: https://robobot.automatomatromaton.com/modules/%s/index.html#%s', $plugin->ns, $command_name));
+        my $ns_path = $plugin->ns;
+        $ns_path =~ s{\.}{/}gs;
+
+        $message->response->push(sprintf('Documentation: https://robobot.automatomatromaton.com/modules/%s/index.html#%s', $ns_path, $command_name));
     } else {
         $message->response->push(sprintf('Unknown function: %s', $command_name));
     }

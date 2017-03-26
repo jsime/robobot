@@ -105,18 +105,9 @@ finished madlibs will be shown.
 
 has '+commands' => (
     default => sub {{
-        'madlib' => { method      => 'madlib',
-                      description => 'Given no arguments, selects a madlib at random and requests a list of words from the user. Given arguments, places the provided words into the specified madlib and displays the results.',
-                      usage       => '[<id> <word1> ... <wordN>]', },
-
-        'create-madlib' => { method      => 'create_madlib',
-                             description => 'Creates a new madlib. The only argument should be the content of the madlib, with placeholders marked between curly-braces.',
-                             usage       => '"<text of madlib>"',
-                             example     => '"The {noun} decided to {verb} a {noun} before {daily event}."', },
-
-        'show-madlib' => { method      => 'show_madlib',
-                           description => 'Given an <id>, displays the completed madlib, otherwise picks one at random to display. Only finished madlibs will be shown.',
-                           usage       => '[<id>]', },
+        'madlib'        => { method => 'madlib' },
+        'create-madlib' => { method => 'create_madlib' },
+        'show-madlib'   => { method => 'show_madlib' },
     }},
 );
 

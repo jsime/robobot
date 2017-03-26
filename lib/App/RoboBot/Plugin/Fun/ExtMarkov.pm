@@ -40,12 +40,8 @@ chain which is neither extremely long nor short.
 
 has '+commands' => (
     default => sub {{
-        'ext-markov' => { method      => 'generate_external_markov',
-                          description => 'Generates and returns a markov chain from the named corpus.',
-                          usage       => '<corpus>', },
-
-        'ext-markov-corpora' => { method      => 'external_markov_corpora',
-                                  description => 'Returns a list of the known corpora for generating markov chains.', },
+        'ext-markov'         => { method => 'generate_external_markov' },
+        'ext-markov-corpora' => { method => 'external_markov_corpora' },
     }},
 );
 

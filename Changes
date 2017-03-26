@@ -1,5 +1,9 @@
 Revision history for App-RoboBot
 
+4.005     TBD
+  - Removed command metadata for descriptions, usage, etc. now that internal
+    help functions use the POD sourced documentation.
+
 4.004     2017-03-19
   - Added karma-losers to social.karma module.
   - Fix bot.logging to properly log outgoing messages even for non-channel

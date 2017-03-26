@@ -78,12 +78,8 @@ the channel call this function repeatedly.
 
 has '+commands' => (
     default => sub {{
-        'pagerduty-groups' => { method      => 'list_groups',
-                                description => 'Displays the list of PagerDuty contact groups which currently have API keys configured.' },
-
-        'pagerduty-oncall' => { method      => 'oncall',
-                                description => 'Displays on-call information for the named group, based on the current schedule in PagerDuty. All remaining arguments after the group name, if provided, will be echoed back.',
-                                usage       => '<group name> [<message>]', },
+        'pagerduty-groups' => { method => 'list_groups' },
+        'pagerduty-oncall' => { method => 'oncall' },
     }},
 );
 

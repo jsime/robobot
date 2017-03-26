@@ -61,21 +61,10 @@ has 'reply_cache' => (
 
 has '+commands' => (
     default => sub {{
-        'autoreply' => { method          => 'autoreply_create',
-                         preprocess_args => 0,
-                         description     => 'Creates an autoreplier with the given condition and response expressions.',
-                         usage           => '<name> (<condition expression>) (<response expression>)' },
-
-        'autoreply-list' => { method      => 'autoreply_list',
-                              description => 'Returns a list of the autoreplies that exist in the current channel.', },
-
-        'autoreply-delete' => { method      => 'autoreply_delete',
-                                description => 'Deletes the named autoreply for the current channel.',
-                                usage       => '<name>', },
-
-        'autoreply-show' => { method      => 'autoreply_show',
-                              description => 'Displays the condition and response expressions for the named autoreply within the current channel.',
-                              usage       => '<name>', },
+        'autoreply'        => { method => 'autoreply_create', preprocess_args => 0 },
+        'autoreply-list'   => { method => 'autoreply_list' },
+        'autoreply-delete' => { method => 'autoreply_delete' },
+        'autoreply-show'   => { method => 'autoreply_show' },
     }},
 );
 

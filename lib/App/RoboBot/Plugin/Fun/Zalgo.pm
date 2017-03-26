@@ -21,9 +21,7 @@ has '+description' => (
 
 has '+commands' => (
     default => sub {{
-        zalgo => { method      => 'filter_zalgo',
-                   description => 'Filters input argument text through a Zalgo generator.',
-                   usage       => '<text>' }
+        zalgo => { method => 'filter_zalgo' },
     }}
 );
 

@@ -47,9 +47,7 @@ the bot next sees them speak.
 
 has '+commands' => (
     default => sub {{
-        'memo' => { method      => 'memo_save',
-                    description => 'Saves the message as a memo for the given nick, to be delivered to them when the bot next sees them speak.',
-                    usage       => '<nick> "<message>"' },
+        'memo' => { method => 'memo_save' },
     }},
 );
 

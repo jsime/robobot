@@ -63,17 +63,8 @@ modifiers ``/ig`` are implied.
 
 has '+commands' => (
     default => sub {{
-        'match' => { method      => 're_match',
-                     description => 'Returns a list of matches from the given text for the supplied pattern. PCRE modifiers "i" and "g" are implied.',
-                     usage       => '<pattern> <text>',
-                     example     => '"\d+" "The year 2014 saw precisely 10 things happen."',
-                     result      => '("2014" "10")' },
-
-        'replace' => { method      => 're_replace',
-                       description => 'Replaces any matches of pattern in the given text with the given string. PCRE modifiers "i" and "g" are implied.',
-                       usage       => '<pattern> <replacement> <text>',
-                       example     => '"hundred" "billion" "You have won a hundred dollars!"',
-                       result      => 'You have won a billion dollars!' },
+        'match'   => { method => 're_match' },
+        'replace' => { method => 're_replace' },
     }},
 );
 

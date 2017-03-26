@@ -64,12 +64,7 @@ including any inner scopes.
 
 has '+commands' => (
     default => sub {{
-        'let' => { method          => 'core_let',
-                   preprocess_args => 0,
-                   description     => 'Creates a new scope with one or more variables (as defined in the mandatory vector) and then evaluates all child forms within that scope. Masking is supported, in that conflicting variable names from the outer scope will have their values restored when the scope created by this form is terminated. The return value of this function is that of the last child form evaluated.',
-                   usage           => '<vector of scoped variables> <list|expression> [<list|expression> ...]',
-                   example         => '[two (+ 1 1)] (* two 4)',
-                   result          => '8' },
+        'let' => { method => 'core_let', preprocess_args => 0 },
     }},
 );
 

@@ -57,17 +57,8 @@ values are passed through unchanged.
 
 has '+commands' => (
     default => sub {{
-        'to-nick' => { method      => 'to_nick',
-                       description => 'Redirects output to a private message delivered to the given nick. Must be on the same server. All input values are passed through unchanged.',
-                       usage       => '<nick> <value> [<value 2> ... <value N>]',
-                       example     => 'dungeonmaster (join ": " "I roll stealth" (roll 20 1))',
-                       result      => '[dungeonmaster] I roll stealth: 18' },
-
-        'to-channel' => { method      => 'to_channel',
-                          description => 'Redirects output to a specific channel. Must be on the same server. All input values are passed through unchanged.',
-                          usage       => '<channel> <value> [<value 2> ... <value N>]',
-                          example     => '#boringchan "Join us over in #superfunchan!"',
-                          result      => '[#boringchan] Join us over in #superfunchan!' },
+        'to-nick'    => { method => 'to_nick' },
+        'to-channel' => { method => 'to_channel' },
     }},
 );
 

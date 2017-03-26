@@ -57,17 +57,9 @@ connected.
 
 has '+commands' => (
     default => sub {{
-        'version' => { method      => 'version',
-                       description => 'Returns a string with the bot\'s version number.',
-                       usage       => '' },
-
-        'channel-list' => { method      => 'channels',
-                            description => 'By default, returns a list of the channels on this network which the bot has joined. If provided a network name, will return the list of channels joined by the bot on that network. Refer to (network-list) for the list of network names.',
-                            usage       => '[<network>]' },
-
-        'network-list' => { method      => 'networks',
-                            description => 'Returns a list of the networks to which the bot is currently connected.',
-                            usage       => '' },
+        'version'      => { method => 'version' },
+        'channel-list' => { method => 'channels' },
+        'network-list' => { method => 'networks' },
     }},
 );
 

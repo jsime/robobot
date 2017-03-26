@@ -171,31 +171,12 @@ suspension.
 
 has '+commands' => (
     default => sub {{
-        'set-alarm' => { method      => 'set_alarm',
-                         preprocess_args => 0,
-                         keyed_args  => 1,
-                         description => 'Creates a new alarm to emit the given message in the current channel, according to the :first and :recurring options. If an alarm by the same name already exists, its settings are replaced. Alarms that have no :recurring option will be deleted after they occur.',
-                         usage       => '<alarm name> :first "<ISO8601 datetime>" [:recurring "<interval specification>"] [:exclude "<date pattern exclusions>"] [<message>]',
-                         example     => '"Morning Dev Standup" :first "2015-07-06 10:30 EDT" :recurring "1 day" :exclude "Day=(Saturday|Sunday)" "Meet in the large conference room."', },
-
-        'delete-alarm' => { method      => 'delete_alarm',
-                            description => 'Deletes the named alarm permanently.',
-                            usage       => '<alarm name>', },
-
-        'show-alarm' => { method      => 'show_alarm',
-                          description => 'Shows an alarm and its current settings.',
-                          usage       => '<alarm name>', },
-
-        'list-alarms' => { method      => 'list_alarms',
-                           description => 'Lists all of the alarms that have been set for the current channel.', },
-
-        'resume-alarm' => { method      => 'resume_alarm',
-                            description => 'Resumes repeating occurrences of a suspended alarm.',
-                            usage       => '<alarm name>', },
-
-        'suspend-alarm' => { method      => 'suspend_alarm',
-                             description => 'Temporarily disables an alarm from emitting messages.',
-                             usage       => '<alarm name>', },
+        'set-alarm'     => { method => 'set_alarm', preprocess_args => 0, keyed_args  => 1 },
+        'delete-alarm'  => { method => 'delete_alarm' },
+        'show-alarm'    => { method => 'show_alarm' },
+        'list-alarms'   => { method => 'list_alarms' },
+        'resume-alarm'  => { method => 'resume_alarm' },
+        'suspend-alarm' => { method => 'suspend_alarm' },
     }},
 );
 

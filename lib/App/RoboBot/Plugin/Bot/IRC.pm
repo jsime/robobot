@@ -47,8 +47,8 @@ have kick privileges for the function to do anything.
 
 has '+commands' => (
     default => sub {{
-        'irc-kick' => { method => 'irc_kick',
-                        description => 'Kicks the named user from the current channel, with the optional message.' },
+        'irc-kick'   => { method => 'irc_kick' },
+        'irc-chanop' => { method => 'irc_channel_op' },
     }},
 );
 
@@ -71,6 +71,25 @@ sub irc_kick {
     $msg = join(' ', @args) if @args > 0;
 
     $message->response->network->kick($message->response, $nick, $msg);
+    return;
+}
+
+sub irc_channel_op {
+    my ($self, $message, $command, $rpl, @nicks) = @_;
+
+    unless ($message->response->network->type eq 'irc') {
+        $self->log->error('Cannot use irc-chanop on non-IRC networks.');
+        $message->response->raise('irc-chanop works only on IRC networks.');
+        return;
+    }
+
+    unless (@nicks > 0) {
+        $self->log->error('No nicks provided for granting channel operator status.');
+        $message->response->raise('Must provide at least one nick to grant channel operator status.');
+        return;
+    }
+
+    $message->response->network->chanop($message->response, @nicks);
     return;
 }
 

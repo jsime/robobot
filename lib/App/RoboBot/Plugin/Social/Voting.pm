@@ -8,6 +8,12 @@ use Moose;
 
 extends 'App::RoboBot::Plugin';
 
+=head1 social.voting
+
+Provides functions for creating, voting on, and tallying polls.
+
+=cut
+
 has '+name' => (
     default => 'Social::Voting',
 );
@@ -16,27 +22,83 @@ has '+description' => (
     default => 'Provides functions for creating, voting on, and tallying polls.',
 );
 
+=head2 propose
+
+=head3 Description
+
+Creates a new poll question, with allowed responses (and optional write-in).
+Displays the poll ID and instructions on voting.
+
+=head3 Usage
+
+<question> <response1> ... <responseN> [:write-in]
+
+=head3 Examples
+
+    (propose "What should we get for lunch?"
+      Pizza Indian "Bucket of cookies"
+      :write-in)
+
+=head2 poll
+
+=head3 Description
+
+Displays the given polling question and available options (with the respective
+tallies if any votes have already been cast).
+
+=head3 Usage
+
+<poll id>
+
+=head3 Examples
+
+=head2 polls
+
+=head3 Description
+
+Displays the current list of open questions for the current channel.
+
+=head3 Usage
+
+=head3 Examples
+
+=head2 vote
+
+=head3 Description
+
+Casts a vote on the given poll. If you have already voted, your ballot will be
+updated with your new choice. Votes cannot be cast on closed polls. If the poll
+allows write-ins, you may cast your vote for any arbitrary string instead of
+just the numbered options.
+
+=head3 Usage
+
+<poll id> <choice>
+
+=head3 Examples
+
+=head2 tally
+
+=head3 Description
+
+Closes the named poll and displays the final tally of votes. Only the user who
+created the poll may close it.
+
+=head3 Usage
+
+<poll id>
+
+=head3 Examples
+
+=cut
+
 has '+commands' => (
     default => sub {{
-        'propose' => { method      => 'voting_propose',
-                       description => 'Creates a new poll question, with allowed responses (and optional write-in). Displays the poll ID and instructions on voting.',
-                       usage       => '"<question>" <response1> ... <responseN> [:write-in]',
-                       example     => '"What should we get for lunch?" Pizza Indian "Bucket of cookies" :write-in', },
-
-        'poll' => { method      => 'voting_poll',
-                    description => 'Displays the given polling question and available options (with the respective tallies if any votes have already been cast).',
-                    usage       => '<poll id>', },
-
-        'polls' => { method      => 'voting_polls',
-                     description => 'Displays the current list of open questions for the current channel.', },
-
-        'vote' => { method      => 'voting_vote',
-                    description => 'Casts a vote on the given poll. If you have alredy voted, your ballot will be updated with your new choice. Votes cannot be cast on closed polls. If the poll allows write-ins, you may cast your vote for any arbitrary string instead of just the numbered options.',
-                    example     => '<poll id> <choice>', },
-
-        'tally' => { method      => 'voting_tally',
-                     description => 'Closes the named poll and displays the final tally of votes. Only the user who created the poll may close it.',
-                     usage       => '<poll id>', },
+        'propose' => { method => 'voting_propose' },
+        'poll'    => { method => 'voting_poll' },
+        'polls'   => { method => 'voting_polls' },
+        'vote'    => { method => 'voting_vote' },
+        'tally'   => { method => 'voting_tally' },
     }},
 );
 

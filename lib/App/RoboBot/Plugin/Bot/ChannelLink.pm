@@ -92,17 +92,9 @@ Displays the current list of channels to which the current channel is linked.
 
 has '+commands' => (
     default => sub {{
-        'link-channels' => { method      => 'link_channels',
-                             description => 'Link the current channel with the given channel, so that all messages appearing in one are echoed to the other. The link needs to be created only in one of the channels, as all links are bi-directional. Echoed messages will be sent by the bot, but will be prefaced with the string "<$network/$nick>" to indicate the original speaker and their location. The channel name will assume a leading "#" in the event you do not provide one (you cannot link one channel with a direct message). For a list of networks and channels, refer to (network-list) and (channel-list), respectively.',
-                             usage       => '<network> <channel>',
-                             example     => '"freenode" "#robobot"' },
-
-        'unlink-channels' => { method => 'unlink_channels',
-                               description => 'Removes a channel link (in both directions) that has been previously created with (link-channels).',
-                               usage       => '<network> <channel>', },
-
-        'channel-links' => { method      => 'show_links',
-                             description => 'Shows the current list of channels to which the current channel is linked.', },
+        'link-channels'   => { method => 'link_channels' },
+        'unlink-channels' => { method => 'unlink_channels' },
+        'channel-links'   => { method => 'show_links' },
     }},
 );
 

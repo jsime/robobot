@@ -55,11 +55,7 @@ pretty awful output. Better implementations are welcome!
 
 has '+commands' => (
     default => sub {{
-        'markov' => { method      => 'generate_markov',
-                      description => 'Creates a sentence using HMM heuristics, based on selected nick(s) chat history. Resulting grammar will be stilted, and the sentence will likely be nonsensical, but should roughly resemble the style of the chosen target. If no seed is chosen, a random one will be selected first from the chat history.',
-                      usage       => '<nick[, nick, ...] | *> [<seed word or phrase>]',
-                      example     => '"john, betty" waffles',
-                      result      => 'Sunset waffles cooked heinously drove to Madagascar yesterday.' },
+        'markov' => { method => 'generate_markov' },
     }},
 );
 

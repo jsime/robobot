@@ -49,23 +49,9 @@ Retrieves an HTTP/HTTPS document at the specified URL and returns its content.
 
 has '+commands' => (
     default => sub {{
-        'http-get' => { method      => 'http_get',
-                        description => 'Retrieves an HTTP/HTTPS document at the specified URL and returns its content.',
-                        usage       => '<url>',
-                        example     => '"http://hasthelargehadroncolliderdestroyedtheworldyet.com/"',
-                        result      => '"NOPE."' },
-
-        'http-head' => { method      => 'http_headers',
-                         description => 'Returns a map of response headers obtained via a HEAD request to the given URL.',
-                         usage       => '<url>',
-                         example     => '"http://google.com/"',
-                         result      => '{ Server "gws" Content-Length 219 Cache-Control "public, max-age=2592000" ... }' },
-
-        'query-string' => { method      => 'http_query_string',
-                            description => 'Converts the given map into an HTTP URI query string (excluding the leading question mark).',
-                            usage       => '<map>',
-                            example     => '{ :id 123 :foo ["bar", "baz"] }',
-                            result      => '"id=123&foo=bar&foo=baz"' },
+        'http-get'     => { method => 'http_get' },
+        'http-head'    => { method => 'http_headers' },
+        'query-string' => { method => 'http_query_string' },
     }},
 );
 

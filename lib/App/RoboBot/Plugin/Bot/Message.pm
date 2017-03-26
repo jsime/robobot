@@ -28,19 +28,28 @@ has '+description' => (
 
 =head3 Description
 
+Returns the contents of the message context in which the function is evaluated.
+This is useful within features such as auto-repliers, which are evaluated in
+the context of the incoming message, as it allows matching functions to look
+for relevant keywords, for example.
+
 =head3 Usage
 
 =head3 Examples
+
+=head2 msg-sender
+
+Returns the name of the sender for the message context in which the function is
+evaluated. In situations where (msg-sender) is used as part of an auto-replier,
+this function provides access to the name of the person who sent the message
+currently being processed.
 
 =cut
 
 has '+commands' => (
     default => sub {{
-        'msg-text' => { method          => 'message_message',
-                        description     => 'Returns the text of the current message context.', },
-
-        'msg-sender' => { method      => 'message_sender',
-                          description => 'Returns the name of the sender of the current message context.', },
+        'msg-text'   => { method => 'message_message' },
+        'msg-sender' => { method => 'message_sender' },
     }},
 );
 

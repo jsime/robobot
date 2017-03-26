@@ -63,9 +63,7 @@ on that tap.
 
 has '+commands' => (
     default => sub {{
-        'ontap' => { method      => 'show_ontap',
-                     description => 'Displays the list of beers currently on tap.',
-                     usage       => '[<tap number>]', },
+        'ontap' => { method => 'show_ontap' },
     }},
 );
 

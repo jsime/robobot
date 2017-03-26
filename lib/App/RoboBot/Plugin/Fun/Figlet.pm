@@ -55,12 +55,8 @@ Returns a list of the figlet fonts available.
 
 has '+commands' => (
     default => sub {{
-        'figlet' => { method      => 'figlet_convert',
-                      description => 'Given a font name and a string, returns a multi-line string containing the generated figlet.',
-                      usage       => '<font name> <string>', },
-
-        'figlet-fonts' => { method      => 'figlet_fonts',
-                            description => 'Returns a list of the figlet fonts available.', },
+        'figlet'       => { method => 'figlet_convert' },
+        'figlet-fonts' => { method => 'figlet_fonts' },
     }},
 );
 

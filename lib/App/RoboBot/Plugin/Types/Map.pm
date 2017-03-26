@@ -106,29 +106,10 @@ simply return the existing map.
 
 has '+commands' => (
     default => sub {{
-        'get' => { method      => 'map_get',
-                   description => 'Retrieves the value of the named key from the given map. An undefined value is returned if the key does not exist and no default value was provided. A vector of key names may be provided, in which case a list of their values, in the vector\'s order, will be returned.',
-                   usage       => '<map> <key name>|<vector of keys> [<default value>]',
-                   example     => '{ :foo "bar" } :baz 23',
-                   result      => '23' },
-
-        'keys' => { method      => 'map_keys',
-                    description => 'Returns a list of keys from the given map, in no guaranteed order.',
-                    usage       => '<map>',
-                    example     => '{ :first-name "Bobby" :last-name "Sue" }',
-                    result      => '[:first-name,:last-name]', },
-
-        'values' => { method      => 'map_values',
-                      description => 'Returns a list of values from the given map, in no guaranteed order.',
-                      usage       => '<map>',
-                      example     => '{ :first-name "Bobby" :last-name "Sue" }',
-                      result      => '["Bobby","Sue"]', },
-
-        'assoc' => { method      => 'map_assoc',
-                     description => 'Returns a new map containing the existing keys and values, as well as any new key-value pairs provided. Values default to undefined, and key that already exist will have their values replaced. Multiple key-value pairs may be provided. Providing no new key-value pairs will simply return the existing map.',
-                     usage       => '<map> [<key> [<value>]]',
-                     example     => '{ :old-key "foo" } :new-key "bar"',
-                     result      => '{ :old-key "foo" :new-key "bar" }', },
+        'get'    => { method => 'map_get' },
+        'keys'   => { method => 'map_keys' },
+        'values' => { method => 'map_values' },
+        'assoc'  => { method => 'map_assoc' },
     }},
 );
 

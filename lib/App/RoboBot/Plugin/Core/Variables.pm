@@ -94,41 +94,13 @@ has '+description' => (
 
 has '+commands' => (
     default => sub {{
-        'defined' => { method          => 'is_defined',
-                       preprocess_args => 0,
-                       description     => 'Returns true if all of the named variables are defined, otherwise false. Must pass variable names as a list.',
-                       usage           => '(<varname1> [... <varnameN>])', },
-
-        'setvar' => { method          => 'set_var',
-                      preprocess_args => 0,
-                      description     => 'Sets the value of a variable.',
-                      usage           => '<variable name> <value or expression>',
-                      example         => 'foo 10',
-                      result          => '10' },
-
-        'unsetvar' => { method          => 'unset_var',
-                        preprocess_args => 0,
-                        description     => 'Unsets a variable and removes it from the symbol table.',
-                        usage           => '<variable name>',
-                        example         => 'foo',
-                        result          => '' },
-
-        'incr' => { method          => 'increment_var',
-                    preprocess_args => 0,
-                    description     => 'Increments a numeric variable by the given amount. If no increment amount is provided, 1 is assumed. Negative amounts are permissible.',
-                    usage           => '<variable name> [<amount>]' },
-
-        'set-global' => { method      => 'set_global',
-                          description => 'Sets a global variable (accessible from any channel on the current network).',
-                          usage       => '<name> <value>' },
-
-        'unset-global' => { method      => 'unset_global',
-                            description => 'Unsets a global variable on the current network.',
-                            usage       => '<name>' },
-
-        'var' => { method      => 'get_global',
-                   description => 'Retrieves the value(s) of a global variable, if it exists on the current network. If the variable does not exist, an empty list is returned, unless <default> is specified in which case that is used instead.',
-                   usage       => '<name> [<default>]' },
+        'defined'      => { method => 'is_defined',    preprocess_args => 0 },
+        'setvar'       => { method => 'set_var',       preprocess_args => 0 },
+        'unsetvar'     => { method => 'unset_var',     preprocess_args => 0 },
+        'incr'         => { method => 'increment_var', preprocess_args => 0 },
+        'set-global'   => { method => 'set_global' },
+        'unset-global' => { method => 'unset_global' },
+        'var'          => { method => 'get_global' },
     }},
 );
 

@@ -122,23 +122,11 @@ is on a per-channel basis.
 
 has '+commands' => (
     default => sub {{
-        'last' => { method      => 'show_last',
-                    description => 'Returns a previous message from the given nick(s). The <step> is how many messages backward to count, with "1" assumed and being the most recent message available. Nick is optional, and if ommitted the caller is assumed. By default, any messages which had S-Expressions in them are skipped.',
-                    usage       => '[:include-expressions] [<step>] [<nick>]' },
-
-        'seen' => { method      => 'last_seen',
-                    description => 'Reports the last time the given nick was observed saying something in any channel.',
-                    usage       => '<nick>' },
-
-        'search' => { method      => 'log_search',
-                      description => 'Searches scrollback in the current channel for anything that matches <pattern>, which may be a simple string or a regular expression. Returns the most recent matching entry.',
-                      usage       => '<pattern>' },
-
-        'disable-logging' => { method      => 'log_disable',
-                               description => 'Disables logging any activity in the current channel until the (enable-logging) function is called.' },
-
-        'enable-logging' => { method      => 'log_enable',
-                              description => 'Enables logging activity in the current channel if it had been previously turned off via (disable-logging).' },
+        'last'            => { method => 'show_last' },
+        'seen'            => { method => 'last_seen' },
+        'search'          => { method => 'log_search' },
+        'disable-logging' => { method => 'log_disable' },
+        'enable-logging'  => { method => 'log_enable' },
     }},
 );
 

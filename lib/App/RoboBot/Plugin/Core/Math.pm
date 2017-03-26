@@ -107,45 +107,14 @@ Returns the absolute value of numeral.
 
 has '+commands' => (
     default => sub {{
-        '+' => { method  => 'add',
-                 usage   => '<addend> <addend>',
-                 example => '3 5',
-                 result  => '8' },
-
-        '-' => { method  => 'subtract',
-                 usage   => '<minuend> <subtrahend>',
-                 example => '9 2',
-                 result  => '7' },
-
-        '*' => { method  => 'multiply',
-                 usage   => '<factor> <factor>',
-                 example => '4 5',
-                 result  => '20' },
-
-        '/' => { method  => 'divide',
-                 usage   => '<dividend> <divisor>',
-                 example => '9 3',
-                 result  => '3' },
-
-        'modulo' => { method  => 'modulo',
-                      usage   => '<dividend> <divisor>',
-                      example => '6 4',
-                      result  => '2' },
-
-        'pow' => { method  => 'power',
-                   usage   => '<base> <exponent>',
-                   example => '3 2',
-                   result  => '8' },
-
-        'sqrt' => { method  => 'sqrt',
-                    usage   => '<numeral>',
-                    example => '4',
-                    result  => '2' },
-
-        'abs' => { method  => 'abs',
-                   usage   => '<numeral>',
-                   example => '-4',
-                   result  => '4' },
+        '+'      => { method => 'add' },
+        '-'      => { method => 'subtract' },
+        '*'      => { method => 'multiply' },
+        '/'      => { method => 'divide' },
+        'modulo' => { method => 'modulo' },
+        'pow'    => { method => 'power' },
+        'sqrt'   => { method => 'sqrt' },
+        'abs'    => { method => 'abs' },
     }},
 );
 

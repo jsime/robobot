@@ -145,31 +145,12 @@ deleted. This function is only available to the author of the macro.
 
 has '+commands' => (
     default => sub {{
-        'defmacro' => { method          => 'define_macro',
-                        preprocess_args => 0,
-                        description     => 'Defines a new macro, or replaces an existing macro of the same name. Macros may call, or even create/modify/delete other macros.',
-                        usage           => '<name> (<... argument list ...>) \'(<definition body list>)',
-                        example         => "plus-one (a) '(+ a 1)" },
-
-        'undefmacro' => { method      => 'undefine_macro',
-                          description => 'Undefines an existing macro.',
-                          usage       => '<name>' },
-
-        'show-macro' => { method      => 'show_macro',
-                          description => 'Displays the definition of a macro.',
-                          usage       => '<name>' },
-
-        'list-macros' => { method      => 'list_macros',
-                           description => 'Displays a list of all registered macros. Optional pattern will limit list to only those macros whose names match.',
-                           usage       => '[<pattern>]', },
-
-        'lock-macro' => { method      => 'lock_macro',
-                          description => 'Locks a macro from further modification or deletion. This function is only available to the author of the macro.',
-                          usage       => '<macro name>' },
-
-        'unlock-macro' => { method      => 'unlock_macro',
-                            description => 'Unlocks a previously locked macro, allowing it to once again be modified or deleted. This function is only available to the author of the macro.',
-                            usage       => '<macro name>' },
+        'defmacro'     => { method => 'define_macro', preprocess_args => 0 },
+        'undefmacro'   => { method => 'undefine_macro' },
+        'show-macro'   => { method => 'show_macro' },
+        'list-macros'  => { method => 'list_macros' },
+        'lock-macro'   => { method => 'lock_macro' },
+        'unlock-macro' => { method => 'unlock_macro' },
     }},
 );
 

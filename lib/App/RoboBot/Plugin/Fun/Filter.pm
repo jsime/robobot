@@ -22,9 +22,7 @@ has '+description' => (
 
 has '+commands' => (
     default => sub {
-        my %h = map { $_ => { method      => 'filter_text',
-                        description => 'Filters input argument text through the ' . $_ . ' program.',
-                        usage       => '<text>' }
+        my %h = map { $_ => { method => 'filter_text' },
           } qw( b1ff chef cockney eleet fudd nethackify newspeak pirate scottish scramble uniencode );
         return \%h;
     },

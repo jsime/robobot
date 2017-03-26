@@ -91,25 +91,9 @@ If there are no occurrences of ``match`` in ``str``, or there are less than
 
 has '+commands' => (
     default => sub {{
-        'substring' => { method      => 'str_substring',
-                         description => 'Returns <n> characters from <str> beginning at position <pos> (first character in a string is 0). Without <n> will return from <pos> to the end of the original string. A negative value for <n> will return from <pos> until |<n>|-1 characters prior to the end of the string (<n> = -1 would have the same effect as omitting <n>)..',
-                         usage       => '<str> <pos> [<n>]',
-                         example     => '"The quick brown fox ..." 4 5',
-                         result      => 'quick', },
-
-        'index' => { method      => 'str_index',
-                     description => 'Returns the starting position(s) in a list of all occurrences of the substring <match> in <str>. If <match> does not exist anywhere in <str> then an empty list is returned.',
-                     usage       => '<str> <match>',
-                     example     => '"The quick brown fox ..." "fox"',
-                     result      => '[16]',
-                     see_also    => ['index-n'], },
-
-        'index-n' => { method      => 'str_index_n',
-                       description => 'Returns the <n>th (from 1) starting position of the substring <match> in <str>. If there are no occurrences of <match> in <str>, or there are less than <n>, nothing is returned.',
-                       usage       => '<str> <match> <n>',
-                       example     => '"This string has three occurrences of the substring \"str\" in it." "str" 2',
-                       result      => '44',
-                       see_also    => ['index'], },
+        'substring' => { method => 'str_substring' },
+        'index'     => { method => 'str_index' },
+        'index-n'   => { method => 'str_index_n' },
     }},
 );
 

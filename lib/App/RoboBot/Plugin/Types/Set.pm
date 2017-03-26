@@ -49,8 +49,7 @@ returned.
 
 has '+commands' => (
     default => sub {{
-        'set' => { method      => 'set_set',
-                   description => 'Converts a list of values into a set, returning the set. If no values are provided, an empty set is returned.' },
+        'set' => { method => 'set_set' },
     }},
 );
 

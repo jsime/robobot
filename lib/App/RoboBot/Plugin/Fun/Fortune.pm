@@ -59,21 +59,10 @@ Returns a random Zippy the Pinhead quote from the fotune database.
 
 has '+commands' => (
     default => sub {{
-        'bofh' => { method      => 'bofh',
-                    description => 'Returns a random BOFH quote.',
-                    usage       => '' },
-
-        'fortune' => { method      => 'fortune',
-                       description => 'Returns a random fortune from one of several collections.',
-                       usage       => '' },
-
-        'startrek' => { method      => 'startrek',
-                        description => 'Returns a random Star Trek quote.',
-                        usage       => '' },
-
-        'zippy' => { method      => 'zippy',
-                     description => 'Returns a random Zippy the Pinhead quote.',
-                     usage       => '' },
+        'bofh'     => { method => 'bofh' },
+        'fortune'  => { method => 'fortune' },
+        'startrek' => { method => 'startrek' },
+        'zippy'    => { method => 'zippy' },
     }},
 );
 

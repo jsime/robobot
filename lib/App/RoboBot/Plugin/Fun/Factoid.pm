@@ -80,17 +80,9 @@ Removes the named factoid.
 
 has '+commands' => (
     default => sub {{
-        'add-factoid' => { method      => 'add_factoid',
-                           description => 'Adds snippets of information (replacing any that already exist for the given name).',
-                           usage       => '"<name>" <... facts ...>' },
-
-        'update-factoid' => { method      => 'add_factoid',
-                              description => 'Updates an existing factoid, or creates a new one if there is no existing factoid by the same name.',
-                              usage       => '"<name>" <... facts ...>' },
-
-        'remove-factoid' => { method      => 'remove_factoid',
-                              description => 'Removes the factoids stored under the given name.',
-                              usage       => '"<name>"' },
+        'add-factoid'    => { method => 'add_factoid' },
+        'update-factoid' => { method => 'add_factoid' },
+        'remove-factoid' => { method => 'remove_factoid' },
     }},
 );
 

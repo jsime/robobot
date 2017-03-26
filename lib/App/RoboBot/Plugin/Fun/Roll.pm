@@ -63,15 +63,8 @@ Returns a random integer between ``0`` and ``max`` (defaults to 1).
 
 has '+commands' => (
     default => sub {{
-        'roll' => { method          => 'roll',
-                    preprocess_args => 1,
-                    usage           => '<die size> [<die count>]',
-                    example         => '2 10',
-                    result          => '17' },
-
-        'random' => { method      => 'random_int',
-                      description => 'Returns a random integer between 0 and <max> (defaults to 1).',
-                      usage       => '[<max>]', },
+        'roll'   => { method => 'roll' },
+        'random' => { method => 'random_int' },
     }},
 );
 

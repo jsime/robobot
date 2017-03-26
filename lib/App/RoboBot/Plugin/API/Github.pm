@@ -79,17 +79,9 @@ Displays the list of Github projects being watched in the current channel.
 
 has '+commands' => (
     default => sub {{
-        'github-watch' => { method      => 'add_repo_watcher',
-                            description => 'Adds a watcher event for this channel, subscribing to commits, issues, and pull requests to the named Github repository.',
-                            usage       => '<repo url>', },
-
-        'github-unwatch' => { method      => 'remove_repo_watcher',
-                              description => 'Removes a watcher for the named Github repository on this channel.',
-                              usage       => '<repo url>', },
-
-        'github-list' => { method      => 'list_repo_watchers',
-                           description => 'Lists the Github repositories currently being watched for this channel.',
-                           usage       => '' },
+        'github-watch'   => { method => 'add_repo_watcher' },
+        'github-unwatch' => { method => 'remove_repo_watcher' },
+        'github-list'    => { method => 'list_repo_watchers' },
     }},
 );
 

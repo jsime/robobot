@@ -101,23 +101,11 @@ sorted alphabetically.
 
 has '+commands' => (
     default => sub {{
-        'karma' => { method      => 'display_karma',
-                     description => 'Displays current karma/reputation points for given nicks. Defaults to displaying karma of caller.',
-                     usage       => '[<nick> ... <nick N>]' },
-
-        '++karma' => { method      => 'add_karma',
-                       description => "Explicitly adds to the given nick's karma rating.",
-                       usage       => '<nick>' },
-
-        '--karma' => { method      => 'subtract_karma',
-                       description => "Explicitly subtracts from the given nick's karma rating.",
-                       usage       => '<nick>' },
-
-        'karma-leaders' => { method      => 'karma_leaders',
-                             description => 'Displays the nicks on your current network with the highest current karma.', },
-
-        'karma-losers' => { method      => 'karma_losers',
-                            description => 'Displays the nicks on your current network with the lowest current karma.', },
+        'karma'         => { method => 'display_karma' },
+        '++karma'       => { method => 'add_karma' },
+        '--karma'       => { method => 'subtract_karma' },
+        'karma-leaders' => { method => 'karma_leaders' },
+        'karma-losers'  => { method => 'karma_losers' },
     }},
 );
 

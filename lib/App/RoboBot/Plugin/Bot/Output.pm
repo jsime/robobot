@@ -206,51 +206,15 @@ empty string when no argument are given.
 
 has '+commands' => (
     default => sub {{
-        'clear' => { method      => 'clear_output',
-                     description => 'Clears current contents of the output buffer without displaying them.',
-                     usage       => '',
-                     example     => '',
-                     result      => '' },
-
-        'join' => { method      => 'join_str',
-                    description => 'Joins together arguments into a single string, using the first argument as the delimiter.',
-                    usage       => '<delimiter> <value> [<value 2> ... <value N>]',
-                    example     => '", " 1 2 3 4 5',
-                    result      => '1, 2, 3, 4, 5' },
-
-        'split' => { method      => 'split_str',
-                     description => 'Splits a string into a list based on the delimiter provided. Delimiters may be a regular expression or fixed string.',
-                     usage       => '<delimiter> <string>',
-                     example     => '"[,\s]+" "1, 2, 3,4,    5"',
-                     result      => '(1 2 3 4 5)' },
-
-        'lower' => { method      => 'str_lower',
-                     description => 'Converts the given string to lower-case.', },
-
-        'upper' => { method      => 'str_upper',
-                     description => 'Converts the given string to upper-case.', },
-
-        'print' => { method      => 'print_str',
-                     description => 'Prints input arguments. If one argument is given, it is simply echoed unaltered. If multiple arguments are given they are printed in array notation.',
-                     usage       => '<value> [<value 2> ... <value N>]',
-                     example     => 'foo 123 bar 456',
-                     result      => '[foo, 123, bar, 456]' },
-
-        'format' => { method      => 'format_str',
-                      description => 'Provides a printf-like string formatter. Placeholders follow the same rules as printf(1).',
-                      usage       => '"<format>" [<value 1> ... <value N>]',
-                      example     => '"%d / %d = %.2f" 5 3 (/ 5 3)',
-                      result      => '5 / 3 = 1.67' },
-
-        'format-number' => { method      => 'format_num',
-                             description => 'Provides numeric formatting for thousands separators, fixed precisions, and trailing zeroes.',
-                             usage       => '<number> [<precision> [<trailing zeroes>]]',
-                             example     => '1830472.2 4 1',
-                             result      => '1,830,472.2000' },
-
-        'str' => { method      => 'str_str',
-                   description => 'Returns a single string, either a simple concatenation of all arguments, or an empty string when no argument are given.',
-                   usage       => '[<list>]', },
+        'clear'         => { method => 'clear_output' },
+        'join'          => { method => 'join_str' },
+        'split'         => { method => 'split_str' },
+        'lower'         => { method => 'str_lower' },
+        'upper'         => { method => 'str_upper' },
+        'print'         => { method => 'print_str' },
+        'format'        => { method => 'format_str' },
+        'format-number' => { method => 'format_num' },
+        'str'           => { method => 'str_str' },
     }},
 );
 

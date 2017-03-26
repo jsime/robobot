@@ -75,17 +75,8 @@ phrase was last produced in the source language is returned.
 
 has '+commands' => (
     default => sub {{
-        'translate' => { method      => 'translate_text',
-                         description => 'Translates the given text from the source language to the destination language',
-                         usage       => '<from> <to> <text>',
-                         example     => 'en de "Good morning!"',
-                         result      => '"Guten Morgen!"', },
-
-        'translate-party' => { method      => 'translate_party',
-                               description => 'Repeatedly translates the given phrase back and forth between languages until equilibrium is found.',
-                               usage       => '<from> <to> <text>',
-                               example     => '',
-                               result      => '', },
+        'translate'       => { method => 'translate_text' },
+        'translate-party' => { method => 'translate_party' },
     }},
 );
 

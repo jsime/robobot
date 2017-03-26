@@ -77,26 +77,9 @@ Returns the logical negation of the value provided.
 
 has '+commands' => (
     default => sub {{
-        'and' => { method          => 'bool_and',
-                   preprocess_args => 0,
-                   description     => 'Returns a true value only if both expressions are also true. Short-circuits as soon as an expression evaluates falsey, eliminating the evaluation of all subsequent expressions (including any of their potential side-effects).',
-                   usage           => '(<expression>) (<expression>)',
-                   example         => '(> 20 1) (> 1 20)',
-                   result          => '0' },
-
-        'or' => { method          => 'bool_or',
-                  preprocess_args => 0,
-                  description     => 'Returns a true value if either expression is true. Short-circuits as soon as an expression evauates truthy, eliminating the evaluation of all subsequent expressions (including any of their potential side-effects).',
-                  usage           => '(<expression>) (<expression>)',
-                  example         => '(> 20 1) (> 1 20)',
-                  result          => '1' },
-
-        'not' => { method      => 'bool_unary',
-                   description => 'Returns the logical negation of the value provided.',
-                   usage       => '(<expression>)',
-                   example     => '1',
-                   result      => '0' },
-
+        'and' => { method => 'bool_and', preprocess_args => 0 },
+        'or'  => { method => 'bool_or',  preprocess_args => 0 },
+        'not' => { method => 'bool_unary' },
     }},
 );
 

@@ -102,6 +102,17 @@ sub disconnect {
     #       call client->disconnect
 }
 
+sub chanop {
+    my ($self, $response, @nicks) = @_;
+
+    return unless @nicks > 0;
+    return unless $response->has_channel;
+    my $channel = '#' . $response->channel->name;
+
+    $self->client->send_long_message('utf8', 0, 'MODE', $channel, '+'. ('o' x @nicks), @nicks);
+    return;
+}
+
 sub kick {
     my ($self, $response, $nick, $message) = @_;
 

@@ -65,14 +65,8 @@ message they may have left.
 
 has '+commands' => (
     default => sub {{
-        'set-location' => { method      => 'location_set',
-                            description => 'Sets your most recent location, along with an optional message, which others may view with the (where-is) function.',
-                            usage       => '<location name> [<detailed message>]',
-                            example     => '"Working from home" "doc appt this afternoon, taking an extended lunch"' },
-
-        'where-is' => { method      => 'location_nick',
-                        description => 'Displays the last-registered location for <nick>, along with any optional message they may have left.',
-                        usage       => '<nick>' },
+        'set-location' => { method => 'location_set' },
+        'where-is'     => { method => 'location_nick' },
     }},
 );
 

@@ -112,21 +112,10 @@ next to each one.
 
 has '+commands' => (
     default => sub {{
-        'add-achievement' => { method      => 'add_achievement',
-                               description => 'Creates a new achievement.',
-                               usage       => '<name> <description> <query>',
-                               example     => '"Chatterbox" "You love the sound of your own keyboard clacking away. So much that you\'ve typed over 10,000 messages now!" "select count(*) >= 10000 from logger_log where nick_id = ?"', },
-
-        'show-achievement' => { method      => 'show_achievement',
-                                description => 'Shows the details of the named achievement, including a list of the people who have earned it so far.',
-                                usage       => '<achievement name>', },
-
-        'list-achievements' => { method      => 'list_achievements',
-                                 description => 'Lists all achievements.', },
-
-        'achievements' => { method      => 'nick_achievements',
-                            description => 'Lists the achievements earned by the provided nick (or your own achievements if no nick is provided.)',
-                            usage       => '[<nick>]', },
+        'add-achievement'   => { method => 'add_achievement' },
+        'show-achievement'  => { method => 'show_achievement' },
+        'list-achievements' => { method => 'list_achievements' },
+        'achievements'      => { method => 'nick_achievements' },
     }},
 );
 

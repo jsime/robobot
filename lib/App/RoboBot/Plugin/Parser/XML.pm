@@ -50,11 +50,7 @@ Performs an XPath query against the given document body.
 
 has '+commands' => (
     default => sub {{
-        'xpath' => { method      => 'xml_xpath',
-                     description => 'Performs an XPath query against the given document body.',
-                     usage       => '<xpath query> <document string>',
-                     example     => '"//div[@id=\'main\']/div[@class=\'post\']/h2/a/text()" (http-get "http://kottke.org/")',
-                     result      => '"The colors of friendship" "The adjective word order we all follow without realizing it" ...' },
+        'xpath' => { method => 'xml_xpath' },
     }},
 );
 

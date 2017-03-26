@@ -64,11 +64,7 @@ Returns a short version of a URL for easier sharing.
 
 has '+commands' => (
     default => sub {{
-        'shorten-url' => { method      => 'shorten_url',
-                           description => 'Returns a short version of a URL for easier sharing.',
-                           usage       => '"<url>"',
-                           example     => '"http://images.google.com/really-long-image-url.jpg?with=plenty&of=tracking&arguments=foo123"',
-                           result      => 'http://tinyurl.com/foObar42' },
+        'shorten-url' => { method => 'shorten_url' },
     }},
 );
 

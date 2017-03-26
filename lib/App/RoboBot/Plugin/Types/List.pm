@@ -190,66 +190,16 @@ the results, preserving order. Each element of the input list is aliased to
 
 has '+commands' => (
     default => sub {{
-        'nth' => { method      => 'list_nth',
-                   description => 'Returns the nth entry of a list, discarding all others. One-indexed. Negative numbers count backwards from the end of the list.',
-                   usage       => '<n> <... list ...>',
-                   example     => '3 "James" "Alice" "Frank" "Janet"',
-                   result      => 'Frank' },
-
-        'first' => { method      => 'list_first',
-                     description => 'Returns the first entry of a list, discarding all others.',
-                     usage       => '<... list ...>',
-                     example     => '"James" "Alice" "Frank" "Janet"',
-                     result      => 'James' },
-
-        'shuffle' => { method      => 'list_shuffle',
-                       description => 'Returns the list elements in a randomized order.',
-                       usage       => '<... list ...>',
-                       example     => '"James" "Alice" "Frank" "Janet"',
-                       result      => '"Alice" "Janet" "James" "Frank"' },
-
-        'sort' => { method      => 'list_sort',
-                    description => 'Returns the list elements in sorted order.',
-                    usage       => '<... list ...>',
-                    example     => '"James" "Alice" "Frank" "Janet"',
-                    result      => '"Alice" "Frank" "James" "Janet"' },
-
-        'seq' => { method      => 'list_seq',
-                   description => 'Returns a sequence of numbers.',
-                   usage       => '<first> <last> [<step>]',
-                   example     => '1 10 3',
-                   result      => '1 4 7 10' },
-
-        'any' => { method      => 'list_any',
-                   description => 'Returns true if any list element is matched by the first function parameter.',
-                   usage       => '<string> < ... list to search ... >',
-                   example     => 'foo bar baz foo xyzzy',
-                   result      => '1', },
-
-        'count' => { method      => 'list_count',
-                     description => 'Returns the number of items in the provided list. If no arguments are provided, the return value will be 0, same as for an empty list.',
-                     usage       => '[<list>]' },
-
-        'filter' => { method      => 'list_filter',
-                      preprocess_args => 0,
-                      description => 'Returns a list of elements from the input list which, when aliased to % and applied to <function>, result in a true evaluation.',
-                      usage       => '<function> <list>',
-                      example     => '(match "a" %) "Jon" "Jane" "Frank" "Zoe"',
-                      result      => '"Jane" "Frank"' },
-
-        'reduce' => { method      => 'list_reduce',
-                      preprocess_args => 0,
-                      description => 'Returns the result of repeatedly applying <function> to the <accumulator>, aliased as $, and each element of the input list, aliased as %.',
-                      usage       => '<function> <accumulator> <list>',
-                      example     => '(* $ %) 1 (seq 1 10)',
-                      result      => '3628800' },
-
-        'map' => { method      => 'list_map',
-                   preprocess_args => 0,
-                   description => 'Applies <function> to every element of the input list and returns a list of the results, preserving order. Each element of the input list is aliased to % within the function being applied.',
-                   usage       => '<function> <list>',
-                   example     => '(upper %) "Jon" "Jane" "frank"',
-                   result      => '"JON" "JANE" "FRANK"' },
+        'nth'     => { method => 'list_nth' },
+        'first'   => { method => 'list_first ' },
+        'shuffle' => { method => 'list_shuffle' },
+        'sort'    => { method => 'list_sort' },
+        'seq'     => { method => 'list_seq' },
+        'any'     => { method => 'list_any' },
+        'count'   => { method => 'list_count' },
+        'filter'  => { method => 'list_filter', preprocess_args => 0 },
+        'reduce'  => { method => 'list_reduce', preprocess_args => 0 },
+        'map'     => { method => 'list_map',    preprocess_args => 0 },
     }},
 );
 

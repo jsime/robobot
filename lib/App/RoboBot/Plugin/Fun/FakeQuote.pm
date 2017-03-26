@@ -101,23 +101,10 @@ are all for the same ``type``.
 
 has '+commands' => (
     default => sub {{
-        'fake-quote' => { method      => 'fake_quote',
-                          description => 'Generates a fake quote either by the personality specified, otherwise by one chosen at random.',
-                          usage       => '[<personality> [<pattern>]]', },
-
-        'add-fake-personality' => { method      => 'add_fake_person',
-                                    description => 'Adds a new fake personality with the given name.',
-                                    usage       => '<name>', },
-
-        'add-fake-quote' => { method      => 'add_fake_quote',
-                              description => 'Adds a fake quote phrase to the given personality, optionally including placeholders to use for randomized substitutions.',
-                              usage       => '<personality> "<phrase>"',
-                              example     => 'joe "I like {food}!"', },
-
-        'add-fake-substitution' => { method      => 'add_fake_term',
-                                     description => 'Adds a term to the list of possible substitutions when generating phrases for the given personality. The <type> should match the string used when including placeholders in (add-fake-quote) phrases. Multiple terms may be specified, as long as they are all for the same <type>.',
-                                     usage       => '<personality> <type> "<term>" [<term2> ...]',
-                                     example     => 'joe food "apple pie" "blueberry icecream" "hard gravel"', },
+        'fake-quote'            => { method => 'fake_quote' },
+        'add-fake-personality'  => { method => 'add_fake_person' },
+        'add-fake-quote'        => { method => 'add_fake_quote' },
+        'add-fake-substitution' => { method => 'add_fake_term' },
     }},
 );
 

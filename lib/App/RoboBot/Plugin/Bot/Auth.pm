@@ -72,17 +72,9 @@ Revokes permission for a user to the specified function.
 
 has '+commands' => (
     default => sub {{
-        'auth-default' => { method      => 'auth_default',
-                            description => 'Sets the default permission mode for a function. All functions are assumed to be in "allow" mode unless set otherwise.',
-                            usage       => '<function name> <allow | deny>' },
-
-        'auth-allow' => { method      => 'auth_modify',
-                          description => 'Marks the given nick as explicitly permitted to call the named function, even if the function is by default denied to all users.',
-                          usage       => '<function name> <nick>' },
-
-        'auth-deny' => { method      => 'auth_modify',
-                         description => 'Explicitly blocks the given nick from calling the named function.',
-                         usage       => '<function name> <nick>' },
+        'auth-default' => { method => 'auth_default' },
+        'auth-allow'   => { method => 'auth_modify' },
+        'auth-deny'    => { method => 'auth_modify' },
     }},
 );
 

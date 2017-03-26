@@ -44,11 +44,7 @@ provided, an empty vector is returned.
 
 has '+commands' => (
     default => sub {{
-        'vec' => { method      => 'vec_vec',
-                   description => 'Converts a list of values into a vector, returning the vector. If no values are provided, an empty vector is returned.',
-                   usage       => '[<list>]',
-                   example     => '1 (seq 5 7) 10',
-                   result      => '[1 5 6 7 10]', },
+        'vec' => { method => 'vec_vec' },
     }},
 );
 

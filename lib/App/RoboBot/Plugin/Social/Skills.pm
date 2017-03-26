@@ -200,46 +200,16 @@ of this software to restrict access to this function via (auth-deny).
 
 has '+commands' => (
     default => sub {{
-        'iknow' => { method      => 'skill_know',
-                     description => 'Assigns a proficiency level to yourself for the named skill. If no skill is named, shows a list of all skills you possess.',
-                     usage       => '[<skill name> [<proficiency name or number>]]' },
-
-        'theyknow' => { method      => 'skill_theyknow',
-                        description => 'Displays all of the registered skills of the named person. You cannot modify another user\'s skills or proficiencies.',
-                        usage       => '<nick>' },
-
-        'idontknow' => { method      => 'skill_dontknow',
-                         description => 'Removes you from the list of people with any proficiency in the named skill.',
-                         usage       => '<skill name>' },
-
-        'whoknows' => { method      => 'skill_whoknows',
-                        description => 'Shows a list of all the people who claim any proficiency in the named skill. Listing multiple skills will perform an intersection and display only those people who have registered knowledge in all of the named skills (along with their average proficiency).',
-                        usage       => '<skill name>' },
-
-        'skills' => { method      => 'skill_list',
-                      description => 'Returns a list of all skills. You may optionally provide a regular expression so that only matching skills are returned.',
-                      usage       => '[<pattern>]', },
-
-        'skill-add' => { method      => 'skill_add',
-                         description => 'Adds a new skill to the collection.',
-                         usage       => '<skill name>', },
-
-        'skill-levels' => { method      => 'skill_levels',
-                            description => 'Displays and manages the enumeration of skill proficiencies.' },
-
-        'describe-skill' => { method      => 'describe_skill',
-                              description => 'Allows for the addition of descriptive text to a skill, to be shown whenever the skill is queried via (whoknows).',
-                              usage       => '<skill name> "<description>"',
-                              example     => 'SQL "Structured Query Language; the most common interface language used for interacting with relational databases."' },
-
-        'relate-skills' => { method      => 'relate_skills',
-                             description => 'Creates a relationship between multiple skills. Related skills will show up in the output of (whoknows). Note that this function creates one-way relationships, since they are more often relevant than assuming a two-way relationship. In other words, (relate-skills Oracle SQL) to indicate SQL is related to Oracle is more relevant than (relate-skills SQL Oracle) implying that the product Oracle is relevant to general questions about SQL.',
-                             usage       => '<parent skill name> <related skill name>',
-                             example     => 'NodeJS Javascript' },
-
-        'clear-skills' => { method      => 'clear_skills',
-                            description => 'Clears the skills list for the given user.',
-                            usage       => '<nick>' },
+        'iknow'          => { method => 'skill_know' },
+        'theyknow'       => { method => 'skill_theyknow' },
+        'idontknow'      => { method => 'skill_dontknow' },
+        'whoknows'       => { method => 'skill_whoknows' },
+        'skills'         => { method => 'skill_list' },
+        'skill-add'      => { method => 'skill_add' },
+        'skill-levels'   => { method => 'skill_levels' },
+        'describe-skill' => { method => 'describe_skill' },
+        'relate-skills'  => { method => 'relate_skills' },
+        'clear-skills'   => { method => 'clear_skills' },
     }},
 );
 
