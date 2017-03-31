@@ -36,6 +36,27 @@ has '+description' => (
     default => 'Provides a selection of control structure functions.',
 );
 
+=head2 do
+
+=head3 Description
+
+Evaluates the provided list of expressions, one by one, in the order given. All
+expression side effects will occur in the specified order, though only the
+value of the final expression will be returned by ``do`` itself.
+
+=head3 Usage
+
+<list of expressions>
+
+=head3 Examples
+
+    :emphasize-lines: 2-4
+
+    (do (print "line1") (+ 1 1) (print "line2") (* 4 4))
+    "line1"
+    "line2"
+    16
+
 =head2 if
 
 =head3 Description
@@ -155,6 +176,7 @@ a list of all the results.
 
 has '+commands' => (
     default => sub {{
+        'do'     => { method => 'control_do',     preprocess_args => 0 },
         'if'     => { method => 'control_if',     preprocess_args => 0 },
         'while'  => { method => 'control_while',  preprocess_args => 0 },
         'cond'   => { method => 'control_cond',   preprocess_args => 0 },
@@ -162,6 +184,24 @@ has '+commands' => (
         'repeat' => { method => 'control_repeat', preprocess_args => 0 },
     }},
 );
+
+sub control_do {
+    my ($self, $message, $command, $rpl, @exprs) = @_;
+
+    my @ret;
+
+    foreach my $expr (@exprs) {
+        unless (defined $expr && blessed($expr) && $expr->can('evaluate')) {
+            $self->log->warn('(do) received non-expression/non-evaluable list member.');
+            $message->response->raise('Must provide list of expressions to (do) for evaluation.');
+            return;
+        }
+
+        @ret = $expr->evaluate($message, $rpl);
+    }
+
+    return @ret;
+}
 
 sub control_repeat {
     my ($self, $message, $command, $rpl, $num, $list) = @_;
