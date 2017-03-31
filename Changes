@@ -3,6 +3,11 @@ Revision history for App-RoboBot
 4.005     TBD
   - Removed command metadata for descriptions, usage, etc. now that internal
     help functions use the POD sourced documentation.
+  - Added do form to core.control.
+  - Made _ an explicit throwaway in let form.
+  - Overhauled core.variables module to present a much more reasonable approach
+    to managing and interacting with global variables. Includes extension to
+    bind globals to expressions, evaluated each time global is used.
 
 4.004     2017-03-19
   - Added karma-losers to social.karma module.
