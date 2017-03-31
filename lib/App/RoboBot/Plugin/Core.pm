@@ -142,6 +142,10 @@ sub core_let {
         }
     }
 
+    # Discard _ as a reserved lexical variable name for unwanted values (while
+    # still evaluating the value expression for its side effects).
+    delete $new_scope{'_'} if exists $new_scope{'_'};
+
     my @r;
 
     foreach my $form (@forms) {
