@@ -236,17 +236,19 @@ sub var_define {
         return @{$res->{'var_values'}};
     }
 
-    my @flattened = map { $_->flatten } @values;
+    my @flattened = map { $_->quoted ? $_->flatten : $_->evaluate($message, $rpl) } @values;
 
     my $res = $self->bot->config->db->do(q{
         update global_vars
-        set var_values = ?,
-            created_by = ?,
-            updated_at = now()
+        set ???
         where network_id = ?
             and lower(var_name) = lower(?)
         returning *
-    }, \@flattened, $message->sender->id, $message->network->id, $name);
+    }, {
+        var_values => \@flattened,
+        created_by => $message->sender->id,
+        updated_at => 'now'
+    }, $message->network->id, $name);
 
     if ($res && $res->next) {
         $message->response->push(sprintf('Global variable %s updated.', $name));
@@ -274,7 +276,7 @@ sub var_define {
 sub var_defined {
     my ($self, $message, $command, $rpl, $name) = @_;
 
-    unless (defined $name && $name =~ m{w\+}) {
+    unless (defined $name && $name =~ m{\w+}) {
         $message->response->raise('Must provide a variable name to check for defined-ness.');
         return;
     }
@@ -397,10 +399,12 @@ sub var_value {
     my $parser = App::RoboBot::Parser->new( bot => $self->bot );
 
     foreach my $v (@{$res->{'var_values'}}) {
-        my $expr = $parser->parse($v);
+        my $expr = $parser->parse('('.$v.')');
 
         if (defined $expr && blessed($expr) && $expr->can('evaluate')) {
             push(@ret, $expr->evaluate($message, $rpl));
+        } elsif (defined $v && length($v) > 0) {
+            push(@ret, $v);
         }
     }
 
