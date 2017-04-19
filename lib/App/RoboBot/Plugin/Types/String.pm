@@ -6,6 +6,8 @@ use namespace::autoclean;
 
 use Moose;
 
+use Number::Format;
+
 extends 'App::RoboBot::Plugin';
 
 =head1 types.string
@@ -21,6 +23,30 @@ has '+name' => (
 has '+description' => (
     default => 'Provides functions for creating and manipulating string-like values.',
 );
+
+=head2 str
+
+=head3 Description
+
+Returns a single string, either a simple concatenation of all arguments, or an
+empty string when no argument are given.
+
+=head3 Usage
+
+[<list>]
+
+=head3 Examples
+
+    :emphasize-lines: 2,5,8
+
+    (str)
+    ""
+
+    (str "foo")
+    "foo"
+
+    (str foo 123 "bar" 456)
+    "foo123bar456"
 
 =head2 substring
 
@@ -87,15 +113,177 @@ If there are no occurrences of ``match`` in ``str``, or there are less than
     (index-n "This string has three occurrences of the substring \"str\" in it." "str" 2)
     44
 
+=head2 lower
+
+=head3 Description
+
+Converts the given string to lower-case.
+
+=head3 Usage
+
+<string>
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    (lower "Foo Bar Baz")
+    "foo bar baz"
+
+=head2 upper
+
+=head3 Description
+
+Converts the given string to upper-case.
+
+=head3 Usage
+
+<string>
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    (lower "Foo Bar Baz")
+    "FOO BAR BAZ"
+
+=head2 format
+
+=head3 Description
+
+Provides a printf-like string formatter. Placeholders follow the same rules as
+printf(1).
+
+=head3 Usage
+
+<format string> [<list>]
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    (format "Random number: %d" (random 100))
+    "Random number: 42"
+
+=head2 format-number
+
+=head3 Description
+
+Provides numeric formatting for thousands separators, fixed precisions, and
+trailing zeroes.
+
+By default, numbers are formatted only with thousands separators added. Any
+decimal places in the original number are preserved without any change in
+precision.
+
+By specifying a precision only, any decimal places will be truncated to that
+as a maximum precision. The decimal places will not, however, be padded out
+with zeroes unless a positive integer (anything > 0) is passed as the third
+operand.
+
+=head3 Usage
+
+<number> [<precision> [<trailing zeroes>]]
+
+=head3 Examples
+
+    :emphasize-lines: 2,5,8
+
+    (format-number 12398123)
+    "12,398,123"
+
+    (format-number 3.1459 2)
+    "3.14"
+
+    (format-number 5 4 1)
+    "5.0000"
+
+=head2 join
+
+=head3 Description
+
+Joins together arguments into a single string, using the first argument as the
+delimiter.
+
+=head3 Usage
+
+<delimiter string> <list>
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    (join ", " (seq 1 10))
+    "1, 2, 3, 4, 5, 6, 7, 8, 9, 10"
+
 =cut
 
 has '+commands' => (
     default => sub {{
-        'substring' => { method => 'str_substring' },
-        'index'     => { method => 'str_index' },
-        'index-n'   => { method => 'str_index_n' },
+        'substring'     => { method => 'str_substring' },
+        'index'         => { method => 'str_index' },
+        'index-n'       => { method => 'str_index_n' },
+        'upper'         => { method => 'str_upper' },
+        'lower'         => { method => 'str_lower' },
+        'str'           => { method => 'str_str' },
+        'format'        => { method => 'str_format' },
+        'format-number' => { method => 'str_format_num' },
+        'join'          => { method => 'str_join' },
     }},
 );
+
+has 'nf' => (
+    is      => 'ro',
+    isa     => 'Number::Format',
+    default => sub { Number::Format->new() },
+);
+
+sub str_format {
+    my ($self, $message, $command, $rpl, $format, @args) = @_;
+
+    my $str;
+
+    eval { $str = sprintf($format, @args) };
+
+    if ($@) {
+        $message->response->raise(sprintf('Error: %s', $@));
+        return;
+    }
+
+    return $str;
+}
+
+sub str_format_num {
+    my ($self, $message, $command, $rpl, @args) = @_;
+
+    return $self->nf->format_number(@args);
+}
+
+sub str_join {
+    my ($self, $message, $command, $rpl, @args) = @_;
+
+    return unless @args && scalar(@args) >= 2;
+    return join($args[0], @args[1..$#args]);
+}
+
+sub str_str {
+    my ($self, $message, $command, $rpl, @list) = @_;
+
+    return "" unless @list;
+    return join('', @list);
+}
+
+sub str_upper {
+    my ($self, $message, $command, $rpl, $str) = @_;
+
+    return uc($str // '');
+}
+
+sub str_lower {
+    my ($self, $message, $command, $rpl, $str) = @_;
+
+    return lc($str // '');
+}
 
 sub str_index {
     my ($self, $message, $command, $rpl, $str, $match) = @_;

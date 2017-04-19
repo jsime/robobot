@@ -5,10 +5,7 @@ use v5.20;
 use namespace::autoclean;
 
 use Moose;
-use MooseX::SetOnce;
 
-use Data::Dumper;
-use Number::Format;
 use Scalar::Util qw( looks_like_number );
 
 extends 'App::RoboBot::Plugin';
@@ -33,78 +30,8 @@ has '+description' => (
 
 Clears current contents of the output buffer without displaying them.
 
-This applies only to normal output - error messages will still be dispayed to
+This applies only to normal output - error messages will still be displayed to
 the user should occur.
-
-=head2 join
-
-=head3 Description
-
-Joins together arguments into a single string, using the first argument as the
-delimiter.
-
-=head3 Usage
-
-<delimiter string> <list>
-
-=head3 Examples
-
-    :emphasize-lines: 2
-
-    (join ", " (seq 1 10))
-    "1, 2, 3, 4, 5, 6, 7, 8, 9, 10"
-
-=head2 split
-
-=head3 Description
-
-Splits a string into a list based on the delimiter provided. Delimiters may be
-a regular expression or fixed string.
-
-=head3 Usage
-
-<delimiter> <string>
-
-=head3 Examples
-
-    :emphasize-lines: 2
-
-    "[,\s]+" "1, 2, 3,4,    5"
-    (1 2 3 4 5)
-
-=head2 lower
-
-=head3 Description
-
-Converts the given string to lower-case.
-
-=head3 Usage
-
-<string>
-
-=head3 Examples
-
-    :emphasize-lines: 2
-
-    (lower "Foo Bar Baz")
-    "foo bar baz"
-
-=head2 upper
-
-=head3 Description
-
-Converts the given string to upper-case.
-
-=head3 Usage
-
-<string>
-
-=head3 Examples
-
-    :emphasize-lines: 2
-
-    (lower "Foo Bar Baz")
-    "FOO BAR BAZ"
 
 =head2 print
 
@@ -127,153 +54,19 @@ multiple arguments are given they are printed in array notation.
     (print foo 123 "bar" 456)
     ("foo" 123 "bar" 456)
 
-=head2 format
-
-=head3 Description
-
-Provides a printf-like string formatter. Placeholders follow the same rules as
-printf(1).
-
-=head3 Usage
-
-<format string> [<list>]
-
-=head3 Examples
-
-    :emphasize-lines: 2
-
-    (format "Random number: %d" (random 100))
-    "Random number: 42"
-
-=head2 format-number
-
-=head3 Description
-
-Provides numeric formatting for thousands separators, fixed precisions, and
-trailing zeroes.
-
-By default, numbers are formatted only with thousands separators added. Any
-decimal places in the original number are preserved without any change in
-precision.
-
-By specifying a precision only, any decimal places will be truncated to that
-as a maximum precision. The decimal places will not, however, be padded out
-with zeroes unless a positive integer (anything > 0) is passed as the third
-operand.
-
-=head3 Usage
-
-<number> [<precision> [<trailing zeroes>]]
-
-=head3 Examples
-
-    :emphasize-lines: 2,5,8
-
-    (format-number 12398123)
-    "12,398,123"
-
-    (format-number 3.1459 2)
-    "3.14"
-
-    (format-number 5 4 1)
-    "5.0000"
-
-=head2 str
-
-=head3 Description
-
-Returns a single string, either a simple concatenation of all arguments, or an
-empty string when no argument are given.
-
-=head3 Usage
-
-[<list>]
-
-=head3 Examples
-
-    :emphasize-lines: 2,5,8
-
-    (str)
-    ""
-
-    (str "foo")
-    "foo"
-
-    (str foo 123 "bar" 456)
-    "foo123bar456"
-
 =cut
 
 has '+commands' => (
     default => sub {{
         'clear'         => { method => 'clear_output' },
-        'join'          => { method => 'join_str' },
-        'split'         => { method => 'split_str' },
-        'lower'         => { method => 'str_lower' },
-        'upper'         => { method => 'str_upper' },
         'print'         => { method => 'print_str' },
-        'format'        => { method => 'format_str' },
-        'format-number' => { method => 'format_num' },
-        'str'           => { method => 'str_str' },
     }},
 );
-
-has 'nf' => (
-    is      => 'ro',
-    isa     => 'Number::Format',
-    default => sub { Number::Format->new() },
-);
-
-sub str_str {
-    my ($self, $message, $command, $rpl, @list) = @_;
-
-    return "" unless @list;
-    return join('', @list);
-}
 
 sub clear_output {
     my ($self, $message) = @_;
 
     $message->response->clear_content;
-}
-
-sub join_str {
-    my ($self, $message, $command, $rpl, @args) = @_;
-
-    return unless @args && scalar(@args) >= 2;
-    return join($args[0], @args[1..$#args]);
-}
-
-sub split_str {
-    my ($self, $message, $command, $rpl, $pattern, $string) = @_;
-
-    return unless defined $pattern && defined $string;
-
-    my @list;
-
-    eval {
-        @list = split(($pattern =~ m{^m?[/\{|\[](.*)[/\}|\]]$}s ? m{$1} : $pattern), $string);
-    };
-
-    if ($@) {
-        $message->response->raise('Invalid pattern provided for splitting.');
-        return;
-    }
-
-    return @list;
-}
-
-sub str_lower {
-    my ($self, $message, $command, $rpl, $str) = @_;
-
-    return unless defined $str;
-    return lc($str);
-}
-
-sub str_upper {
-    my ($self, $message, $command, $rpl, $str) = @_;
-
-    return uc($str);
 }
 
 sub print_str {
@@ -349,27 +142,6 @@ sub _print_map {
     }
 
     $$output .= ' }';
-}
-
-sub format_str {
-    my ($self, $message, $command, $rpl, $format, @args) = @_;
-
-    my $str;
-
-    eval { $str = sprintf($format, @args) };
-
-    if ($@) {
-        $message->response->raise(sprintf('Error: %s', $@));
-        return;
-    }
-
-    return $str;
-}
-
-sub format_num {
-    my ($self, $message, $command, $rpl, @args) = @_;
-
-    return $self->nf->format_number(@args);
 }
 
 __PACKAGE__->meta->make_immutable;

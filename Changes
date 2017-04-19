@@ -8,6 +8,9 @@ Revision history for App-RoboBot
   - Overhauled core.variables module to present a much more reasonable approach
     to managing and interacting with global variables. Includes extension to
     bind globals to expressions, evaluated each time global is used.
+  - Moved string and list related functions out of bot.output and into the
+    appropriate types.string/types.list modules, as determined by the output
+    type of each function not its argument type(s).
 
 4.004     2017-03-19
   - Added karma-losers to social.karma module.

@@ -124,6 +124,24 @@ Returns the number of elements in the provided list.
 
 <list>
 
+=head2 split
+
+=head3 Description
+
+Splits a string into a list based on the delimiter provided. Delimiters may be
+a regular expression or fixed string.
+
+=head3 Usage
+
+<delimiter> <string>
+
+=head3 Examples
+
+    :emphasize-lines: 2
+
+    (split "[,\s]+" "1, 2, 3,4,    5")
+    (1 2 3 4 5)
+
 =head2 filter
 
 =head3 Description
@@ -191,12 +209,13 @@ the results, preserving order. Each element of the input list is aliased to
 has '+commands' => (
     default => sub {{
         'nth'     => { method => 'list_nth' },
-        'first'   => { method => 'list_first ' },
+        'first'   => { method => 'list_first' },
         'shuffle' => { method => 'list_shuffle' },
         'sort'    => { method => 'list_sort' },
         'seq'     => { method => 'list_seq' },
         'any'     => { method => 'list_any' },
         'count'   => { method => 'list_count' },
+        'split'   => { method => 'list_split' },
         'filter'  => { method => 'list_filter', preprocess_args => 0 },
         'reduce'  => { method => 'list_reduce', preprocess_args => 0 },
         'map'     => { method => 'list_map',    preprocess_args => 0 },
@@ -285,6 +304,25 @@ sub list_map {
     }
 
     return @ret_list;
+}
+
+sub list_split {
+    my ($self, $message, $command, $rpl, $pattern, $string) = @_;
+
+    return unless defined $pattern && defined $string;
+
+    my @list;
+
+    eval {
+        @list = split(($pattern =~ m{^m?[/\{|\[](.*)[/\}|\]]$}s ? m{$1} : $pattern), $string);
+    };
+
+    if ($@) {
+        $message->response->raise('Invalid pattern provided for splitting.');
+        return;
+    }
+
+    return @list;
 }
 
 sub list_count {
