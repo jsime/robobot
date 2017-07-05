@@ -24,6 +24,14 @@ has '+description' => (
     default => 'Provides functions to access details and metadata for the current message context.',
 );
 
+=head2 msg-channel
+
+=head3 Description
+
+Returns the name of the channel for the current message context. If the message
+was sent via direct message or does not have a channel for any other reason,
+this function will return nil.
+
 =head2 msg-text
 
 =head3 Description
@@ -48,10 +56,18 @@ currently being processed.
 
 has '+commands' => (
     default => sub {{
-        'msg-text'   => { method => 'message_message' },
-        'msg-sender' => { method => 'message_sender' },
+        'msg-channel' => { method => 'message_channel' },
+        'msg-text'    => { method => 'message_message' },
+        'msg-sender'  => { method => 'message_sender' },
     }},
 );
+
+sub message_channel {
+    my ($self, $message, $comman, $rpl) = @_;
+
+    return $message->channel->name if $message->has_channel;
+    return;
+}
 
 sub message_message {
     my ($self, $message, $command, $rpl) = @_;
