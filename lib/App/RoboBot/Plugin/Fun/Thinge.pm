@@ -123,6 +123,7 @@ has '+commands' => (
         'thinge-counts' => { method => 'show_type_counts' },
         'thinge-types'  => { method => 'show_types' },
         'thinge-search' => { method => 'search_thinges' },
+        'thinge-stats'  => { method => 'show_thinge_stats' },
     }},
 );
 
@@ -476,6 +477,42 @@ sub show_type_counts {
     }
 
     return \%types;
+}
+
+sub show_thinge_stats {
+    my ($self, $message, $command, $rpl, $type) = @_;
+
+    my ($res);
+
+    if (defined $type && $type =~ m{\w+}o) {
+        $res = $self->bot->config->db->do(q{
+            select n.name, count(*)
+            from thinge_thinges t
+                join thinge_types tt on (tt.id = t.type_id)
+                join nicks n on (n.id = t.added_by)
+            where t.network_id = ?
+                and lower(tt.name) = lower(?)
+            group by n.name
+        }, $message->network->id, $type);
+    } else {
+        $res = $self->bot->config->db->do(q{
+            select n.name, count(*)
+            from thinge_thinges t
+                join nicks n on (n.id = t.added_by)
+            where t.network_id = ?
+            group by n.name
+        }, $message->network->id);
+    }
+
+    my %nicks;
+
+    if ($res) {
+        while ($res->next) {
+            $nicks{$res->[0]} = $res->[1];
+        }
+    }
+
+    return \%nicks;
 }
 
 sub get_tag_id {
