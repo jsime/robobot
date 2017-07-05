@@ -79,7 +79,8 @@ has '+commands' => (
     default => sub {{
         'and' => { method => 'bool_and', preprocess_args => 0 },
         'or'  => { method => 'bool_or',  preprocess_args => 0 },
-        'not' => { method => 'bool_unary' },
+        'not' => { method => 'bool_not' },
+        '!'   => { method => 'bool_not' },
     }},
 );
 
@@ -115,16 +116,11 @@ sub bool_or {
     return 0;
 }
 
-sub bool_unary {
-    my ($self, $message, $op, $rpl, @args) = @_;
+sub bool_not {
+    my ($self, $message, $cmd, $rpl, @args) = @_;
 
-    return unless $self->has_one_value($message, @args);
-
-    $op = '!' if lc($op) eq 'not';
-
-    my $r;
-    eval '$r = ' . $op . ' $args[0];';
-    return $r ? 1 : 0;
+    return 1 unless $self->has_one_value($message, @args);
+    return $args[0] ? 0 : 1;
 }
 
 sub has_one_value {
