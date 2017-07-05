@@ -44,7 +44,7 @@ messages.
 
 =head3 Examples
 
-    (remember Automtomatromaton)
+    (remember Automatomatromaton)
 
 =head2 forget
 
@@ -59,7 +59,7 @@ system dictionary.
 
 =head3 Examples
 
-    (forget Automtomatromaton)
+    (forget Automatomatromaton)
 
 =cut
 
@@ -70,7 +70,6 @@ has '+commands' => (
     }},
 );
 
-# TODO consider moving this to a configuration option
 has 'word_file' => (
     is      => 'ro',
     isa     => 'Str',
@@ -83,14 +82,28 @@ has 'ts' => (
     default => sub { Text::Aspell->new() },
 );
 
+has 'config' => (
+    is      => 'rw',
+    isa     => 'HashRef',
+    default => sub { { check => 25, correct => 25, limit => 7 } },
+);
+
+sub init {
+    my ($self, $bot) = @_;
+
+    foreach my $k (qw( check correct limit )) {
+        if (exists $bot->config->plugins->{'spellcheck'}{$k}
+                && $bot->config->plugins->{'spellcheck'}{$k} =~ m{^\d+(\.\d+)?$}) {
+            $self->config->{$k} = $bot->config->plugins->{'spellcheck'}{$k};
+        }
+    }
+}
+
 sub check_spelling {
     my ($self, $message) = @_;
 
-    # Don't correct spelling on S-Expressions
     return if $message->has_expression;
-
-    # TODO move this into a configuration option
-    return unless rand() <= 0.3;
+    return unless rand(100) <= $self->config->{'check'};
 
     my @words = split(/\s+/o, $message->raw);
     my @fixed = ();
@@ -111,10 +124,11 @@ sub check_spelling {
     }
 
     return unless @fixed && @fixed > 0;
+    return unless rand(100) <= $self->config->{'correct'};
 
     if (@fixed > 1) {
         @fixed = sort { length($b) <=> length($a) } @fixed; # favor longer words in corrections
-        @fixed = @fixed[0..6] if @fixed > 7; # limit number of corrections for people who are really terrible at spelling
+        @fixed = @fixed[0..($self->config->{'limit'}-1)] if @fixed > $self->config->{'limit'};
     }
 
     $message->response->push(sprintf('%s: %s', $message->sender->name, join(', ', map { '*' . $_ } @fixed)));
