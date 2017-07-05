@@ -216,6 +216,23 @@ delimiter.
     (join ", " (seq 1 10))
     "1, 2, 3, 4, 5, 6, 7, 8, 9, 10"
 
+=head2 length
+
+=head3 Description
+
+Returns an integer representing the number of characters in the provided string.
+
+=head3 Usage
+
+<string>
+
+=head3 Examples
+
+    :emphasize-lines: 3
+
+    (length "foobar")
+    6
+
 =cut
 
 has '+commands' => (
@@ -229,6 +246,7 @@ has '+commands' => (
         'format'        => { method => 'str_format' },
         'format-number' => { method => 'str_format_num' },
         'join'          => { method => 'str_join' },
+        'length'        => { method => 'str_length' },
     }},
 );
 
@@ -237,6 +255,13 @@ has 'nf' => (
     isa     => 'Number::Format',
     default => sub { Number::Format->new() },
 );
+
+sub str_length {
+    my ($self, $message, $command, $rpl, $str) = @_;
+
+    return unless defined $str;
+    return length($str);
+}
 
 sub str_format {
     my ($self, $message, $command, $rpl, $format, @args) = @_;
